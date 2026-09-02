@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="AISI.MuiLint.Tests" />
+    <InternalsVisibleTo Include="AISI.MuiLint.Vsix" />
   </ItemGroup>
 
 </Project>
