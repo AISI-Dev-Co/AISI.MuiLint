@@ -4,19 +4,19 @@ using AISI.MuiLint;
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Visual Studio package stub for AISI.MuiLint.
+    /// Visual Studio entry point for AISI.MuiLint HTML analysis.
     /// </summary>
     /// <remarks>
-    /// A later iteration hooks the VS 2022 HTML editor and calls
-    /// <see cref="AnalyzeHtml"/> on the buffer. The scanner is editor-agnostic and is already
-    /// used by the CLI and by <see cref="Analyzer"/>. This project ships a valid
-    /// VS 2022 vsixmanifest (Publisher AISI Dev Co, installation target [17.0,18.0)) so it
-    /// can be packed on Windows; the Visual Studio SDK is not required to compile the stub.
+    /// The VS 2022 HTML editor MEF tagger and Error List source call
+    /// <see cref="AnalyzeHtml"/> on the buffer. This is the single call into
+    /// <see cref="HtmlMergeScanner"/>. The CLI and <see cref="Analyzer"/> use the same scanner.
+    /// Editor MEF types live under Editor/ and compile only on Windows (Visual Studio SDK).
+    /// On Linux this stub still compiles as net472; packing a VSIX requires Windows.
     /// </remarks>
     public static class MuiLintPackage
     {
         /// <summary>
-        /// Runs the HTML merge analyzer. Future HTML-editor integration calls this.
+        /// Runs the HTML merge analyzer. The HTML-editor tagger calls this for the current buffer.
         /// </summary>
         /// <param name="path">Path of the HTML document.</param>
         /// <param name="text">Raw HTML.</param>

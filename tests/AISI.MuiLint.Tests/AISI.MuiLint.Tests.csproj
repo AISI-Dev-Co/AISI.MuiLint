@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\AISI.MuiLint.Vsix\MuiLintPackage.cs" Link="MuiLintPackage.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Fixtures\**\*.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

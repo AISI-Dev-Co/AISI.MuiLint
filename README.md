@@ -34,7 +34,7 @@ LICENSE
 README.md
 src/AISI.MuiLint              netstandard2.0  scanner + Roslyn additional-file analyzer
 src/AISI.MuiLint.Cli          net8            `muilint` command
-src/AISI.MuiLint.Vsix         net472          VS 2022 VSIX (package stub calls Analyzer)
+src/AISI.MuiLint.Vsix         net472          VS 2022 VSIX (HTML editor MEF tagger + Error List)
 tests/AISI.MuiLint.Tests      net8            fail/pass fixtures for all five ids
 .github/workflows/ci.yml      ubuntu test + roslynator; windows pack vsix
 ```
@@ -56,11 +56,17 @@ path(line,column): AISI0001: Self-closing <field> is not valid …
 
 ## Visual Studio
 
-Install the VSIX (Windows, VS 2022). The analyzer runs on `.html` **additional files** of C#
-projects today. The package stub (`MuiLintPackage.AnalyzeHtml`) is the hook a later iteration
-will bind to the HTML editor so you do not have to list files as additional files.
+Install the VSIX (Windows, VS 2022). The HTML editor shows squiggles and Error List entries
+(AISI0001–AISI0005, file, line, column) via a MEF `ITagger<IErrorTag>` for content types
+`htmlx` (VS 2022 Web Tools HTML editor) and `html` (classic HTML editor). The tagger calls
+`MuiLintPackage.AnalyzeHtml`, which is the single entry into `HtmlMergeScanner`.
 
-Until then, `muilint` is the reliable way to scan a `development/screens` tree.
+The Roslyn additional-file analyzer still runs on `.html` additional files of C# projects,
+and `muilint` still scans a `development/screens` tree from the command line.
+
+Linux cannot pack or run the VSIX (`CreateVsixContainer=false`); `AnalyzeHtml` still compiles
+as `net472`. `htmlx` simply does not apply without Web Tools; the VSIX does not require the
+full Web workload to install.
 
 ## Build and test
 
