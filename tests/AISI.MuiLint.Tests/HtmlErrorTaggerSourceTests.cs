@@ -33,6 +33,28 @@ namespace AISI.MuiLint.Tests
             Assert.DoesNotContain("JoinableTaskFactory jtf", provider, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void CreateTagger_DoesNotCallAddView()
+        {
+            string src = ReadEditor("HtmlErrorTaggerProvider.cs");
+            int start = src.IndexOf("public ITagger<T> CreateTagger", StringComparison.Ordinal);
+            int end = src.IndexOf("public void TextViewCreated", StringComparison.Ordinal);
+            Assert.True(start >= 0 && end > start, "CreateTagger / TextViewCreated missing");
+            string createTagger = src.Substring(start, end - start);
+            Assert.DoesNotContain("AddView()", createTagger, StringComparison.Ordinal);
+            Assert.Contains("tagger.AddView()", src, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Package_AutoLoadsOnShellInit_NoVssdk007Pragma()
+        {
+            string pkg = ReadEditor("MuiLintVsPackage.cs");
+            Assert.Contains("ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string, PackageAutoLoadFlags.BackgroundLoad)", pkg, StringComparison.Ordinal);
+            Assert.DoesNotContain("warning disable VSSDK007", pkg, StringComparison.Ordinal);
+            Assert.DoesNotContain("warning disable VSSDK007", ReadEditor("HtmlErrorTagger.cs"), StringComparison.Ordinal);
+            Assert.DoesNotContain("warning disable VSSDK007", ReadEditor("HtmlErrorTaggerProvider.cs"), StringComparison.Ordinal);
+        }
+
         private static string ReadEditor(string fileName)
         {
             string path = Path.Combine(AppContext.BaseDirectory, "EditorSnapshots", fileName);

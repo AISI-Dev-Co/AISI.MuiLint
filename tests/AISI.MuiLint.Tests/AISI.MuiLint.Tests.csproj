@@ -34,6 +34,7 @@
     </None>
     <None Include="..\..\src\AISI.MuiLint.Vsix\Editor\HtmlErrorTagger.cs" Link="EditorSnapshots\HtmlErrorTagger.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\AISI.MuiLint.Vsix\Editor\HtmlErrorTaggerProvider.cs" Link="EditorSnapshots\HtmlErrorTaggerProvider.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\AISI.MuiLint.Vsix\Editor\MuiLintVsPackage.cs" Link="EditorSnapshots\MuiLintVsPackage.cs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
