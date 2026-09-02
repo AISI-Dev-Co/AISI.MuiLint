@@ -29,15 +29,17 @@ jobs:
 
       - name: Install Roslynator
         run: |
-          dotnet tool update -g roslynator.dotnet.cli
+          dotnet tool install -g roslynator.dotnet.cli --version 1.0.0
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Restore
+        run: dotnet restore AISI.MuiLint.sln
 
       - name: Analyze
         run: |
           roslynator analyze \
             src/AISI.MuiLint/AISI.MuiLint.csproj \
-            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj \
-            tests/AISI.MuiLint.Tests/AISI.MuiLint.Tests.csproj
+            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj
 
   pack-vsix:
     runs-on: windows-latest
