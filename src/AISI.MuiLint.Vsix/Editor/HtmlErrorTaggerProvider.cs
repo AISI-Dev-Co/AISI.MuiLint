@@ -11,8 +11,9 @@ namespace AISI.MuiLint.Vsix
     /// <summary>
     /// MEF tagger provider for the VS 2022 Web Tools HTML editor (<c>htmlx</c>) and the
     /// classic HTML editor (<c>html</c>). One <see cref="HtmlErrorTagger"/> per buffer even
-    /// when both content types match (htmlx may derive from html). Views refcount Dispose
-    /// so untitled buffers unhook <c>Changed</c> and the Error List factory.
+    /// when both content types match (htmlx may derive from html). Teardown is buffer close
+    /// (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), not only view-refcount or
+    /// <c>ITextDocument</c> (peek/diff/projection can skip <see cref="TextViewCreated"/>).
     /// </summary>
     [Export(typeof(ITaggerProvider))]
     [Export(typeof(IWpfTextViewCreationListener))]
