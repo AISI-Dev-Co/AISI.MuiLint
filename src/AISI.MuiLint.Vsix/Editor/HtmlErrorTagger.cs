@@ -240,7 +240,7 @@ namespace AISI.MuiLint.Vsix
 
             try
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token).ConfigureAwait(true);
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
             }
             catch (OperationCanceledException)
             {
