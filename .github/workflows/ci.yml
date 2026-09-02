@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Test
+        run: dotnet test tests/AISI.MuiLint.Tests/AISI.MuiLint.Tests.csproj --configuration Release --verbosity normal
+
+      - name: Roslynator
+        run: |
+          dotnet tool update -g roslynator.dotnet.cli
+          roslynator analyze \
+            src/AISI.MuiLint/AISI.MuiLint.csproj \
+            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj \
+            tests/AISI.MuiLint.Tests/AISI.MuiLint.Tests.csproj
+
+  pack-vsix:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Pack VSIX
+        run: dotnet build src/AISI.MuiLint.Vsix/AISI.MuiLint.Vsix.csproj --configuration Release
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: AISI.MuiLint.vsix
+          path: '**/*.vsix'
+          if-no-files-found: warn

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AISI.MuiLint.Cli</RootNamespace>
+    <AssemblyName>muilint</AssemblyName>
+    <Description>Command-line runner for AISI.MuiLint. Scans Acumatica Modern UI HTML files for merge traps.</Description>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>muilint</ToolCommandName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AISI.MuiLint\AISI.MuiLint.csproj" />
+  </ItemGroup>
+
+</Project>
