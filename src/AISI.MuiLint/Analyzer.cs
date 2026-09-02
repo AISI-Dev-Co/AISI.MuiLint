@@ -22,7 +22,7 @@ namespace AISI.MuiLint
             "Self-closing Modern UI tag",
             "{0}",
             "HTML Merge",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "Acumatica Modern UI merge does not treat self-closing <field> or <qp-*> tags as a full start/end pair. Use explicit end tags.");
 
@@ -31,7 +31,7 @@ namespace AISI.MuiLint
             "after/before name selector defined in this file",
             "{0}",
             "HTML Merge",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "HTML merge only sees stock HTML. An after/before [name='X'] selector cannot target a name introduced in the same extension file.");
 
@@ -40,7 +40,7 @@ namespace AISI.MuiLint
             "Stock src/screens path",
             "{0}",
             "HTML Merge",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "Custom and customized Modern UI source belongs in development/screens or customizationScreens, not the stock src/screens tree.");
 
@@ -49,7 +49,7 @@ namespace AISI.MuiLint
             "Extension named as the parent screen",
             "{0}",
             "HTML Merge",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "An extensions/*.html file must not use the parent screen folder as its basename (SO301000/extensions/SO301000.html). Add a postfix.");
 
@@ -58,7 +58,7 @@ namespace AISI.MuiLint
             "Empty qp-fieldset",
             "{0}",
             "HTML Merge",
-            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
             isEnabledByDefault: true,
             description: "A qp-fieldset whose body is only whitespace or comments will merge as an empty fieldset. Merge-operation fieldsets (modify/remove/replace) are allowed to be empty.");
 
@@ -69,7 +69,7 @@ namespace AISI.MuiLint
             ExtensionBasename,
             EmptyFieldset);
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Supported;
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace AISI.MuiLint
             return HtmlMergeScanner.Analyze(path, text);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         public override void Initialize(AnalysisContext context)
         {
             if (context is null)

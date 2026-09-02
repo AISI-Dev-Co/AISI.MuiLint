@@ -95,7 +95,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void StockPath_IsIgnoredUnderDevelopmentScreens()
         {
-            Assert.False(HtmlMergeScanner.IsStockScreensPath(@"C:\site\FrontendSources\screen\src\development\screens\SO\SO301000\SO301000.html"));
+            Assert.False(HtmlMergeScanner.IsStockScreensPath(@"C:\\site\\FrontendSources\\screen\\src\\development\\screens\\SO\\SO301000\\SO301000.html"));
             Assert.False(HtmlMergeScanner.IsStockScreensPath("/site/FrontendSources/screen/src/customizationScreens/AISI/SO/SO301000/SO301000.html"));
             Assert.True(HtmlMergeScanner.IsStockScreensPath("/site/FrontendSources/screen/src/screens/SO/SO301000/SO301000.html"));
         }
@@ -115,6 +115,9 @@ namespace AISI.MuiLint.Tests
                     DiagnosticIds.EmptyFieldset
                 },
                 ids);
+            Assert.All(
+                analyzer.SupportedDiagnostics,
+                d => Assert.Equal(DiagnosticSeverity.Error, d.DefaultSeverity));
         }
 
         [Fact]
