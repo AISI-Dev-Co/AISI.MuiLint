@@ -345,18 +345,19 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            IConnectionPointContainer container = vsBuffer as IConnectionPointContainer;
-            if (container == null)
-            {
-                return;
-            }
-
             Guid iid = typeof(IVsTextBufferDataEvents).GUID;
             try
             {
-                // VSTHRD010: gated by CheckAccess above. Do not call ThrowIfNotOnUIThread here —
-                // that marks Hook/Unhook UI-affined and cascades to Dispose/ReleaseView callers.
+                // VSTHRD010: gated by CheckAccess above. Do not call ThrowIfNotOnUIThread —
+                // that marks Hook/Unhook UI-affined and cascades to Dispose/ReleaseView.
+                // Pragma must cover the IConnectionPointContainer cast (line that failed on 920fb848).
 #pragma warning disable VSTHRD010
+                IConnectionPointContainer container = vsBuffer as IConnectionPointContainer;
+                if (container == null)
+                {
+                    return;
+                }
+
                 container.FindConnectionPoint(ref iid, out IConnectionPoint point);
                 if (point == null)
                 {
