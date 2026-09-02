@@ -58,7 +58,8 @@ namespace AISI.MuiLint.Vsix
             _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
 
-            if (_textDocumentFactory.TryGetTextDocument(_buffer, out ITextDocument document))
+            ITextDocument document = TryGetHtmlDocument(_buffer);
+            if (document != null)
             {
                 _document = document;
                 _document.FileActionOccurred += OnFileActionOccurred;
@@ -241,10 +242,55 @@ namespace AISI.MuiLint.Vsix
 
         private void OnTextDocumentDisposed(object sender, TextDocumentEventArgs e)
         {
-            if (e != null && e.TextDocument != null && e.TextDocument.TextBuffer == _buffer)
+            if (e == null || e.TextDocument == null)
+            {
+                return;
+            }
+
+            // htmlx: ITextDocument lives on the document buffer; the tagger sits on a projection.
+            if (_document != null && object.ReferenceEquals(e.TextDocument, _document))
+            {
+                Dispose();
+                return;
+            }
+
+            ITextBuffer documentBuffer = e.TextDocument.TextBuffer;
+            if (documentBuffer != null && IsOurDocumentBuffer(documentBuffer))
             {
                 Dispose();
             }
+        }
+
+        private bool IsOurDocumentBuffer(ITextBuffer candidate)
+        {
+            ITextDocument document = _document;
+            if (document != null && document.TextBuffer != null &&
+                object.ReferenceEquals(candidate, document.TextBuffer))
+            {
+                return true;
+            }
+
+            IProjectionBuffer projection = _buffer as IProjectionBuffer;
+            if (projection == null)
+            {
+                return false;
+            }
+
+            IList<ITextBuffer> sources = projection.SourceBuffers;
+            if (sources == null)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < sources.Count; i++)
+            {
+                if (object.ReferenceEquals(sources[i], candidate))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void ScheduleAnalyze()
@@ -384,7 +430,7 @@ namespace AISI.MuiLint.Vsix
             ITextDocument document = _document;
             if (document == null)
             {
-                _textDocumentFactory.TryGetTextDocument(_buffer, out document);
+                document = TryGetHtmlDocument(_buffer);
             }
 
             if (document != null && !string.IsNullOrEmpty(document.FilePath))
@@ -488,6 +534,34 @@ namespace AISI.MuiLint.Vsix
             catch (COMException)
             {
             }
+        }
+
+        private ITextDocument TryGetHtmlDocument(ITextBuffer buffer)
+        {
+            ITextDocument document;
+            if (_textDocumentFactory.TryGetTextDocument(buffer, out document))
+            {
+                return document;
+            }
+
+            IProjectionBuffer projection = buffer as IProjectionBuffer;
+            if (projection != null)
+            {
+                IList<ITextBuffer> sources = projection.SourceBuffers;
+                if (sources != null)
+                {
+                    for (int i = 0; i < sources.Count; i++)
+                    {
+                        ITextBuffer source = sources[i];
+                        if (source != null && _textDocumentFactory.TryGetTextDocument(source, out document))
+                        {
+                            return document;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         private IVsTextBuffer TryGetVsBuffer()
