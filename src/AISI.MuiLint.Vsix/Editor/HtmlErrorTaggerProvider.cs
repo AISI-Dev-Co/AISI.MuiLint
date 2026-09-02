@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
 
 namespace AISI.MuiLint.Vsix
@@ -29,16 +30,26 @@ namespace AISI.MuiLint.Vsix
         private readonly ITextDocumentFactoryService _textDocumentFactory;
         private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
+        private readonly JoinableTaskFactory _joinableTaskFactory;
 
         [ImportingConstructor]
         public HtmlErrorTaggerProvider(
             ITextDocumentFactoryService textDocumentFactory,
             IVsEditorAdaptersFactoryService adaptersFactory,
-            HtmlErrorTableDataSource tableDataSource)
+            HtmlErrorTableDataSource tableDataSource,
+            JoinableTaskContext joinableTaskContext)
         {
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
             _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
+            if (joinableTaskContext == null)
+            {
+                throw new ArgumentNullException(nameof(joinableTaskContext));
+            }
+
+            // Prefer AsyncPackage.JTF (in the joinable collection). MEF context is the
+            // fallback when this provider is constructed before the package initializes.
+            _joinableTaskFactory = MuiLintVsPackage.PackageJoinableTaskFactory ?? joinableTaskContext.Factory;
         }
 
         /// <inheritdoc />
@@ -76,12 +87,14 @@ namespace AISI.MuiLint.Vsix
 
         private HtmlErrorTagger GetOrCreateTagger(ITextBuffer buffer)
         {
+            JoinableTaskFactory jtf = MuiLintVsPackage.PackageJoinableTaskFactory ?? _joinableTaskFactory;
             return buffer.Properties.GetOrCreateSingletonProperty(
                 () => new HtmlErrorTagger(
                     buffer,
                     _textDocumentFactory,
                     _adaptersFactory,
-                    _tableDataSource));
+                    _tableDataSource,
+                    jtf));
         }
 
         private sealed class ViewHook
