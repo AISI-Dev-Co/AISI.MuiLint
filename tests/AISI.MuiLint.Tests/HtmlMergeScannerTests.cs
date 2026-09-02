@@ -136,6 +136,22 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(viaAnalyzer[0].Id, viaScanner[0].Id);
         }
 
+        [Fact]
+        public void AnalyzeHtml_EqualsHtmlMergeScanner()
+        {
+            const string html = "<template><field name=\"OrderNbr\"/></template>";
+            IReadOnlyList<Diagnostic> viaPackage = AISI.MuiLint.Vsix.MuiLintPackage.AnalyzeHtml("x.html", html);
+            IReadOnlyList<Diagnostic> viaScanner = HtmlMergeScanner.Analyze("x.html", html);
+            Assert.Equal(viaScanner.Count, viaPackage.Count);
+            for (int i = 0; i < viaScanner.Count; i++)
+            {
+                Assert.Equal(viaScanner[i].Id, viaPackage[i].Id);
+                Assert.Equal(viaScanner[i].Start, viaPackage[i].Start);
+                Assert.Equal(viaScanner[i].Length, viaPackage[i].Length);
+                Assert.Equal(viaScanner[i].Message, viaPackage[i].Message);
+            }
+        }
+
         private static ImmutableArray<RoslynDiagnostic> RunAnalyzer(string path, string html)
         {
             CSharpCompilation compilation = CSharpCompilation.Create(

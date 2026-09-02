@@ -20,6 +20,8 @@
     <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
   </Prerequisites>
   <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="AISI.MuiLint.Vsix" Path="|AISI.MuiLint.Vsix;PkgdefProjectOutputGroup|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="AISI.MuiLint.Vsix" Path="|AISI.MuiLint.Vsix|" />
     <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="AISI.MuiLint" Path="|AISI.MuiLint|" />
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="AISI.MuiLint" Path="|AISI.MuiLint|" />
   </Assets>

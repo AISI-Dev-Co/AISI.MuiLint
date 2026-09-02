@@ -1,16 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Packable VS 2022 VSIX project. On Windows with the VSSDK, `dotnet build` produces a .vsix.
-    On Linux the Visual Studio SDK packing targets are absent: the project still compiles as
-    net472 (reference assemblies) and the vsixmanifest stays valid. CreateVsixContainer is
+    Packable VS 2022 VSIX project. On Windows with the VSSDK, `dotnet build` produces a .vsix
+    that MEF-hooks the HTML editor (htmlx + html) and the Error List.
+    On Linux the Visual Studio SDK packing targets are absent: MuiLintPackage.AnalyzeHtml still
+    compiles as net472; Editor/** MEF files are Compile-Remove'd. CreateVsixContainer is
     forced off outside Windows so the solution can build on this box.
   -->
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>AISI.MuiLint.Vsix</RootNamespace>
     <AssemblyName>AISI.MuiLint.Vsix</AssemblyName>
-    <Description>Visual Studio 2022 VSIX host for AISI.MuiLint. Package stub calls the HTML merge analyzer.</Description>
+    <Description>Visual Studio 2022 VSIX for AISI.MuiLint. HTML editor squiggles and Error List via MEF tagger; AnalyzeHtml calls the HTML merge scanner.</Description>
     <IsPackable>false</IsPackable>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
@@ -54,7 +55,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AISI.MuiLint\AISI.MuiLint.csproj" />
+    <ProjectReference Include="..\AISI.MuiLint\AISI.MuiLint.csproj">
+      <Name>AISI.MuiLint</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup;BuiltProjectOutputGroupDependencies;GetCopyToOutputDirectoryItems;SatelliteDllsProjectOutputGroup</IncludeOutputGroupsInVSIX>
+      <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup</IncludeOutputGroupsInVSIXLocalOnly>
+      <Private>true</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- Editor MEF types need the Visual Studio SDK. Keep AnalyzeHtml compiling on Linux. -->
+  <ItemGroup Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Compile Remove="Editor\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
