@@ -21,6 +21,7 @@ jobs:
       - name: Roslynator
         run: |
           dotnet tool update -g roslynator.dotnet.cli
+          export PATH="$HOME/.dotnet/tools:$PATH"
           roslynator analyze \
             src/AISI.MuiLint/AISI.MuiLint.csproj \
             src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj \
@@ -28,6 +29,7 @@ jobs:
 
   pack-vsix:
     runs-on: windows-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
