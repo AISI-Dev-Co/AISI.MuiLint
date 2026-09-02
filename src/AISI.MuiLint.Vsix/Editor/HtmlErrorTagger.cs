@@ -20,14 +20,13 @@ namespace AISI.MuiLint.Vsix
     /// <summary>
     /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> off the UI thread
     /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
-    /// Teardown is buffer-close (<see cref="IVsTextBufferDataEvents.OnCloseEvent"/>), content-type
+    /// Teardown is buffer-close (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), content-type
     /// drop, last view, or <see cref="ITextDocument"/> dispose — not view-refcount alone.
     /// </summary>
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
         private const int DebounceMilliseconds = 300;
         private const string FallbackPath = "buffer.html";
-        private const string FaultEventName = "AISI/MuiLint/HtmlErrorTagger/Debounce";
 
         private readonly ITextBuffer _buffer;
         private readonly ITextDocumentFactoryService _textDocumentFactory;
@@ -43,6 +42,7 @@ namespace AISI.MuiLint.Vsix
         private IConnectionPoint _closePoint;
         private uint _closeCookie;
         private BufferCloseSink _closeSink;
+        private JoinableTask _debounceTask;
 
         public HtmlErrorTagger(
             ITextBuffer buffer,
@@ -62,7 +62,11 @@ namespace AISI.MuiLint.Vsix
             _textDocumentFactory.TextDocumentDisposed += OnTextDocumentDisposed;
             _buffer.Changed += OnBufferChanged;
             _buffer.ContentTypeChanged += OnContentTypeChanged;
-            HookBufferClose();
+            if (ThreadHelper.CheckAccess())
+            {
+                HookBufferClose();
+            }
+
             ScheduleAnalyze();
         }
 
@@ -148,7 +152,11 @@ namespace AISI.MuiLint.Vsix
 
             _disposed = true;
             _viewCount = 0;
-            UnhookBufferClose();
+            if (ThreadHelper.CheckAccess())
+            {
+                UnhookBufferClose();
+            }
+
             _buffer.Changed -= OnBufferChanged;
             _buffer.ContentTypeChanged -= OnContentTypeChanged;
             _textDocumentFactory.TextDocumentDisposed -= OnTextDocumentDisposed;
@@ -165,6 +173,19 @@ namespace AISI.MuiLint.Vsix
                 debounce.Dispose();
             }
 
+            JoinableTask pending = _debounceTask;
+            _debounceTask = null;
+            if (pending != null)
+            {
+                try
+                {
+                    pending.Join();
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
             _tableDataSource.Remove(_buffer);
             if (_buffer.Properties.ContainsProperty(typeof(HtmlErrorTagger)))
             {
@@ -179,7 +200,11 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            HookBufferClose();
+            if (ThreadHelper.CheckAccess())
+            {
+                HookBufferClose();
+            }
+
             ScheduleAnalyze();
         }
 
@@ -229,7 +254,7 @@ namespace AISI.MuiLint.Vsix
             }
 
             CancellationToken token = next.Token;
-            ThreadHelper.JoinableTaskFactory.RunAsync(
+            _debounceTask = ThreadHelper.JoinableTaskFactory.RunAsync(
                 async () =>
                 {
                     try
@@ -243,7 +268,7 @@ namespace AISI.MuiLint.Vsix
                     {
                         LogFault(ex);
                     }
-                }).FileAndForget(FaultEventName);
+                });
         }
 
         private async Task DebounceAsync(CancellationToken token)
@@ -338,6 +363,8 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             IVsTextBuffer vsBuffer;
             if (!_buffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out vsBuffer) || vsBuffer == null)
             {
@@ -372,6 +399,8 @@ namespace AISI.MuiLint.Vsix
 
         private void UnhookBufferClose()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             IConnectionPoint point = _closePoint;
             uint cookie = _closeCookie;
             _closePoint = null;
