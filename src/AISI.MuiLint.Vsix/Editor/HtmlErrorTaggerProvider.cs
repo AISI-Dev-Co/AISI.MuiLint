@@ -1,6 +1,7 @@
 #nullable disable
 using System;
 using System.ComponentModel.Composition;
+using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
@@ -14,6 +15,7 @@ namespace AISI.MuiLint.Vsix
     /// when both content types match (htmlx may derive from html). Teardown is buffer close
     /// (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), not only view-refcount or
     /// <c>ITextDocument</c> (peek/diff/projection can skip <see cref="TextViewCreated"/>).
+    /// <see cref="CreateTagger"/> calls <c>AddView</c> so peek/diff still refcount.
     /// </summary>
     [Export(typeof(ITaggerProvider))]
     [Export(typeof(IWpfTextViewCreationListener))]
@@ -25,14 +27,17 @@ namespace AISI.MuiLint.Vsix
     internal sealed class HtmlErrorTaggerProvider : ITaggerProvider, IWpfTextViewCreationListener
     {
         private readonly ITextDocumentFactoryService _textDocumentFactory;
+        private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
 
         [ImportingConstructor]
         public HtmlErrorTaggerProvider(
             ITextDocumentFactoryService textDocumentFactory,
+            IVsEditorAdaptersFactoryService adaptersFactory,
             HtmlErrorTableDataSource tableDataSource)
         {
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
+            _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
         }
 
@@ -45,7 +50,9 @@ namespace AISI.MuiLint.Vsix
                 throw new ArgumentNullException(nameof(buffer));
             }
 
-            return GetOrCreateTagger(buffer) as ITagger<T>;
+            HtmlErrorTagger tagger = GetOrCreateTagger(buffer);
+            tagger.AddView();
+            return tagger as ITagger<T>;
         }
 
         /// <inheritdoc />
@@ -72,7 +79,11 @@ namespace AISI.MuiLint.Vsix
         private HtmlErrorTagger GetOrCreateTagger(ITextBuffer buffer)
         {
             return buffer.Properties.GetOrCreateSingletonProperty(
-                () => new HtmlErrorTagger(buffer, _textDocumentFactory, _tableDataSource));
+                () => new HtmlErrorTagger(
+                    buffer,
+                    _textDocumentFactory,
+                    _adaptersFactory,
+                    _tableDataSource));
         }
 
         private sealed class ViewHook
