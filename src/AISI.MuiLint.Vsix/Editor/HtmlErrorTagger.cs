@@ -4,15 +4,17 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AISI.MuiLint;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.Threading;
 
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> on the buffer and
-    /// emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
+    /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> off the UI thread
+    /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
     /// </summary>
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
@@ -28,6 +30,7 @@ namespace AISI.MuiLint.Vsix
         private CancellationTokenSource _debounce = new CancellationTokenSource();
         private ITextSnapshot _analyzedSnapshot;
         private IReadOnlyList<Diagnostic> _diagnostics = Array.Empty<Diagnostic>();
+        private int _viewCount;
         private bool _disposed;
 
         public HtmlErrorTagger(
@@ -47,10 +50,23 @@ namespace AISI.MuiLint.Vsix
 
             _textDocumentFactory.TextDocumentDisposed += OnTextDocumentDisposed;
             _buffer.Changed += OnBufferChanged;
-            Analyze();
+            ScheduleAnalyze();
         }
 
         public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+
+        public void AddView()
+        {
+            Interlocked.Increment(ref _viewCount);
+        }
+
+        public void ReleaseView()
+        {
+            if (Interlocked.Decrement(ref _viewCount) <= 0)
+            {
+                Dispose();
+            }
+        }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
         {
@@ -118,6 +134,7 @@ namespace AISI.MuiLint.Vsix
             }
 
             _disposed = true;
+            _viewCount = 0;
             _buffer.Changed -= OnBufferChanged;
             _textDocumentFactory.TextDocumentDisposed -= OnTextDocumentDisposed;
             if (_document != null)
@@ -150,7 +167,7 @@ namespace AISI.MuiLint.Vsix
         {
             if ((e.FileActionType & FileActionTypes.DocumentRenamed) != 0)
             {
-                Analyze();
+                ScheduleAnalyze();
             }
         }
 
@@ -185,7 +202,7 @@ namespace AISI.MuiLint.Vsix
         {
             try
             {
-                await Task.Delay(DebounceMilliseconds, token).ConfigureAwait(true);
+                await Task.Delay(DebounceMilliseconds, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -197,20 +214,39 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            Analyze();
-        }
+            ITextSnapshot snapshot = _buffer.CurrentSnapshot;
+            string path = ResolvePath();
+            string text = snapshot.GetText();
 
-        private void Analyze()
-        {
-            if (_disposed)
+            IReadOnlyList<Diagnostic> diagnostics;
+            try
+            {
+                diagnostics = await Task.Run(() => MuiLintPackage.AnalyzeHtml(path, text), token)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
             {
                 return;
             }
 
-            ITextSnapshot snapshot = _buffer.CurrentSnapshot;
-            string path = ResolvePath();
-            string text = snapshot.GetText();
-            IReadOnlyList<Diagnostic> diagnostics = MuiLintPackage.AnalyzeHtml(path, text);
+            if (token.IsCancellationRequested || _disposed)
+            {
+                return;
+            }
+
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (_disposed || token.IsCancellationRequested)
+            {
+                return;
+            }
 
             lock (_gate)
             {
