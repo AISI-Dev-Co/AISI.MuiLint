@@ -1,25 +1,33 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AISI.MuiLint;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Tagging;
+using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.Utilities;
 
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
     /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> off the UI thread
     /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
+    /// Teardown is buffer-close (<see cref="IVsTextBufferDataEvents.OnCloseEvent"/>), content-type
+    /// drop, last view, or <see cref="ITextDocument"/> dispose — not view-refcount alone.
     /// </summary>
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
         private const int DebounceMilliseconds = 300;
         private const string FallbackPath = "buffer.html";
+        private const string FaultEventName = "AISI/MuiLint/HtmlErrorTagger/Debounce";
 
         private readonly ITextBuffer _buffer;
         private readonly ITextDocumentFactoryService _textDocumentFactory;
@@ -32,6 +40,9 @@ namespace AISI.MuiLint.Vsix
         private IReadOnlyList<Diagnostic> _diagnostics = Array.Empty<Diagnostic>();
         private int _viewCount;
         private bool _disposed;
+        private IConnectionPoint _closePoint;
+        private uint _closeCookie;
+        private BufferCloseSink _closeSink;
 
         public HtmlErrorTagger(
             ITextBuffer buffer,
@@ -50,6 +61,8 @@ namespace AISI.MuiLint.Vsix
 
             _textDocumentFactory.TextDocumentDisposed += OnTextDocumentDisposed;
             _buffer.Changed += OnBufferChanged;
+            _buffer.ContentTypeChanged += OnContentTypeChanged;
+            HookBufferClose();
             ScheduleAnalyze();
         }
 
@@ -135,7 +148,9 @@ namespace AISI.MuiLint.Vsix
 
             _disposed = true;
             _viewCount = 0;
+            UnhookBufferClose();
             _buffer.Changed -= OnBufferChanged;
+            _buffer.ContentTypeChanged -= OnContentTypeChanged;
             _textDocumentFactory.TextDocumentDisposed -= OnTextDocumentDisposed;
             if (_document != null)
             {
@@ -164,7 +179,22 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
+            HookBufferClose();
             ScheduleAnalyze();
+        }
+
+        private void OnContentTypeChanged(object sender, ContentTypeChangedEventArgs e)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            IContentType type = _buffer.ContentType;
+            if (type == null || (!type.IsOfType("htmlx") && !type.IsOfType("html")))
+            {
+                Dispose();
+            }
         }
 
         private void OnFileActionOccurred(object sender, TextDocumentFileActionEventArgs e)
@@ -199,7 +229,21 @@ namespace AISI.MuiLint.Vsix
             }
 
             CancellationToken token = next.Token;
-            _ = DebounceAsync(token);
+            ThreadHelper.JoinableTaskFactory.RunAsync(
+                async () =>
+                {
+                    try
+                    {
+                        await DebounceAsync(token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        LogFault(ex);
+                    }
+                }).FileAndForget(FaultEventName);
         }
 
         private async Task DebounceAsync(CancellationToken token)
@@ -287,6 +331,77 @@ namespace AISI.MuiLint.Vsix
             return FallbackPath;
         }
 
+        private void HookBufferClose()
+        {
+            if (_disposed || _closePoint != null)
+            {
+                return;
+            }
+
+            IVsTextBuffer vsBuffer;
+            if (!_buffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out vsBuffer) || vsBuffer == null)
+            {
+                return;
+            }
+
+            IConnectionPointContainer container = vsBuffer as IConnectionPointContainer;
+            if (container == null)
+            {
+                return;
+            }
+
+            Guid iid = typeof(IVsTextBufferDataEvents).GUID;
+            try
+            {
+                container.FindConnectionPoint(ref iid, out IConnectionPoint point);
+                if (point == null)
+                {
+                    return;
+                }
+
+                BufferCloseSink sink = new BufferCloseSink(this);
+                point.Advise(sink, out uint cookie);
+                _closeSink = sink;
+                _closePoint = point;
+                _closeCookie = cookie;
+            }
+            catch (COMException)
+            {
+            }
+        }
+
+        private void UnhookBufferClose()
+        {
+            IConnectionPoint point = _closePoint;
+            uint cookie = _closeCookie;
+            _closePoint = null;
+            _closeCookie = 0;
+            _closeSink = null;
+            if (point == null || cookie == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                point.Unadvise(cookie);
+            }
+            catch (COMException)
+            {
+            }
+        }
+
+        private static void LogFault(Exception ex)
+        {
+            try
+            {
+                ActivityLog.LogError("AISI.MuiLint", ex.ToString());
+            }
+            catch (Exception)
+            {
+            }
+        }
+
         private static SnapshotSpan? TryClamp(ITextSnapshot snapshot, Diagnostic diagnostic)
         {
             int length = snapshot.Length;
@@ -318,6 +433,30 @@ namespace AISI.MuiLint.Vsix
             }
 
             return new SnapshotSpan(snapshot, start, spanLength);
+        }
+
+        private sealed class BufferCloseSink : IVsTextBufferDataEvents
+        {
+            private readonly HtmlErrorTagger _owner;
+
+            public BufferCloseSink(HtmlErrorTagger owner)
+            {
+                _owner = owner;
+            }
+
+            public void OnFileChanged(uint grfChange, uint dwFileAttrs)
+            {
+            }
+
+            public int OnLoadCompleted(int fReload)
+            {
+                return VSConstants.S_OK;
+            }
+
+            public void OnCloseEvent()
+            {
+                _owner.Dispose();
+            }
         }
     }
 }

@@ -43,7 +43,6 @@ jobs:
 
   pack-vsix:
     runs-on: windows-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -59,4 +58,4 @@ jobs:
         with:
           name: AISI.MuiLint.vsix
           path: '**/*.vsix'
-          if-no-files-found: warn
+          if-no-files-found: error
