@@ -23,10 +23,6 @@ namespace AISI.MuiLint.Vsix
     [Name("AISI.MuiLint.HtmlErrorTagger")]
     internal sealed class HtmlErrorTaggerProvider : ITaggerProvider, IWpfTextViewCreationListener
     {
-        internal static readonly object TaggerKey = typeof(HtmlErrorTagger);
-
-        private static readonly object ViewHookKey = typeof(HtmlErrorTaggerProvider);
-
         private readonly ITextDocumentFactoryService _textDocumentFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
 
@@ -59,22 +55,27 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
+            // Keyed by typeof(ViewHook): htmlx may derive from html, so this listener can
+            // fire twice for one view. PropertyCollection.GetOrCreateSingletonProperty<T>
+            // requires T : class (returning bool does not compile on VS SDK 17.0).
             textView.Properties.GetOrCreateSingletonProperty(
-                ViewHookKey,
                 () =>
                 {
                     HtmlErrorTagger tagger = GetOrCreateTagger(textView.TextBuffer);
                     tagger.AddView();
                     textView.Closed += (sender, args) => tagger.ReleaseView();
-                    return true;
+                    return new ViewHook();
                 });
         }
 
         private HtmlErrorTagger GetOrCreateTagger(ITextBuffer buffer)
         {
             return buffer.Properties.GetOrCreateSingletonProperty(
-                TaggerKey,
                 () => new HtmlErrorTagger(buffer, _textDocumentFactory, _tableDataSource));
+        }
+
+        private sealed class ViewHook
+        {
         }
     }
 }
