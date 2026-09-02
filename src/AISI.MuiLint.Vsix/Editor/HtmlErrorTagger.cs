@@ -418,7 +418,7 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            ThreadHelper.ThrowIfNotOnUIThread();
+            // Already on UI thread via SwitchToMainThreadAsync (VSTHRD109 forbids ThrowIfNotOnUIThread here).
             AdviseBufferClose();
             if (_closePoint == null)
             {
@@ -429,7 +429,7 @@ namespace AISI.MuiLint.Vsix
         private async Task UnadviseBufferCloseAsync()
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-            ThreadHelper.ThrowIfNotOnUIThread();
+            // Already on UI thread via SwitchToMainThreadAsync (VSTHRD109 forbids ThrowIfNotOnUIThread here).
 
             IConnectionPoint point = _closePoint;
             uint cookie = _closeCookie;
