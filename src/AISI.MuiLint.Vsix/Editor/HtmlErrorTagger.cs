@@ -6,10 +6,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using AISI.MuiLint;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
+using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Threading;
@@ -30,6 +32,7 @@ namespace AISI.MuiLint.Vsix
 
         private readonly ITextBuffer _buffer;
         private readonly ITextDocumentFactoryService _textDocumentFactory;
+        private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
         private readonly object _gate = new object();
 
@@ -38,7 +41,8 @@ namespace AISI.MuiLint.Vsix
         private ITextSnapshot _analyzedSnapshot;
         private IReadOnlyList<Diagnostic> _diagnostics = Array.Empty<Diagnostic>();
         private int _viewCount;
-        private bool _disposed;
+        private int _disposed;
+        private int _hookPosted;
         private IConnectionPoint _closePoint;
         private uint _closeCookie;
         private BufferCloseSink _closeSink;
@@ -46,10 +50,12 @@ namespace AISI.MuiLint.Vsix
         public HtmlErrorTagger(
             ITextBuffer buffer,
             ITextDocumentFactoryService textDocumentFactory,
+            IVsEditorAdaptersFactoryService adaptersFactory,
             HtmlErrorTableDataSource tableDataSource)
         {
             _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
+            _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
 
             if (_textDocumentFactory.TryGetTextDocument(_buffer, out ITextDocument document))
@@ -61,11 +67,16 @@ namespace AISI.MuiLint.Vsix
             _textDocumentFactory.TextDocumentDisposed += OnTextDocumentDisposed;
             _buffer.Changed += OnBufferChanged;
             _buffer.ContentTypeChanged += OnContentTypeChanged;
-            HookBufferClose();
+            RequestHookBufferClose();
             ScheduleAnalyze();
         }
 
         public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+
+        private bool IsDisposed
+        {
+            get { return Volatile.Read(ref _disposed) != 0; }
+        }
 
         public void AddView()
         {
@@ -140,14 +151,22 @@ namespace AISI.MuiLint.Vsix
 
         public void Dispose()
         {
-            if (_disposed)
+            BeginDispose(unadvise: true);
+        }
+
+        internal void DisposeFromBufferClose()
+        {
+            BeginDispose(unadvise: false);
+        }
+
+        private void BeginDispose(bool unadvise)
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
             {
                 return;
             }
 
-            _disposed = true;
             _viewCount = 0;
-            UnhookBufferClose();
             _buffer.Changed -= OnBufferChanged;
             _buffer.ContentTypeChanged -= OnContentTypeChanged;
             _textDocumentFactory.TextDocumentDisposed -= OnTextDocumentDisposed;
@@ -158,10 +177,15 @@ namespace AISI.MuiLint.Vsix
             }
 
             CancellationTokenSource debounce = Interlocked.Exchange(ref _debounce, null);
-            if (debounce != null)
+            try
             {
-                debounce.Cancel();
-                debounce.Dispose();
+                if (debounce != null)
+                {
+                    debounce.Cancel();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
             }
 
             _tableDataSource.Remove(_buffer);
@@ -169,22 +193,33 @@ namespace AISI.MuiLint.Vsix
             {
                 _buffer.Properties.RemoveProperty(typeof(HtmlErrorTagger));
             }
+
+            if (unadvise)
+            {
+                FileAndForget(UnadviseBufferCloseAsync, "AISI.MuiLint/UnadviseBufferClose");
+            }
+            else
+            {
+                _closePoint = null;
+                _closeCookie = 0;
+                _closeSink = null;
+            }
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
         {
-            if (_disposed)
+            if (IsDisposed)
             {
                 return;
             }
 
-            HookBufferClose();
+            RequestHookBufferClose();
             ScheduleAnalyze();
         }
 
         private void OnContentTypeChanged(object sender, ContentTypeChangedEventArgs e)
         {
-            if (_disposed)
+            if (IsDisposed)
             {
                 return;
             }
@@ -214,36 +249,52 @@ namespace AISI.MuiLint.Vsix
 
         private void ScheduleAnalyze()
         {
-            if (_disposed)
+            if (IsDisposed)
             {
                 return;
             }
 
             CancellationTokenSource next = new CancellationTokenSource();
             CancellationTokenSource previous = Interlocked.Exchange(ref _debounce, next);
-            if (previous != null)
+            try
             {
-                previous.Cancel();
-                previous.Dispose();
+                if (previous != null)
+                {
+                    previous.Cancel();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
             }
 
-            // Do not wrap in ThreadHelper.JoinableTaskFactory.RunAsync: VSSDK007 forbids
-            // ThreadHelper fire-and-forget (FileAndForget/Join-elsewhere do not clear it).
-            _ = DebounceAndLogAsync(next.Token);
+            FileAndForget(() => DebounceAndLogAsync(next), "AISI.MuiLint/Debounce");
         }
 
-        private async Task DebounceAndLogAsync(CancellationToken token)
+        private async Task DebounceAndLogAsync(CancellationTokenSource owned)
         {
             try
             {
-                await DebounceAsync(token).ConfigureAwait(false);
+                await DebounceAsync(owned.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
+            {
+            }
+            catch (ObjectDisposedException)
             {
             }
             catch (Exception ex)
             {
                 LogFault(ex);
+            }
+            finally
+            {
+                try
+                {
+                    owned.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
             }
         }
 
@@ -257,8 +308,12 @@ namespace AISI.MuiLint.Vsix
             {
                 return;
             }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
 
-            if (token.IsCancellationRequested || _disposed)
+            if (token.IsCancellationRequested || IsDisposed)
             {
                 return;
             }
@@ -277,8 +332,12 @@ namespace AISI.MuiLint.Vsix
             {
                 return;
             }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
 
-            if (token.IsCancellationRequested || _disposed)
+            if (token.IsCancellationRequested || IsDisposed)
             {
                 return;
             }
@@ -291,15 +350,19 @@ namespace AISI.MuiLint.Vsix
             {
                 return;
             }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
 
-            if (_disposed || token.IsCancellationRequested)
+            if (IsDisposed || token.IsCancellationRequested)
             {
                 return;
             }
 
             lock (_gate)
             {
-                if (_disposed)
+                if (IsDisposed)
                 {
                     return;
                 }
@@ -332,56 +395,41 @@ namespace AISI.MuiLint.Vsix
             return FallbackPath;
         }
 
-        private void HookBufferClose()
+        private void RequestHookBufferClose()
         {
-            if (_disposed || _closePoint != null || !ThreadHelper.CheckAccess())
+            if (IsDisposed || _closePoint != null)
             {
                 return;
             }
 
-            IVsTextBuffer vsBuffer;
-            if (!_buffer.Properties.TryGetProperty(typeof(IVsTextBuffer), out vsBuffer) || vsBuffer == null)
+            if (Interlocked.CompareExchange(ref _hookPosted, 1, 0) != 0)
             {
                 return;
             }
 
-            Guid iid = typeof(IVsTextBufferDataEvents).GUID;
-            try
+            FileAndForget(HookBufferCloseAsync, "AISI.MuiLint/HookBufferClose");
+        }
+
+        private async Task HookBufferCloseAsync()
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            if (IsDisposed || _closePoint != null)
             {
-                // VSTHRD010: gated by CheckAccess above. Do not call ThrowIfNotOnUIThread —
-                // that marks Hook/Unhook UI-affined and cascades to Dispose/ReleaseView.
-                // Pragma must cover the IConnectionPointContainer cast (line that failed on 920fb848).
-#pragma warning disable VSTHRD010
-                IConnectionPointContainer container = vsBuffer as IConnectionPointContainer;
-                if (container == null)
-                {
-                    return;
-                }
-
-                container.FindConnectionPoint(ref iid, out IConnectionPoint point);
-                if (point == null)
-                {
-                    return;
-                }
-
-                BufferCloseSink sink = new BufferCloseSink(this);
-                point.Advise(sink, out uint cookie);
-#pragma warning restore VSTHRD010
-                _closeSink = sink;
-                _closePoint = point;
-                _closeCookie = cookie;
+                return;
             }
-            catch (COMException)
+
+            ThreadHelper.ThrowIfNotOnUIThread();
+            AdviseBufferClose();
+            if (_closePoint == null)
             {
+                Interlocked.Exchange(ref _hookPosted, 0);
             }
         }
 
-        private void UnhookBufferClose()
+        private async Task UnadviseBufferCloseAsync()
         {
-            if (!ThreadHelper.CheckAccess())
-            {
-                return;
-            }
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            ThreadHelper.ThrowIfNotOnUIThread();
 
             IConnectionPoint point = _closePoint;
             uint cookie = _closeCookie;
@@ -395,13 +443,111 @@ namespace AISI.MuiLint.Vsix
 
             try
             {
-#pragma warning disable VSTHRD010 // gated by CheckAccess above
                 point.Unadvise(cookie);
-#pragma warning restore VSTHRD010
             }
             catch (COMException)
             {
             }
+        }
+
+        private void AdviseBufferClose()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (IsDisposed || _closePoint != null)
+            {
+                return;
+            }
+
+            IVsTextBuffer vsBuffer = TryGetVsBuffer();
+            if (vsBuffer == null)
+            {
+                return;
+            }
+
+            IConnectionPointContainer container = vsBuffer as IConnectionPointContainer;
+            if (container == null)
+            {
+                return;
+            }
+
+            Guid iid = typeof(IVsTextBufferDataEvents).GUID;
+            try
+            {
+                container.FindConnectionPoint(ref iid, out IConnectionPoint point);
+                if (point == null)
+                {
+                    return;
+                }
+
+                BufferCloseSink sink = new BufferCloseSink(this);
+                point.Advise(sink, out uint cookie);
+                _closeSink = sink;
+                _closePoint = point;
+                _closeCookie = cookie;
+            }
+            catch (COMException)
+            {
+            }
+        }
+
+        private IVsTextBuffer TryGetVsBuffer()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            IVsTextBuffer vsBuffer = _adaptersFactory.GetBufferAdapter(_buffer);
+            if (vsBuffer != null)
+            {
+                return vsBuffer;
+            }
+
+            ITextDocument document = _document;
+            if (document == null)
+            {
+                _textDocumentFactory.TryGetTextDocument(_buffer, out document);
+            }
+
+            if (document != null && document.TextBuffer != null && !object.ReferenceEquals(document.TextBuffer, _buffer))
+            {
+                vsBuffer = _adaptersFactory.GetBufferAdapter(document.TextBuffer);
+                if (vsBuffer != null)
+                {
+                    return vsBuffer;
+                }
+            }
+
+            IProjectionBuffer projection = _buffer as IProjectionBuffer;
+            if (projection != null)
+            {
+                IList<ITextBuffer> sources = projection.SourceBuffers;
+                if (sources != null)
+                {
+                    for (int i = 0; i < sources.Count; i++)
+                    {
+                        ITextBuffer source = sources[i];
+                        if (source == null)
+                        {
+                            continue;
+                        }
+
+                        vsBuffer = _adaptersFactory.GetBufferAdapter(source);
+                        if (vsBuffer != null)
+                        {
+                            return vsBuffer;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static void FileAndForget(Func<Task> work, string id)
+        {
+            // VSSDK007 flags unawaited ThreadHelper.RunAsync. FileAndForget is the
+            // documented abandonment; Join() on the UI thread during Dispose deadlocks.
+#pragma warning disable VSSDK007
+            ThreadHelper.JoinableTaskFactory.RunAsync(work).FileAndForget(id);
+#pragma warning restore VSSDK007
         }
 
         private static void LogFault(Exception ex)
@@ -468,7 +614,7 @@ namespace AISI.MuiLint.Vsix
 
             public void OnCloseEvent()
             {
-                _owner.Dispose();
+                _owner.DisposeFromBufferClose();
             }
         }
     }
