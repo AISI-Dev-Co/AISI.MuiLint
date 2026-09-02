@@ -47,7 +47,7 @@ namespace AISI.MuiLint
 
         public bool IsEndTag { get; }
 
-        public IReadOnlyList<HtmlAttribute> attributes { get; }
+        public IReadOnlyList<HtmlAttribute> Attributes { get; }
     }
 
     internal static class HtmlTagReader
