@@ -30,7 +30,7 @@ namespace AISI.MuiLint.Vsix
         private readonly ITextDocumentFactoryService _textDocumentFactory;
         private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
-        private readonly JoinableTaskFactory _joinableTaskFactory;
+        private readonly JoinableTaskContext _joinableTaskContext;
 
         [ImportingConstructor]
         public HtmlErrorTaggerProvider(
@@ -42,14 +42,7 @@ namespace AISI.MuiLint.Vsix
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
             _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
-            if (joinableTaskContext == null)
-            {
-                throw new ArgumentNullException(nameof(joinableTaskContext));
-            }
-
-            // Prefer AsyncPackage.JTF (in the joinable collection). MEF context is the
-            // fallback when this provider is constructed before the package initializes.
-            _joinableTaskFactory = MuiLintVsPackage.PackageJoinableTaskFactory ?? joinableTaskContext.Factory;
+            _joinableTaskContext = joinableTaskContext ?? throw new ArgumentNullException(nameof(joinableTaskContext));
         }
 
         /// <inheritdoc />
@@ -72,9 +65,6 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            // Keyed by typeof(ViewHook): htmlx may derive from html, so this listener can
-            // fire twice for one view. PropertyCollection.GetOrCreateSingletonProperty<T>
-            // requires T : class (returning bool does not compile on VS SDK 17.0).
             textView.Properties.GetOrCreateSingletonProperty(
                 () =>
                 {
@@ -87,14 +77,13 @@ namespace AISI.MuiLint.Vsix
 
         private HtmlErrorTagger GetOrCreateTagger(ITextBuffer buffer)
         {
-            JoinableTaskFactory jtf = MuiLintVsPackage.PackageJoinableTaskFactory ?? _joinableTaskFactory;
             return buffer.Properties.GetOrCreateSingletonProperty(
                 () => new HtmlErrorTagger(
                     buffer,
                     _textDocumentFactory,
                     _adaptersFactory,
                     _tableDataSource,
-                    jtf));
+                    _joinableTaskContext));
         }
 
         private sealed class ViewHook
