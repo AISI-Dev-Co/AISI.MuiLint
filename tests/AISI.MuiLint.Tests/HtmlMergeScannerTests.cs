@@ -95,7 +95,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void StockPath_IsIgnoredUnderDevelopmentScreens()
         {
-            Assert.False(HtmlMergeScanner.IsStockScreensPath(@"C:\\site\\FrontendSources\\screen\\src\\development\\screens\\SO\\SO301000\\SO301000.html"));
+            Assert.False(HtmlMergeScanner.IsStockScreensPath(@"C:\site\FrontendSources\screen\src\development\screens\SO\SO301000\SO301000.html"));
             Assert.False(HtmlMergeScanner.IsStockScreensPath("/site/FrontendSources/screen/src/customizationScreens/AISI/SO/SO301000/SO301000.html"));
             Assert.True(HtmlMergeScanner.IsStockScreensPath("/site/FrontendSources/screen/src/screens/SO/SO301000/SO301000.html"));
         }
@@ -122,7 +122,7 @@ namespace AISI.MuiLint.Tests
         {
             string path = Path.Combine("ext", "SO301000_Custom.html");
             const string html = "<template><field name=\"OrderNbr\"/></template>";
-            IReadOnlyList<RoslynDiagnostic> diags = RunAnalyzer(path, html);
+            ImmutableArray<RoslynDiagnostic> diags = RunAnalyzer(path, html);
             Assert.Contains(diags, d => d.Id == DiagnosticIds.SelfClosing);
         }
 
@@ -136,7 +136,7 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(viaAnalyzer[0].Id, viaScanner[0].Id);
         }
 
-        private static IReadOnlyList<RoslynDiagnostic> RunAnalyzer(string path, string html)
+        private static ImmutableArray<RoslynDiagnostic> RunAnalyzer(string path, string html)
         {
             CSharpCompilation compilation = CSharpCompilation.Create(
                 "MuiLintAnalyzerTest",
