@@ -151,6 +151,10 @@ namespace AISI.MuiLint.Vsix
             }
 
             _tableDataSource.Remove(_buffer);
+            if (_buffer.Properties.ContainsProperty(typeof(HtmlErrorTagger)))
+            {
+                _buffer.Properties.RemoveProperty(typeof(HtmlErrorTagger));
+            }
         }
 
         private void OnBufferChanged(object sender, TextContentChangedEventArgs e)
