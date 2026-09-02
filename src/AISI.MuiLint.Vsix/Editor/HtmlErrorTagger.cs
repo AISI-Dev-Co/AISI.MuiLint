@@ -34,7 +34,7 @@ namespace AISI.MuiLint.Vsix
         private readonly ITextDocumentFactoryService _textDocumentFactory;
         private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
-        private readonly JoinableTaskFactory _joinableTaskFactory;
+        private readonly JoinableTaskContext _joinableTaskContext;
         private readonly object _gate = new object();
 
         private ITextDocument _document;
@@ -53,13 +53,13 @@ namespace AISI.MuiLint.Vsix
             ITextDocumentFactoryService textDocumentFactory,
             IVsEditorAdaptersFactoryService adaptersFactory,
             HtmlErrorTableDataSource tableDataSource,
-            JoinableTaskFactory joinableTaskFactory)
+            JoinableTaskContext joinableTaskContext)
         {
             _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
             _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
-            _joinableTaskFactory = joinableTaskFactory ?? throw new ArgumentNullException(nameof(joinableTaskFactory));
+            _joinableTaskContext = joinableTaskContext ?? throw new ArgumentNullException(nameof(joinableTaskContext));
 
             ITextDocument document = TryGetHtmlDocument(_buffer);
             if (document != null)
@@ -247,7 +247,6 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            // htmlx: ITextDocument lives on the document buffer; the tagger sits on a projection.
             if (_document != null && object.ReferenceEquals(e.TextDocument, _document))
             {
                 Dispose();
@@ -379,7 +378,7 @@ namespace AISI.MuiLint.Vsix
 
             try
             {
-                await _joinableTaskFactory.SwitchToMainThreadAsync(token);
+                await ResolveJoinableTaskFactory().SwitchToMainThreadAsync(token);
             }
             catch (OperationCanceledException)
             {
@@ -447,13 +446,12 @@ namespace AISI.MuiLint.Vsix
 
         private async Task HookBufferCloseAsync()
         {
-            await _joinableTaskFactory.SwitchToMainThreadAsync();
+            await ResolveJoinableTaskFactory().SwitchToMainThreadAsync();
             if (IsDisposed || _closePoint != null)
             {
                 return;
             }
 
-            // Already on UI thread via SwitchToMainThreadAsync (VSTHRD109 forbids ThrowIfNotOnUIThread here).
             AdviseBufferClose();
             if (_closePoint == null)
             {
@@ -463,8 +461,7 @@ namespace AISI.MuiLint.Vsix
 
         private async Task UnadviseBufferCloseAsync()
         {
-            await _joinableTaskFactory.SwitchToMainThreadAsync();
-            // Already on UI thread via SwitchToMainThreadAsync (VSTHRD109 forbids ThrowIfNotOnUIThread here).
+            await ResolveJoinableTaskFactory().SwitchToMainThreadAsync();
 
             IConnectionPoint point = _closePoint;
             uint cookie = _closeCookie;
@@ -548,7 +545,6 @@ namespace AISI.MuiLint.Vsix
 
         private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
         {
-            // htmlx elision is IElisionBuffer : IProjectionBufferBase, not IProjectionBuffer.
             IProjectionBufferBase projection = buffer as IProjectionBufferBase;
             if (projection == null)
             {
@@ -571,7 +567,7 @@ namespace AISI.MuiLint.Vsix
             ITextDocument document = _document;
             if (document == null)
             {
-                _textDocumentFactory.TryGetTextDocument(_buffer, out document);
+                document = TryGetHtmlDocument(_buffer);
             }
 
             if (document != null && document.TextBuffer != null && !object.ReferenceEquals(document.TextBuffer, _buffer))
@@ -602,11 +598,20 @@ namespace AISI.MuiLint.Vsix
             return null;
         }
 
+        private JoinableTaskFactory ResolveJoinableTaskFactory()
+        {
+            JoinableTaskFactory package = MuiLintVsPackage.PackageJoinableTaskFactory;
+            if (package != null)
+            {
+                return package;
+            }
+
+            return _joinableTaskContext.Factory;
+        }
+
         private void FileAndForget(Func<Task> work, string id)
         {
-            // AsyncPackage.JoinableTaskFactory is in the IDE collection (joined on exit).
-            // ThreadHelper.JTF is not — VSSDK007 is a real hit. Never Join() from Dispose.
-            _joinableTaskFactory.RunAsync(work).FileAndForget(id);
+            ResolveJoinableTaskFactory().RunAsync(work).FileAndForget(id);
         }
 
         private static void LogFault(Exception ex)
