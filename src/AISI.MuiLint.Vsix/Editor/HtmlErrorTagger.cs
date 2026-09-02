@@ -23,7 +23,7 @@ namespace AISI.MuiLint.Vsix
     /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> off the UI thread
     /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
     /// Teardown is buffer-close (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), content-type
-    /// drop, last view, or <see cref="ITextDocument"/> dispose — not view-refcount alone.
+    /// drop, or <see cref="ITextDocument"/> dispose — not view-refcount.
     /// </summary>
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
@@ -34,6 +34,7 @@ namespace AISI.MuiLint.Vsix
         private readonly ITextDocumentFactoryService _textDocumentFactory;
         private readonly IVsEditorAdaptersFactoryService _adaptersFactory;
         private readonly HtmlErrorTableDataSource _tableDataSource;
+        private readonly JoinableTaskFactory _joinableTaskFactory;
         private readonly object _gate = new object();
 
         private ITextDocument _document;
@@ -51,12 +52,14 @@ namespace AISI.MuiLint.Vsix
             ITextBuffer buffer,
             ITextDocumentFactoryService textDocumentFactory,
             IVsEditorAdaptersFactoryService adaptersFactory,
-            HtmlErrorTableDataSource tableDataSource)
+            HtmlErrorTableDataSource tableDataSource,
+            JoinableTaskFactory joinableTaskFactory)
         {
             _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
             _adaptersFactory = adaptersFactory ?? throw new ArgumentNullException(nameof(adaptersFactory));
             _tableDataSource = tableDataSource ?? throw new ArgumentNullException(nameof(tableDataSource));
+            _joinableTaskFactory = joinableTaskFactory ?? throw new ArgumentNullException(nameof(joinableTaskFactory));
 
             ITextDocument document = TryGetHtmlDocument(_buffer);
             if (document != null)
@@ -86,10 +89,7 @@ namespace AISI.MuiLint.Vsix
 
         public void ReleaseView()
         {
-            if (Interlocked.Decrement(ref _viewCount) <= 0)
-            {
-                Dispose();
-            }
+            Interlocked.Decrement(ref _viewCount);
         }
 
         public IEnumerable<ITagSpan<IErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
@@ -270,18 +270,7 @@ namespace AISI.MuiLint.Vsix
                 return true;
             }
 
-            IProjectionBuffer projection = _buffer as IProjectionBuffer;
-            if (projection == null)
-            {
-                return false;
-            }
-
-            IList<ITextBuffer> sources = projection.SourceBuffers;
-            if (sources == null)
-            {
-                return false;
-            }
-
+            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(_buffer, ProjectionSources);
             for (int i = 0; i < sources.Count; i++)
             {
                 if (object.ReferenceEquals(sources[i], candidate))
@@ -390,7 +379,7 @@ namespace AISI.MuiLint.Vsix
 
             try
             {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+                await _joinableTaskFactory.SwitchToMainThreadAsync(token);
             }
             catch (OperationCanceledException)
             {
@@ -458,7 +447,7 @@ namespace AISI.MuiLint.Vsix
 
         private async Task HookBufferCloseAsync()
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            await _joinableTaskFactory.SwitchToMainThreadAsync();
             if (IsDisposed || _closePoint != null)
             {
                 return;
@@ -474,7 +463,7 @@ namespace AISI.MuiLint.Vsix
 
         private async Task UnadviseBufferCloseAsync()
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            await _joinableTaskFactory.SwitchToMainThreadAsync();
             // Already on UI thread via SwitchToMainThreadAsync (VSTHRD109 forbids ThrowIfNotOnUIThread here).
 
             IConnectionPoint point = _closePoint;
@@ -544,24 +533,29 @@ namespace AISI.MuiLint.Vsix
                 return document;
             }
 
-            IProjectionBuffer projection = buffer as IProjectionBuffer;
-            if (projection != null)
+            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(buffer, ProjectionSources);
+            for (int i = 0; i < sources.Count; i++)
             {
-                IList<ITextBuffer> sources = projection.SourceBuffers;
-                if (sources != null)
+                ITextBuffer source = sources[i];
+                if (source != null && _textDocumentFactory.TryGetTextDocument(source, out document))
                 {
-                    for (int i = 0; i < sources.Count; i++)
-                    {
-                        ITextBuffer source = sources[i];
-                        if (source != null && _textDocumentFactory.TryGetTextDocument(source, out document))
-                        {
-                            return document;
-                        }
-                    }
+                    return document;
                 }
             }
 
             return null;
+        }
+
+        private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
+        {
+            // htmlx elision is IElisionBuffer : IProjectionBufferBase, not IProjectionBuffer.
+            IProjectionBufferBase projection = buffer as IProjectionBufferBase;
+            if (projection == null)
+            {
+                return null;
+            }
+
+            return projection.SourceBuffers;
         }
 
         private IVsTextBuffer TryGetVsBuffer()
@@ -589,39 +583,30 @@ namespace AISI.MuiLint.Vsix
                 }
             }
 
-            IProjectionBuffer projection = _buffer as IProjectionBuffer;
-            if (projection != null)
+            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(_buffer, ProjectionSources);
+            for (int i = 0; i < sources.Count; i++)
             {
-                IList<ITextBuffer> sources = projection.SourceBuffers;
-                if (sources != null)
+                ITextBuffer source = sources[i];
+                if (source == null)
                 {
-                    for (int i = 0; i < sources.Count; i++)
-                    {
-                        ITextBuffer source = sources[i];
-                        if (source == null)
-                        {
-                            continue;
-                        }
+                    continue;
+                }
 
-                        vsBuffer = _adaptersFactory.GetBufferAdapter(source);
-                        if (vsBuffer != null)
-                        {
-                            return vsBuffer;
-                        }
-                    }
+                vsBuffer = _adaptersFactory.GetBufferAdapter(source);
+                if (vsBuffer != null)
+                {
+                    return vsBuffer;
                 }
             }
 
             return null;
         }
 
-        private static void FileAndForget(Func<Task> work, string id)
+        private void FileAndForget(Func<Task> work, string id)
         {
-            // VSSDK007 flags unawaited ThreadHelper.RunAsync. FileAndForget is the
-            // documented abandonment; Join() on the UI thread during Dispose deadlocks.
-#pragma warning disable VSSDK007
-            ThreadHelper.JoinableTaskFactory.RunAsync(work).FileAndForget(id);
-#pragma warning restore VSSDK007
+            // AsyncPackage.JoinableTaskFactory is in the IDE collection (joined on exit).
+            // ThreadHelper.JTF is not — VSSDK007 is a real hit. Never Join() from Dispose.
+            _joinableTaskFactory.RunAsync(work).FileAndForget(id);
         }
 
         private static void LogFault(Exception ex)
