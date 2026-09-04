@@ -37,6 +37,7 @@ src/AISI.MuiLint.Cli          net8            `muilint` command
 src/AISI.MuiLint.Vsix         net472          VS 2022 VSIX (HTML editor MEF tagger + Error List)
 tests/AISI.MuiLint.Tests      net8            fail/pass fixtures for all five ids
 .github/workflows/ci.yml      ubuntu test + roslynator; windows pack vsix
+.github/workflows/release-vsix.yml  tag/release → attach .vsix to GitHub Release Assets
 ```
 
 ## Command line
@@ -67,6 +68,20 @@ and `muilint` still scans a `development/screens` tree from the command line.
 Linux cannot pack or run the VSIX (`CreateVsixContainer=false`); `AnalyzeHtml` still compiles
 as `net472`. `htmlx` simply does not apply without Web Tools; the VSIX does not require the
 full Web workload to install.
+
+### Release → download VSIX → Install from VSIX
+
+1. Cut a release from `main` (GitHub → Releases → Draft a new release) with a tag like
+   `v0.1.0`, **or** push a tag: `git tag v0.1.0 && git push origin v0.1.0`.
+2. Workflow **Release VSIX** (`.github/workflows/release-vsix.yml`) runs on `windows-latest`,
+   packs `src/AISI.MuiLint.Vsix` Release, and attaches `AISI.MuiLint-<version>.vsix` to that
+   GitHub Release’s Assets.
+3. Download the `.vsix` from the release Assets page.
+4. In Visual Studio 2022: **Extensions → Manage Extensions → ⋮ → Install from VSIX…** and
+   pick the downloaded file. Restart VS when prompted.
+
+CI `pack-vsix` still uploads a build artifact on every push/PR; the Release workflow is what
+puts a named `.vsix` on the GitHub Release for sideload.
 
 ## Build and test
 
