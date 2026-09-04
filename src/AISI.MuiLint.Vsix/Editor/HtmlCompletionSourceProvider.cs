@@ -34,7 +34,8 @@ namespace AISI.MuiLint.Vsix
                 throw new ArgumentNullException(nameof(textBuffer));
             }
 
-            return new HtmlCompletionSource(textBuffer, _textDocumentFactory);
+            return textBuffer.Properties.GetOrCreateSingletonProperty(
+                () => new HtmlCompletionSource(textBuffer, _textDocumentFactory));
         }
     }
 }
