@@ -55,6 +55,25 @@ namespace AISI.MuiLint.Tests
             Assert.DoesNotContain("warning disable VSSDK007", ReadEditor("HtmlErrorTaggerProvider.cs"), StringComparison.Ordinal);
         }
 
+
+        [Fact]
+        public void TryGetFilePath_UsesProjectionBufferBaseWalk()
+        {
+            string src = ReadEditor("HtmlCompletionSource.cs");
+            Assert.Contains("NestedSourceWalk.Flatten(buffer, ProjectionSources)", src, StringComparison.Ordinal);
+            Assert.Contains("buffer as IProjectionBufferBase", src, StringComparison.Ordinal);
+            string withoutBase = src.Replace("as IProjectionBufferBase", string.Empty, StringComparison.Ordinal);
+            Assert.DoesNotContain("as IProjectionBuffer", withoutBase, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompletionSourceProvider_UsesGetOrCreateSingletonProperty()
+        {
+            string src = ReadEditor("HtmlCompletionSourceProvider.cs");
+            Assert.Contains("GetOrCreateSingletonProperty", src, StringComparison.Ordinal);
+            Assert.DoesNotContain("return new HtmlCompletionSource", src, StringComparison.Ordinal);
+        }
+
         private static string ReadEditor(string fileName)
         {
             string path = Path.Combine(AppContext.BaseDirectory, "EditorSnapshots", fileName);
