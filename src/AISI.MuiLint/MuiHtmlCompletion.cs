@@ -19,10 +19,6 @@ namespace AISI.MuiLint
             @"(?<n>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*PXFieldState",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        private static readonly Regex NameSelectorValue = new Regex(
-            "\\[name\\s*=\\s*(?:(['\"])(?<n>.*?)\\1|(?<n>[^\\s\\]]+))\\]",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
         /// <summary>
         /// Decides what the caret is asking for. <paramref name="caret"/> is a character
         /// offset into <paramref name="text"/>.
