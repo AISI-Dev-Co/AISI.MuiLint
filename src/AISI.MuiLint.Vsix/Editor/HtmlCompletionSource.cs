@@ -5,6 +5,7 @@ using System.IO;
 using AISI.MuiLint;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Projection;
 
 namespace AISI.MuiLint.Vsix
 {
@@ -64,7 +65,7 @@ namespace AISI.MuiLint.Vsix
                     }
 
                     break;
-                default:
+                case MuiCompletionTarget.None:
                     // Always-available Usr field expansion when not inside a tag.
                     items.Add(MuiHtmlCompletion.UsrFieldSnippet());
                     break;
@@ -106,6 +107,11 @@ namespace AISI.MuiLint.Vsix
             _disposed = true;
         }
 
+        /// <summary>
+        /// Resolve the on-disk HTML path. htmlx often has a null path on the top
+        /// (projection/elision) buffer — walk <see cref="IProjectionBufferBase"/>
+        /// like the error tagger's <c>TryGetHtmlDocument</c>.
+        /// </summary>
         private string TryGetFilePath()
         {
             ITextDocument document;
@@ -116,7 +122,31 @@ namespace AISI.MuiLint.Vsix
                 return document.FilePath;
             }
 
+            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(_buffer, ProjectionSources);
+            for (int i = 0; i < sources.Count; i++)
+            {
+                ITextBuffer source = sources[i];
+                if (source != null
+                    && _textDocumentFactory.TryGetTextDocument(source, out document)
+                    && document != null
+                    && !string.IsNullOrEmpty(document.FilePath))
+                {
+                    return document.FilePath;
+                }
+            }
+
             return null;
+        }
+
+        private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
+        {
+            IProjectionBufferBase projection = buffer as IProjectionBufferBase;
+            if (projection == null)
+            {
+                return null;
+            }
+
+            return projection.SourceBuffers;
         }
 
         private static string TryReadSiblingTypeScript(string htmlPath)

@@ -110,29 +110,6 @@ namespace AISI.MuiLint
             return names;
         }
 
-        /// <summary>Selector names already referenced by after/before in <paramref name="html"/>.</summary>
-        public static IReadOnlyList<string> ReadReferencedSelectorNames(string html)
-        {
-            var names = new List<string>();
-            if (string.IsNullOrEmpty(html))
-            {
-                return names;
-            }
-
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            MatchCollection matches = NameSelectorValue.Matches(html);
-            for (int i = 0; i < matches.Count; i++)
-            {
-                string name = matches[i].Groups["n"].Value;
-                if (name.Length > 0 && seen.Add(name))
-                {
-                    names.Add(name);
-                }
-            }
-
-            return names;
-        }
-
         private static void Add(List<MuiCompletionItem> items, HashSet<string> seen, string name, string description)
         {
             if (name.Length == 0 || !seen.Add(name))
