@@ -37,7 +37,7 @@ src/AISI.MuiLint.Cli          net8            `muilint` command
 src/AISI.MuiLint.Vsix         net472          VS 2022 VSIX (HTML editor MEF tagger + Error List)
 tests/AISI.MuiLint.Tests      net8            fail/pass fixtures for all five ids
 .github/workflows/ci.yml      ubuntu test + roslynator; windows pack vsix
-.github/workflows/release-vsix.yml  tag/release → attach .vsix to GitHub Release Assets
+.github/workflows/release-vsix.yml  release published → attach .vsix to GitHub Release Assets
 ```
 
 ## Command line
@@ -71,14 +71,20 @@ full Web workload to install.
 
 ### Release → download VSIX → Install from VSIX
 
-1. Cut a release from `main` (GitHub → Releases → Draft a new release) with a tag like
-   `v0.1.0`, **or** push a tag: `git tag v0.1.0 && git push origin v0.1.0`.
+1. From `main`, publish a GitHub Release with a tag like `v0.1.0` (Releases → Draft a new
+   release → **Publish release**). The workflow triggers only on `release: published` (not on
+   bare tag push), so the `.vsix` attaches once without a double-run race.
 2. Workflow **Release VSIX** (`.github/workflows/release-vsix.yml`) runs on `windows-latest`,
-   packs `src/AISI.MuiLint.Vsix` Release, and attaches `AISI.MuiLint-<version>.vsix` to that
-   GitHub Release’s Assets.
+   packs `src/AISI.MuiLint.Vsix` Release, expects **exactly one** `.vsix` under
+   `src/AISI.MuiLint.Vsix/bin/Release/**`, and attaches `AISI.MuiLint-<version>.vsix` to that
+   release’s Assets.
 3. Download the `.vsix` from the release Assets page.
 4. In Visual Studio 2022: **Extensions → Manage Extensions → ⋮ → Install from VSIX…** and
    pick the downloaded file. Restart VS when prompted.
+
+This repo is **private** today — release assets are only visible to people with repo access.
+If the repo is ever made public, those `.vsix` assets become publicly downloadable; treat that
+as intentional before flipping visibility.
 
 CI `pack-vsix` still uploads a build artifact on every push/PR; the Release workflow is what
 puts a named `.vsix` on the GitHub Release for sideload.
