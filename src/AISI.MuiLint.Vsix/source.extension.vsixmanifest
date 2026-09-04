@@ -3,7 +3,7 @@
   <Metadata>
     <Identity Id="AISI.MuiLint.10c4e8a7-6b91-4f3d-9a2c-7e5d1b8f4a10" Version="0.1.0" Language="en-US" Publisher="AISI Dev Co" />
     <DisplayName>AISI MuiLint</DisplayName>
-    <Description xml:space="preserve">HTML merge linter for Acumatica Modern UI. Catches self-closing field/qp-* tags, same-file after/before [name] selectors, stock src/screens paths, extension files named as the parent screen, and empty qp-fieldsets. Acuminator lints C#; this lints the HTML merge. Not a second AcuMate.</Description>
+    <Description xml:space="preserve">HTML merge linter for Acumatica Modern UI. Catches self-closing field/qp-* tags, same-file after/before [name] selectors, stock src/screens paths, extension files named as the parent screen, and empty qp-fieldsets. Offers field/qp-* tag, after/before/name attribute, and [name] selector completions plus a Usr field snippet in the HTML editor. Acuminator lints C#; this lints the HTML merge. Not a second AcuMate.</Description>
     <MoreInfo>https://www.aisidev.com/</MoreInfo>
     <License>LICENSE</License>
     <Tags>acumatica;modern-ui;html;merge;linter;analyzer</Tags>
