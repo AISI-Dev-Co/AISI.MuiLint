@@ -5,6 +5,7 @@ using System.IO;
 using AISI.MuiLint;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.Text.Projection;
 
 namespace AISI.MuiLint.Vsix
 {
@@ -108,15 +109,55 @@ namespace AISI.MuiLint.Vsix
 
         private string TryGetFilePath()
         {
-            ITextDocument document;
-            if (_textDocumentFactory.TryGetTextDocument(_buffer, out document)
-                && document != null
-                && !string.IsNullOrEmpty(document.FilePath))
+            ITextDocument document = TryGetHtmlDocument(_buffer);
+            if (document != null && !string.IsNullOrEmpty(document.FilePath))
             {
                 return document.FilePath;
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Same walk as <c>HtmlErrorTagger.TryGetHtmlDocument</c>: htmlx often has a null
+        /// path on the top buffer, so walk <see cref="IProjectionBufferBase"/> sources.
+        /// </summary>
+        private ITextDocument TryGetHtmlDocument(ITextBuffer buffer)
+        {
+            ITextDocument document;
+            if (_textDocumentFactory.TryGetTextDocument(buffer, out document)
+                && document != null
+                && !string.IsNullOrEmpty(document.FilePath))
+            {
+                return document;
+            }
+
+            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(buffer, ProjectionSources);
+            for (int i = 0; i < sources.Count; i++)
+            {
+                ITextBuffer source = sources[i];
+                if (source != null
+                    && _textDocumentFactory.TryGetTextDocument(source, out document)
+                    && document != null
+                    && !string.IsNullOrEmpty(document.FilePath))
+                {
+                    return document;
+                }
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
+        {
+            // htmlx elision is IElisionBuffer : IProjectionBufferBase, not IProjectionBuffer.
+            IProjectionBufferBase projection = buffer as IProjectionBufferBase;
+            if (projection == null)
+            {
+                return null;
+            }
+
+            return projection.SourceBuffers;
         }
 
         private static string TryReadSiblingTypeScript(string htmlPath)
@@ -137,7 +178,7 @@ namespace AISI.MuiLint.Vsix
                 return null;
             }
 
-            // Extension HTML under .../<Screen>/extensions/<file>.html → sibling base .../<Screen>/<Screen>.html
+            // Extension HTML under .../<Screen>/extensions/<file>.html -> sibling base .../<Screen>/<Screen>.html
             string dir = Path.GetDirectoryName(htmlPath);
             if (string.IsNullOrEmpty(dir))
             {
