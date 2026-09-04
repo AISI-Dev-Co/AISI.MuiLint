@@ -83,12 +83,13 @@ namespace AISI.MuiLint.Vsix
             for (int i = 0; i < items.Count; i++)
             {
                 MuiCompletionItem item = items[i];
-                completions.Add(new Completion(
-                    item.DisplayText,
-                    item.InsertText,
-                    item.Description,
-                    iconSource: null,
-                    iconAutomationText: null));
+                // Prefer displayText ctor: the 5-arg overload takes ImageSource and
+                // requires a PresentationCore reference the SDK compile assets omit.
+                completions.Add(new Completion(item.DisplayText)
+                {
+                    InsertionText = item.InsertText,
+                    Description = item.Description,
+                });
             }
 
             completionSets.Add(new CompletionSet(
