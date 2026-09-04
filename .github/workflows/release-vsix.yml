@@ -1,9 +1,7 @@
 name: Release VSIX
 
+# Single trigger — avoids double-run / race when both tag push and release.published fire.
 on:
-  push:
-    tags:
-      - 'v*'
   release:
     types: [published]
 
@@ -24,16 +22,9 @@ jobs:
         id: ver
         shell: pwsh
         run: |
-          $ref = $env:GITHUB_REF
-          if ($ref -like 'refs/tags/v*') {
-            $v = $ref.Substring('refs/tags/'.Length)
-          } elseif ($ref -like 'refs/tags/*') {
-            $v = $ref.Substring('refs/tags/'.Length)
-          } else {
-            $v = $env:GITHUB_REF_NAME
-            if ([string]::IsNullOrWhiteSpace($v)) { $v = '0.0.0-ci' }
-            if (-not $v.StartsWith('v')) { $v = "v$v" }
-          }
+          $v = $env:GITHUB_REF_NAME
+          if ([string]::IsNullOrWhiteSpace($v)) { throw 'GITHUB_REF_NAME empty' }
+          if (-not $v.StartsWith('v')) { $v = "v$v" }
           $plain = $v.TrimStart('v')
           "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "plain=$plain" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
@@ -46,8 +37,11 @@ jobs:
         id: vsix
         shell: pwsh
         run: |
-          $found = Get-ChildItem -Recurse -Filter *.vsix | Select-Object -First 1
-          if (-not $found) { throw 'No .vsix produced by Release build' }
+          $matches = @(Get-ChildItem -Path "src/AISI.MuiLint.Vsix/bin/Release" -Recurse -Filter *.vsix -ErrorAction Stop)
+          if ($matches.Count -ne 1) {
+            throw "Expected exactly 1 .vsix under src/AISI.MuiLint.Vsix/bin/Release; found $($matches.Count)"
+          }
+          $found = $matches[0]
           $name = "AISI.MuiLint-$($env:PLAIN).vsix"
           $dest = Join-Path $env:GITHUB_WORKSPACE $name
           Copy-Item -LiteralPath $found.FullName -Destination $dest -Force
@@ -64,8 +58,9 @@ jobs:
           path: ${{ steps.vsix.outputs.path }}
           if-no-files-found: error
 
+      # softprops/action-gh-release v2.6.2
       - name: Attach VSIX to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: ${{ steps.ver.outputs.version }}
           files: ${{ steps.vsix.outputs.path }}
