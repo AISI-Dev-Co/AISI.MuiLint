@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Test
+        run: dotnet test tests/AISI.MuiLint.Tests/AISI.MuiLint.Tests.csproj --configuration Release --verbosity normal
+
+  roslynator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Roslynator
+        run: |
+          dotnet tool install -g roslynator.dotnet.cli --version 1.0.0
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Restore
+        run: dotnet restore AISI.MuiLint.sln
+
+      - name: Analyze
+        run: |
+          roslynator analyze \
+            src/AISI.MuiLint/AISI.MuiLint.csproj \
+            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj
+
+  pack-vsix:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Pack VSIX
+        run: dotnet build src/AISI.MuiLint.Vsix/AISI.MuiLint.Vsix.csproj --configuration Release
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: AISI.MuiLint.vsix
+          path: '**/*.vsix'
+          if-no-files-found: error

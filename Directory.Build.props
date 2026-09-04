@@ -1,0 +1,20 @@
+<Project>
+
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>AISI Dev Co</Authors>
+    <Company>AISI Dev Co</Company>
+    <Copyright>Copyright (c) 2026 AISI Dev Co</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://www.aisidev.com/</PackageProjectUrl>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <NeutralLanguage>en</NeutralLanguage>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

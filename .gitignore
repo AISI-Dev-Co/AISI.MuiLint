@@ -1,0 +1,44 @@
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+## Visual Studio / VS Code
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.vscode/
+
+## NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+
+## VSIX output
+*.vsix
+
+## Test
+[Tt]est[Rr]esult*/
+*.trx
+TestResult.xml
+coverage*.xml
+coverage*.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## MSBuild
+*.binlog
