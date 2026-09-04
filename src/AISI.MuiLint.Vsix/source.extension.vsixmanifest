@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="AISI.MuiLint.10c4e8a7-6b91-4f3d-9a2c-7e5d1b8f4a10" Version="0.1.0" Language="en-US" Publisher="AISI Dev Co" />
+    <DisplayName>AISI MuiLint</DisplayName>
+    <Description xml:space="preserve">HTML merge linter for Acumatica Modern UI. Catches self-closing field/qp-* tags, same-file after/before [name] selectors, stock src/screens paths, extension files named as the parent screen, and empty qp-fieldsets. Acuminator lints C#; this lints the HTML merge. Not a second AcuMate.</Description>
+    <MoreInfo>https://www.aisidev.com/</MoreInfo>
+    <License>LICENSE</License>
+    <Tags>acumatica;modern-ui;html;merge;linter;analyzer</Tags>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.0,18.0)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)" />
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="AISI.MuiLint.Vsix" Path="|AISI.MuiLint.Vsix;PkgdefProjectOutputGroup|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="AISI.MuiLint.Vsix" Path="|AISI.MuiLint.Vsix|" />
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="AISI.MuiLint" Path="|AISI.MuiLint|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="AISI.MuiLint" Path="|AISI.MuiLint|" />
+  </Assets>
+</PackageManifest>
