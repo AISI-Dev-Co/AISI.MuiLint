@@ -10,6 +10,7 @@ namespace AISI.MuiLint.Vsix
     /// <summary>
     /// MEF completion source provider for Modern UI HTML (<c>htmlx</c> + <c>html</c>).
     /// Thin adapter: completion is sync and cheap; no AsyncPackage JTF / FileAndForget.
+    /// One <see cref="HtmlCompletionSource"/> per buffer via GetOrCreateSingletonProperty.
     /// </summary>
     [Export(typeof(ICompletionSourceProvider))]
     [Name("AISI.MuiLint.HtmlCompletion")]
@@ -34,7 +35,8 @@ namespace AISI.MuiLint.Vsix
                 throw new ArgumentNullException(nameof(textBuffer));
             }
 
-            return new HtmlCompletionSource(textBuffer, _textDocumentFactory);
+            return textBuffer.Properties.GetOrCreateSingletonProperty(
+                () => new HtmlCompletionSource(textBuffer, _textDocumentFactory));
         }
     }
 }
