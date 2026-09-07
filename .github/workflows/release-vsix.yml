@@ -1,0 +1,69 @@
+name: Release VSIX
+
+# Single trigger — avoids double-run / race when both tag push and release.published fire.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  pack-and-upload:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = $env:GITHUB_REF_NAME
+          if ([string]::IsNullOrWhiteSpace($v)) { throw 'GITHUB_REF_NAME empty' }
+          if (-not $v.StartsWith('v')) { $v = "v$v" }
+          $plain = $v.TrimStart('v')
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "plain=$plain" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Release version tag=$v plain=$plain"
+
+      - name: Pack VSIX
+        run: dotnet build src/AISI.MuiLint.Vsix/AISI.MuiLint.Vsix.csproj --configuration Release
+
+      - name: Locate and rename VSIX
+        id: vsix
+        shell: pwsh
+        run: |
+          $matches = @(Get-ChildItem -Path "src/AISI.MuiLint.Vsix/bin/Release" -Recurse -Filter *.vsix -ErrorAction Stop)
+          if ($matches.Count -ne 1) {
+            throw "Expected exactly 1 .vsix under src/AISI.MuiLint.Vsix/bin/Release; found $($matches.Count)"
+          }
+          $found = $matches[0]
+          $name = "AISI.MuiLint-$($env:PLAIN).vsix"
+          $dest = Join-Path $env:GITHUB_WORKSPACE $name
+          Copy-Item -LiteralPath $found.FullName -Destination $dest -Force
+          "path=$dest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "VSIX $($found.FullName) -> $dest"
+        env:
+          PLAIN: ${{ steps.ver.outputs.plain }}
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AISI.MuiLint.vsix
+          path: ${{ steps.vsix.outputs.path }}
+          if-no-files-found: error
+
+      # softprops/action-gh-release v2.6.2
+      - name: Attach VSIX to GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          files: ${{ steps.vsix.outputs.path }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
