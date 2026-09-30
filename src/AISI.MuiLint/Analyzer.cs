@@ -11,63 +11,15 @@ namespace AISI.MuiLint
     /// <summary>
     /// Roslyn additional-file analyzer that runs <see cref="HtmlMergeScanner"/> on <c>.html</c>
     /// files. The scanner itself does not need a compilation; this wrapper is how Visual Studio
-    /// and `dotnet` surface the five HTML merge diagnostics on C# projects that list HTML as
-    /// additional files.
+    /// and `dotnet` surface the HTML merge diagnostics on C# projects that list HTML as
+    /// additional files. Analyzers may not touch the disk, so the rules that read neighbouring
+    /// files (AISI0007, AISI0009) only run in the CLI and the VSIX; Roslyn applies
+    /// .editorconfig severities itself.
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class Analyzer : DiagnosticAnalyzer
     {
-        private static readonly DiagnosticDescriptor SelfClosing = new DiagnosticDescriptor(
-            DiagnosticIds.SelfClosing,
-            "Self-closing Modern UI tag",
-            "{0}",
-            "HTML Merge",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: "Acumatica Modern UI merge does not treat self-closing <field> or <qp-*> tags as a full start/end pair. Use explicit end tags.");
-
-        private static readonly DiagnosticDescriptor AfterBeforeSameFile = new DiagnosticDescriptor(
-            DiagnosticIds.AfterBeforeSameFile,
-            "after/before name selector defined in this file",
-            "{0}",
-            "HTML Merge",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: "HTML merge only sees stock HTML. An after/before [name='X'] selector cannot target a name introduced in the same extension file.");
-
-        private static readonly DiagnosticDescriptor StockScreensPath = new DiagnosticDescriptor(
-            DiagnosticIds.StockScreensPath,
-            "Stock src/screens path",
-            "{0}",
-            "HTML Merge",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: "Custom and customized Modern UI source belongs in development/screens or customizationScreens, not the stock src/screens tree.");
-
-        private static readonly DiagnosticDescriptor ExtensionBasename = new DiagnosticDescriptor(
-            DiagnosticIds.ExtensionBasename,
-            "Extension named as the parent screen",
-            "{0}",
-            "HTML Merge",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: "An extensions/*.html file must not use the parent screen folder as its basename (SO301000/extensions/SO301000.html). Add a postfix.");
-
-        private static readonly DiagnosticDescriptor EmptyFieldset = new DiagnosticDescriptor(
-            DiagnosticIds.EmptyFieldset,
-            "Empty qp-fieldset",
-            "{0}",
-            "HTML Merge",
-            DiagnosticSeverity.Error,
-            isEnabledByDefault: true,
-            description: "A qp-fieldset whose body is only whitespace or comments will merge as an empty fieldset. Merge-operation fieldsets (modify/remove/replace) are allowed to be empty.");
-
-        private static readonly ImmutableArray<DiagnosticDescriptor> Supported = ImmutableArray.Create(
-            SelfClosing,
-            AfterBeforeSameFile,
-            StockScreensPath,
-            ExtensionBasename,
-            EmptyFieldset);
+        private static readonly ImmutableArray<DiagnosticDescriptor> Supported = Describe();
 
         /// <inheritdoc/>
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Supported;
@@ -136,32 +88,47 @@ namespace AISI.MuiLint
 
         private static DiagnosticDescriptor? DescriptorFor(string id)
         {
-            if (string.Equals(id, DiagnosticIds.SelfClosing, StringComparison.Ordinal))
+            for (int i = 0; i < Supported.Length; i++)
             {
-                return SelfClosing;
-            }
-
-            if (string.Equals(id, DiagnosticIds.AfterBeforeSameFile, StringComparison.Ordinal))
-            {
-                return AfterBeforeSameFile;
-            }
-
-            if (string.Equals(id, DiagnosticIds.StockScreensPath, StringComparison.Ordinal))
-            {
-                return StockScreensPath;
-            }
-
-            if (string.Equals(id, DiagnosticIds.ExtensionBasename, StringComparison.Ordinal))
-            {
-                return ExtensionBasename;
-            }
-
-            if (string.Equals(id, DiagnosticIds.EmptyFieldset, StringComparison.Ordinal))
-            {
-                return EmptyFieldset;
+                if (string.Equals(Supported[i].Id, id, StringComparison.Ordinal))
+                {
+                    return Supported[i];
+                }
             }
 
             return null;
+        }
+
+        private static ImmutableArray<DiagnosticDescriptor> Describe()
+        {
+            ImmutableArray<DiagnosticDescriptor>.Builder descriptors = ImmutableArray.CreateBuilder<DiagnosticDescriptor>(Rules.All.Count);
+            foreach (Rule rule in Rules.All)
+            {
+                descriptors.Add(new DiagnosticDescriptor(
+                    rule.Id,
+                    rule.Title,
+                    "{0}",
+                    "HTML Merge",
+                    ToRoslyn(rule.DefaultSeverity),
+                    isEnabledByDefault: true,
+                    description: rule.Description,
+                    helpLinkUri: rule.HelpUri));
+            }
+
+            return descriptors.MoveToImmutable();
+        }
+
+        private static DiagnosticSeverity ToRoslyn(Severity severity)
+        {
+            switch (severity)
+            {
+                case Severity.Warning:
+                    return DiagnosticSeverity.Warning;
+                case Severity.Suggestion:
+                    return DiagnosticSeverity.Info;
+                default:
+                    return DiagnosticSeverity.Error;
+            }
         }
 
         private static RoslynDiagnostic ToRoslyn(Diagnostic finding, DiagnosticDescriptor descriptor)

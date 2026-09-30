@@ -16,14 +16,37 @@ namespace AISI.MuiLint
             "\\[name\\s*=\\s*(?:(['\"])(?<n>.*?)\\1|(?<n>[^\\s\\]]+))\\]",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        private static readonly char[] IdSeparators = { ' ', '\t', '\r', '\n', ',' };
+
+        private static readonly Regex SuppressionComment = new Regex(
+            "<!--\\s*muilint-disable(?<next>-next-line)?(?<ids>(?:\\s[^>]*?)?)\\s*-->",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         /// <summary>
-        /// Scans <paramref name="text"/> as if it lived at <paramref name="path"/>.
-        /// Path-based rules use <paramref name="path"/> only; tag-based rules use the text.
+        /// Scans <paramref name="text"/> as if it lived at <paramref name="path"/>, looking at
+        /// nothing but the text itself.
         /// </summary>
-        /// <param name="path">File path (used for AISI0003 and AISI0004, and for reporting).</param>
+        /// <param name="path">File path (used for the path rules and for reporting).</param>
         /// <param name="text">Raw HTML.</param>
         /// <returns>Zero or more findings, in source order.</returns>
         public static IReadOnlyList<Diagnostic> Analyze(string path, string text)
+        {
+            return Analyze(path, text, null);
+        }
+
+        /// <summary>
+        /// Scans <paramref name="text"/> as if it lived at <paramref name="path"/>.
+        /// </summary>
+        /// <param name="path">File path (used for the path rules and for reporting).</param>
+        /// <param name="text">Raw HTML.</param>
+        /// <param name="readFile">
+        /// Returns the text of another file, or null when it does not exist. With it the scanner
+        /// also checks the extension's .ts sibling and the stock screen HTML, and honours
+        /// <c>dotnet_diagnostic.AISI*.severity</c> in .editorconfig. Null keeps the scan to
+        /// <paramref name="text"/> alone.
+        /// </param>
+        /// <returns>Zero or more findings, in source order.</returns>
+        public static IReadOnlyList<Diagnostic> Analyze(string path, string text, Func<string, string?>? readFile)
         {
             if (path is null)
             {
@@ -43,13 +66,96 @@ namespace AISI.MuiLint
 
             string masked = MaskComments(text);
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(masked);
+            int[] parents = HtmlTagReader.Parents(tags);
 
             Scan0001(path, tags, lineMap, results);
             Scan0002(path, tags, lineMap, results);
             Scan0005(path, masked, tags, lineMap, results);
+            Scan0006(path, tags, lineMap, results);
+            Scan0008(path, tags, parents, lineMap, results);
+
+            if (IsExtensionFile(path))
+            {
+                StockScreen? stock = null;
+                if (readFile != null)
+                {
+                    TryPath0007(path, readFile, lineMap, results);
+                    stock = StockScreen.Read(path, readFile);
+                    if (stock != null)
+                    {
+                        Scan0009(path, tags, stock, lineMap, results);
+                    }
+                }
+
+                Scan0010(path, tags, parents, stock, lineMap, results);
+            }
+
+            RemoveSuppressed(text, lineMap, results);
+            if (readFile != null)
+            {
+                ApplyConfiguredSeverities(path, readFile, results);
+            }
 
             results.Sort(CompareDiagnostics);
             return results;
+        }
+
+        private static void RemoveSuppressed(string text, LineMap lineMap, List<Diagnostic> results)
+        {
+            if (results.Count == 0 || text.IndexOf("muilint-disable", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return;
+            }
+
+            foreach (Match match in SuppressionComment.Matches(text))
+            {
+                var ids = new HashSet<string>(
+                    match.Groups["ids"].Value.Split(IdSeparators, StringSplitOptions.RemoveEmptyEntries),
+                    StringComparer.OrdinalIgnoreCase);
+
+                int onlyLine = 0;
+                if (match.Groups["next"].Success)
+                {
+                    lineMap.ToLineCol(match.Index + match.Length, out int commentLine, out _);
+                    onlyLine = commentLine + 1;
+                }
+
+                results.RemoveAll(d => (ids.Count == 0 || ids.Contains(d.Id)) && (onlyLine == 0 || d.Line == onlyLine));
+            }
+        }
+
+        private static void ApplyConfiguredSeverities(string path, Func<string, string?> readFile, List<Diagnostic> results)
+        {
+            if (results.Count == 0)
+            {
+                return;
+            }
+
+            IReadOnlyDictionary<string, string> configured = EditorConfig.ReadSeverities(path, readFile);
+            for (int i = results.Count - 1; i >= 0; i--)
+            {
+                if (!configured.TryGetValue(results[i].Id, out string? value))
+                {
+                    continue;
+                }
+
+                switch (value)
+                {
+                    case "error":
+                        results[i] = results[i].WithSeverity(Severity.Error);
+                        break;
+                    case "warning":
+                        results[i] = results[i].WithSeverity(Severity.Warning);
+                        break;
+                    case "suggestion":
+                        results[i] = results[i].WithSeverity(Severity.Suggestion);
+                        break;
+                    case "silent":
+                    case "none":
+                        results.RemoveAt(i);
+                        break;
+                }
+            }
         }
 
         private static int CompareDiagnostics(Diagnostic a, Diagnostic b)
@@ -257,6 +363,189 @@ namespace AISI.MuiLint
             }
         }
 
+        private static void Scan0006(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
+        {
+            for (int i = 0; i < tags.Count; i++)
+            {
+                HtmlTag tag = tags[i];
+                if (tag.IsEndTag)
+                {
+                    continue;
+                }
+
+                for (int a = 0; a < tag.Attributes.Count; a++)
+                {
+                    HtmlAttribute attr = tag.Attributes[a];
+                    if (!IsMergeOperator(attr.Name))
+                    {
+                        continue;
+                    }
+
+                    string? problem = FindSelectorProblem(attr.Value);
+                    if (problem == null)
+                    {
+                        continue;
+                    }
+
+                    string message = string.Format(
+                        CultureInfo.InvariantCulture,
+                        "{0}=\"{1}\" is not a valid selector: {2}. The merge will not match anything.",
+                        attr.Name,
+                        attr.Value,
+                        problem);
+
+                    results.Add(Create(DiagnosticIds.MalformedSelector, message, path, attr.ValueStart, attr.Value.Length, lineMap));
+                }
+            }
+        }
+
+        /// <summary>Checks brackets, parentheses and quotes balance. Returns null when they do.</summary>
+        internal static string? FindSelectorProblem(string selector)
+        {
+            var open = new Stack<char>();
+            char quote = '\0';
+            for (int i = 0; i < selector.Length; i++)
+            {
+                char c = selector[i];
+                if (quote != '\0')
+                {
+                    if (c == quote)
+                    {
+                        quote = '\0';
+                    }
+
+                    continue;
+                }
+
+                switch (c)
+                {
+                    case '\'':
+                    case '"':
+                        quote = c;
+                        break;
+                    case '[':
+                    case '(':
+                        open.Push(c);
+                        break;
+                    case ']':
+                    case ')':
+                        char expected = c == ']' ? '[' : '(';
+                        if (open.Count == 0 || open.Pop() != expected)
+                        {
+                            return "unexpected '" + c + "'";
+                        }
+
+                        break;
+                }
+            }
+
+            if (quote != '\0')
+            {
+                return "unclosed " + quote + " quote";
+            }
+
+            if (open.Count > 0)
+            {
+                return "unclosed '" + open.Peek() + "'";
+            }
+
+            return null;
+        }
+
+        private static void Scan0008(
+            string path,
+            IReadOnlyList<HtmlTag> tags,
+            int[] parents,
+            LineMap lineMap,
+            List<Diagnostic> results)
+        {
+            var ids = new Dictionary<string, HtmlTag>(StringComparer.Ordinal);
+            var names = new Dictionary<string, HtmlTag>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < tags.Count; i++)
+            {
+                HtmlTag tag = tags[i];
+
+                // modify/remove point at an existing element; their own name/id is not a new one.
+                if (tag.IsEndTag || tag.HasAttribute("modify") || tag.HasAttribute("remove"))
+                {
+                    continue;
+                }
+
+                string id = tag.GetAttribute("id");
+                if (id.Length > 0)
+                {
+                    if (ids.TryGetValue(id, out HtmlTag first))
+                    {
+                        string message = string.Format(
+                            CultureInfo.InvariantCulture,
+                            "id '{0}' is already used on line {1}. Selectors will only ever find the first one.",
+                            id,
+                            LineOf(first, lineMap));
+                        results.Add(Create(DiagnosticIds.DuplicateNameOrId, message, path, tag.Start, tag.End - tag.Start, lineMap));
+                    }
+                    else
+                    {
+                        ids.Add(id, tag);
+                    }
+                }
+
+                string name = tag.GetAttribute("name");
+                if (name.Length == 0 || !IsFieldTag(tag.Name))
+                {
+                    continue;
+                }
+
+                // The same field can legitimately show up once per view, so key on the view.
+                string scope = FieldScope(tags, parents, i, out string scopeLabel);
+                if (names.TryGetValue(scope + "\n" + name, out HtmlTag firstField))
+                {
+                    string message = string.Format(
+                        CultureInfo.InvariantCulture,
+                        "Field '{0}' already appears {1} on line {2}.",
+                        name,
+                        scopeLabel,
+                        LineOf(firstField, lineMap));
+                    results.Add(Create(DiagnosticIds.DuplicateNameOrId, message, path, tag.Start, tag.End - tag.Start, lineMap));
+                }
+                else
+                {
+                    names.Add(scope + "\n" + name, tag);
+                }
+            }
+        }
+
+        private static string FieldScope(IReadOnlyList<HtmlTag> tags, int[] parents, int index, out string label)
+        {
+            for (int p = parents[index]; p >= 0; p = parents[p])
+            {
+                string view = tags[p].GetAttribute("view.bind");
+                if (view.Length > 0)
+                {
+                    label = "in view '" + view + "'";
+                    return "view:" + view;
+                }
+
+                for (int a = 0; a < tags[p].Attributes.Count; a++)
+                {
+                    HtmlAttribute attr = tags[p].Attributes[a];
+                    if (IsMergeOperator(attr.Name))
+                    {
+                        label = "under " + attr.Name + "=\"" + attr.Value + "\"";
+                        return "merge:" + attr.Name + "=" + attr.Value;
+                    }
+                }
+            }
+
+            label = "in this file";
+            return string.Empty;
+        }
+
+        private static int LineOf(HtmlTag tag, LineMap lineMap)
+        {
+            lineMap.ToLineCol(tag.Start, out int line, out _);
+            return line;
+        }
+
         internal static bool IsStockScreensPath(string path)
         {
             string normalized = NormalizePath(path);
@@ -355,7 +644,7 @@ namespace AISI.MuiLint
             return new string(chars);
         }
 
-        private static bool IsFieldTag(string name)
+        internal static bool IsFieldTag(string name)
         {
             return string.Equals(name, "field", StringComparison.OrdinalIgnoreCase);
         }
@@ -373,6 +662,23 @@ namespace AISI.MuiLint
             return string.Equals(name, "qp-fieldset", StringComparison.OrdinalIgnoreCase);
         }
 
+        internal static bool IsMergeOperator(string name)
+        {
+            switch (name.ToLowerInvariant())
+            {
+                case "after":
+                case "before":
+                case "append":
+                case "prepend":
+                case "modify":
+                case "remove":
+                case "replace":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private static bool IsAfterOrBefore(string name)
         {
             return string.Equals(name, "after", StringComparison.OrdinalIgnoreCase)
@@ -381,18 +687,7 @@ namespace AISI.MuiLint
 
         private static bool HasMergeOperation(HtmlTag tag)
         {
-            for (int i = 0; i < tag.Attributes.Count; i++)
-            {
-                string name = tag.Attributes[i].Name;
-                if (string.Equals(name, "modify", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "remove", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "replace", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return tag.HasAttribute("modify") || tag.HasAttribute("remove") || tag.HasAttribute("replace");
         }
 
         private static bool IsWhitespaceOnly(string text, int start, int end)
@@ -408,7 +703,7 @@ namespace AISI.MuiLint
             return true;
         }
 
-        private static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
+        internal static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
         {
             if (start < 0)
             {
@@ -428,7 +723,9 @@ namespace AISI.MuiLint
 
             lineMap.ToLineCol(start, out int line, out int column);
             lineMap.ToLineCol(end, out int endLine, out int endColumn);
-            return new Diagnostic(id, message, path, start, length, line, column, endLine, endColumn);
+            Rule? rule = Rules.Find(id);
+            Severity severity = rule == null ? Severity.Error : rule.DefaultSeverity;
+            return new Diagnostic(id, message, path, start, length, line, column, endLine, endColumn, severity);
         }
     }
 }
