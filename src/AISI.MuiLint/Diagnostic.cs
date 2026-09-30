@@ -11,7 +11,7 @@ namespace AISI.MuiLint
         /// <summary>
         /// Initializes a finding.
         /// </summary>
-        /// <param name="id">Diagnostic identifier (<c>AISI0001</c>…<c>AISI0005</c>).</param>
+        /// <param name="id">Diagnostic identifier, one of <see cref="DiagnosticIds"/>.</param>
         /// <param name="message">Human-readable message.</param>
         /// <param name="path">File path the scanner was given.</param>
         /// <param name="start">0-based UTF-16 offset of the span.</param>
@@ -20,6 +20,7 @@ namespace AISI.MuiLint
         /// <param name="column">1-based start column.</param>
         /// <param name="endLine">1-based end line.</param>
         /// <param name="endColumn">1-based end column (exclusive).</param>
+        /// <param name="severity">Effective severity after .editorconfig overrides.</param>
         public Diagnostic(
             string id,
             string message,
@@ -29,7 +30,8 @@ namespace AISI.MuiLint
             int line,
             int column,
             int endLine,
-            int endColumn)
+            int endColumn,
+            Severity severity)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Message = message ?? throw new ArgumentNullException(nameof(message));
@@ -40,6 +42,7 @@ namespace AISI.MuiLint
             Column = column;
             EndLine = endLine;
             EndColumn = endColumn;
+            Severity = severity;
         }
 
         /// <summary>Gets the diagnostic identifier.</summary>
@@ -68,5 +71,13 @@ namespace AISI.MuiLint
 
         /// <summary>Gets the 1-based exclusive end column.</summary>
         public int EndColumn { get; }
+
+        /// <summary>Gets the severity.</summary>
+        public Severity Severity { get; }
+
+        internal Diagnostic WithSeverity(Severity severity)
+        {
+            return new Diagnostic(Id, Message, Path, Start, Length, Line, Column, EndLine, EndColumn, severity);
+        }
     }
 }

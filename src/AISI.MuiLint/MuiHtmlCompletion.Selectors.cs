@@ -133,7 +133,16 @@ namespace AISI.MuiLint
 
             return string.Equals(tagName, "qp-fieldset", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(tagName, "qp-grid", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(tagName, "qp-template", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(tagName, "qp-template", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "qp-panel", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "qp-tree", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasCaption(string tagName)
+        {
+            return string.Equals(tagName, "qp-fieldset", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "qp-tab", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "qp-panel", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool LooksLikeTemplateName(string value)
