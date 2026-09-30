@@ -20,7 +20,7 @@ namespace AISI.MuiLint.Tests
             TextEdit? edit = MuiLintFixes.ExpandSelfClosing(html, d);
 
             Assert.NotNull(edit);
-            Assert.Equal("<template>\n  " + expected + "\n</template>", edit.Value.ApplyTo(html));
+            Assert.Equal("<template>\n  " + expected + "\n</template>", TestFiles.Apply(html, edit.Value));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace AISI.MuiLint.Tests
                 "  </qp-fieldset>\n" +
                 "</template>\n";
 
-            string fixedHtml = MuiLintFixes.RemoveEmptyFieldset(html, Single(html, DiagnosticIds.EmptyFieldset))!.Value.ApplyTo(html);
+            string fixedHtml = TestFiles.Apply(html, MuiLintFixes.RemoveEmptyFieldset(html, Single(html, DiagnosticIds.EmptyFieldset))!.Value);
 
             Assert.Equal("<template>\n  <field name=\"UsrA\" after=\"[name='B']\"></field>\n</template>\n", fixedHtml);
         }
@@ -43,7 +43,7 @@ namespace AISI.MuiLint.Tests
         public void RemoveEmptyFieldset_OnOneLineWithOtherMarkup_RemovesJustTheFieldset()
         {
             const string html = "<template><qp-fieldset id=\"a\"></qp-fieldset><field name=\"UsrA\"></field></template>";
-            string fixedHtml = MuiLintFixes.RemoveEmptyFieldset(html, Single(html, DiagnosticIds.EmptyFieldset))!.Value.ApplyTo(html);
+            string fixedHtml = TestFiles.Apply(html, MuiLintFixes.RemoveEmptyFieldset(html, Single(html, DiagnosticIds.EmptyFieldset))!.Value);
             Assert.Equal("<template><field name=\"UsrA\"></field></template>", fixedHtml);
         }
 
@@ -51,7 +51,7 @@ namespace AISI.MuiLint.Tests
         public void Suppress_KeepsIndentationAndLineEndings()
         {
             const string html = "<template>\r\n    <field name=\"UsrA\"/>\r\n</template>";
-            string fixedHtml = MuiLintFixes.Suppress(html, Single(html, DiagnosticIds.SelfClosing)).ApplyTo(html);
+            string fixedHtml = TestFiles.Apply(html, MuiLintFixes.Suppress(html, Single(html, DiagnosticIds.SelfClosing)));
             Assert.Equal("<template>\r\n    <!-- muilint-disable-next-line AISI0001 -->\r\n    <field name=\"UsrA\"/>\r\n</template>", fixedHtml);
         }
 
@@ -62,7 +62,7 @@ namespace AISI.MuiLint.Tests
             const string html = "<template></template>";
             Diagnostic d = Assert.Single(HtmlMergeScanner.Analyze(path, html));
             Assert.True(MuiLintFixes.IsFileLevel(d));
-            Assert.Equal("<!-- muilint-disable AISI0003 -->\n<template></template>", MuiLintFixes.Suppress(html, d).ApplyTo(html));
+            Assert.Equal("<!-- muilint-disable AISI0003 -->\n<template></template>", TestFiles.Apply(html, MuiLintFixes.Suppress(html, d)));
         }
 
         public static TheoryData<string> FailFixtures()
@@ -81,13 +81,13 @@ namespace AISI.MuiLint.Tests
         public void Suppress_ActuallySilencesEveryFailFixture(string path)
         {
             string html = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> before = HtmlMergeScanner.Analyze(path, html, ReadDisk);
+            IReadOnlyList<Diagnostic> before = HtmlMergeScanner.Analyze(path, html, TestFiles.ReadDisk);
             Assert.NotEmpty(before);
 
             foreach (Diagnostic d in before)
             {
-                string suppressed = MuiLintFixes.Suppress(html, d).ApplyTo(html);
-                IReadOnlyList<Diagnostic> after = HtmlMergeScanner.Analyze(path, suppressed, ReadDisk);
+                string suppressed = TestFiles.Apply(html, MuiLintFixes.Suppress(html, d));
+                IReadOnlyList<Diagnostic> after = HtmlMergeScanner.Analyze(path, suppressed, TestFiles.ReadDisk);
                 Assert.True(
                     after.Count(x => x.Id == d.Id) < before.Count(x => x.Id == d.Id),
                     "Suppressing " + d.Id + " on line " + d.Line + " did nothing");
@@ -97,11 +97,6 @@ namespace AISI.MuiLint.Tests
         private static Diagnostic Single(string html, string id)
         {
             return Assert.Single(HtmlMergeScanner.Analyze("x.html", html), d => d.Id == id);
-        }
-
-        private static string? ReadDisk(string path)
-        {
-            return File.Exists(path) ? File.ReadAllText(path) : null;
         }
     }
 }

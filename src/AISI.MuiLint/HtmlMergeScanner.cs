@@ -16,6 +16,10 @@ namespace AISI.MuiLint
             "\\[name\\s*=\\s*(?:(['\"])(?<n>.*?)\\1|(?<n>[^\\s\\]]+))\\]",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        private static readonly HashSet<string> MergeOperators = new HashSet<string>(
+            new[] { "after", "before", "append", "prepend", "modify", "remove", "replace" },
+            StringComparer.OrdinalIgnoreCase);
+
         private static readonly char[] IdSeparators = { ' ', '\t', '\r', '\n', ',' };
 
         private static readonly Regex SuppressionComment = new Regex(
@@ -644,7 +648,7 @@ namespace AISI.MuiLint
             return new string(chars);
         }
 
-        internal static bool IsFieldTag(string name)
+        private static bool IsFieldTag(string name)
         {
             return string.Equals(name, "field", StringComparison.OrdinalIgnoreCase);
         }
@@ -662,21 +666,9 @@ namespace AISI.MuiLint
             return string.Equals(name, "qp-fieldset", StringComparison.OrdinalIgnoreCase);
         }
 
-        internal static bool IsMergeOperator(string name)
+        private static bool IsMergeOperator(string name)
         {
-            switch (name.ToLowerInvariant())
-            {
-                case "after":
-                case "before":
-                case "append":
-                case "prepend":
-                case "modify":
-                case "remove":
-                case "replace":
-                    return true;
-                default:
-                    return false;
-            }
+            return MergeOperators.Contains(name);
         }
 
         private static bool IsAfterOrBefore(string name)
@@ -703,7 +695,7 @@ namespace AISI.MuiLint
             return true;
         }
 
-        internal static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
+        private static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
         {
             if (start < 0)
             {

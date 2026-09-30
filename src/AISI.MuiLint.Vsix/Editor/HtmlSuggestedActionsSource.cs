@@ -105,7 +105,7 @@ namespace AISI.MuiLint.Vsix
 
         private void Add(List<ISuggestedAction> actions, string title, ITextSnapshot analyzed, TextEdit? edit)
         {
-            if (edit.HasValue && edit.Value.Start + edit.Value.Length <= analyzed.Length)
+            if (edit.HasValue)
             {
                 actions.Add(new MuiLintFixAction(title, _buffer, analyzed, edit.Value));
             }
@@ -113,20 +113,16 @@ namespace AISI.MuiLint.Vsix
 
         private static bool IsUnderCaret(Diagnostic diagnostic, ITextSnapshot analyzed, SnapshotSpan range)
         {
-            if (diagnostic.Start + diagnostic.Length > analyzed.Length)
-            {
-                return false;
-            }
-
             // File-level findings have no span; offer them anywhere on the first line.
             if (MuiLintFixes.IsFileLevel(diagnostic))
             {
                 return range.Start.GetContainingLine().LineNumber == 0;
             }
 
-            SnapshotSpan span = new SnapshotSpan(analyzed, diagnostic.Start, diagnostic.Length)
-                .TranslateTo(range.Snapshot, SpanTrackingMode.EdgeInclusive);
-            return span.IntersectsWith(range) || span.Contains(range.Start) || span.End == range.Start;
+            // IntersectsWith is inclusive at both ends, so a caret right after the span counts too.
+            return new SnapshotSpan(analyzed, diagnostic.Start, diagnostic.Length)
+                .TranslateTo(range.Snapshot, SpanTrackingMode.EdgeInclusive)
+                .IntersectsWith(range);
         }
 
         private sealed class MuiLintFixAction : ISuggestedAction

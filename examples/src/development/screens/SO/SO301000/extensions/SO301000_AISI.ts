@@ -6,7 +6,7 @@ export class SO301000_AISI {}
 
 export interface SOOrderHeader_AISI extends SOOrderHeader {}
 export class SOOrderHeader_AISI {
-	UsrPriority: PXFieldState;
-	UsrDeliveryWindow: PXFieldState;
-	UsrDeliveryNote: PXFieldState;
+    UsrPriority: PXFieldState;
+    UsrDeliveryWindow: PXFieldState;
+    UsrDeliveryNote: PXFieldState;
 }
