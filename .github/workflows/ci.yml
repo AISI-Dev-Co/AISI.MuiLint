@@ -41,6 +41,20 @@ jobs:
             src/AISI.MuiLint/AISI.MuiLint.csproj \
             src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj
 
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the action on the clean example
+        uses: ./
+        with:
+          path: examples/src/development/screens/SO/SO301000/extensions/SO301000_AISI.html
+          sarif-file: muilint.sarif
+
+      - name: Check the SARIF parses
+        run: python3 -m json.tool muilint.sarif > /dev/null
+
   pack-vsix:
     runs-on: windows-latest
     steps:
