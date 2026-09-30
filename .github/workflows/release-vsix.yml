@@ -30,6 +30,24 @@ jobs:
           "plain=$plain" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Release version tag=$v plain=$plain"
 
+      # The tag is the source of truth, so a v0.3.0 release can never ship a VSIX that says 0.2.0.
+      - name: Stamp version
+        shell: pwsh
+        run: |
+          $v = $env:PLAIN
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Release tags must look like v1.2.3 (VSIX versions are numeric); got '$v'" }
+          function Stamp($path, $pattern, $replacement) {
+            $before = Get-Content $path -Raw
+            $after = $before -replace $pattern, $replacement
+            if ($after -eq $before -and $before -notmatch [regex]::Escape($v)) { throw "Could not stamp $path" }
+            Set-Content -Path $path -Value $after -NoNewline
+          }
+          Stamp 'Directory.Build.props' '<Version>[^<]*</Version>' "<Version>$v</Version>"
+          Stamp 'src/AISI.MuiLint.Vsix/source.extension.vsixmanifest' '(<Identity [^>]*Version=")[^"]*' "`${1}$v"
+          Stamp 'src/AISI.MuiLint.Vsix/Editor/MuiLintVsPackage.cs' '(InstalledProductRegistration\("[^"]*", "[^"]*", ")[^"]*' "`${1}$v"
+        env:
+          PLAIN: ${{ steps.ver.outputs.plain }}
+
       - name: Pack VSIX
         run: dotnet build src/AISI.MuiLint.Vsix/AISI.MuiLint.Vsix.csproj --configuration Release
 
