@@ -61,7 +61,7 @@ namespace AISI.MuiLint
             return prefix + "screens/" + parts[module] + "/" + screen + "/" + screen + ".html";
         }
 
-        internal static bool IsExtensionFile(string path)
+        private static bool IsExtensionFile(string path)
         {
             string directory = Path.GetFileName(Path.GetDirectoryName(NormalizePath(path)) ?? string.Empty);
             return string.Equals(directory, "extensions", StringComparison.OrdinalIgnoreCase);
@@ -92,10 +92,10 @@ namespace AISI.MuiLint
             // Same-file targets are AISI0002's business, not this rule's.
             var localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < tags.Count; i++)
+            foreach (HtmlTag tag in tags)
             {
-                localNames.Add(tags[i].GetAttribute("name"));
-                localIds.Add(tags[i].GetAttribute("id"));
+                localNames.Add(tag.GetAttribute("name"));
+                localIds.Add(tag.GetAttribute("id"));
             }
 
             for (int i = 0; i < tags.Count; i++)

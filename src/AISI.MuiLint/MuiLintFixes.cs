@@ -21,12 +21,6 @@ namespace AISI.MuiLint
 
         /// <summary>Gets the replacement text.</summary>
         public string NewText { get; }
-
-        /// <summary>Applies the edit to <paramref name="text"/>.</summary>
-        public string ApplyTo(string text)
-        {
-            return text.Substring(0, Start) + NewText + text.Substring(Start + Length);
-        }
     }
 
     /// <summary>
@@ -61,7 +55,7 @@ namespace AISI.MuiLint
         public static TextEdit? RemoveEmptyFieldset(string text, Diagnostic diagnostic)
         {
             int openEnd = diagnostic.Start + diagnostic.Length;
-            if (openEnd > text.Length || !Slice(text, diagnostic).StartsWith("<qp-fieldset", StringComparison.OrdinalIgnoreCase))
+            if (!Slice(text, diagnostic).StartsWith("<qp-fieldset", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

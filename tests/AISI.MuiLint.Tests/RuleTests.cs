@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace AISI.MuiLint.Tests
@@ -245,7 +244,7 @@ namespace AISI.MuiLint.Tests
 
         private static IReadOnlyList<Diagnostic> Scan(string html, Dictionary<string, string> files)
         {
-            return HtmlMergeScanner.Analyze(Extension, html, path => files.TryGetValue(path, out string? text) ? text : null).ToList();
+            return HtmlMergeScanner.Analyze(Extension, html, path => files.TryGetValue(path, out string? text) ? text : null);
         }
     }
 }

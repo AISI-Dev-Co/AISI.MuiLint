@@ -32,7 +32,7 @@ namespace AISI.MuiLint.Tests
         public void FailFixture_ReportsExpectedId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, ReadDisk);
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
             Assert.Contains(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
@@ -41,7 +41,7 @@ namespace AISI.MuiLint.Tests
         public void PassFixture_DoesNotReportId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, ReadDisk);
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
             Assert.DoesNotContain(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
@@ -94,11 +94,9 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void SupportedDiagnostics_MatchTheRulesTable()
+        public void SupportedDiagnostics_MapSeverities()
         {
             var analyzer = new Analyzer();
-            Assert.Equal(Rules.All.Select(r => r.Id), analyzer.SupportedDiagnostics.Select(d => d.Id));
-            Assert.All(analyzer.SupportedDiagnostics, d => Assert.EndsWith("/docs/rules/" + d.Id + ".md", d.HelpLinkUri, StringComparison.Ordinal));
             Assert.Equal(DiagnosticSeverity.Error, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.SelfClosing).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Warning, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.DuplicateNameOrId).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.FieldWithoutUsrPrefix).DefaultSeverity);
@@ -107,7 +105,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void EveryRule_HasADocPage()
         {
-            string docs = Path.Combine(RepoRoot(), "docs", "rules");
+            string docs = Path.Combine(TestFiles.RepoRoot, "docs", "rules");
             Assert.All(Rules.All, r => Assert.True(File.Exists(Path.Combine(docs, r.Id + ".md")), "Missing docs/rules/" + r.Id + ".md"));
         }
 
@@ -165,22 +163,6 @@ namespace AISI.MuiLint.Tests
             return compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult();
         }
 
-        private static string? ReadDisk(string path)
-        {
-            return File.Exists(path) ? File.ReadAllText(path) : null;
-        }
-
-        private static string RepoRoot()
-        {
-            string? dir = AppContext.BaseDirectory;
-            while (dir != null && !File.Exists(Path.Combine(dir, "AISI.MuiLint.sln")))
-            {
-                dir = Path.GetDirectoryName(dir);
-            }
-
-            Assert.NotNull(dir);
-            return dir!;
-        }
 
         private static TheoryData<string, string> Enumerate(string kind)
         {

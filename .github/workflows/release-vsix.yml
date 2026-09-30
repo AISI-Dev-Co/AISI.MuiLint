@@ -37,10 +37,9 @@ jobs:
           $v = $env:PLAIN
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Release tags must look like v1.2.3 (VSIX versions are numeric); got '$v'" }
           function Stamp($path, $pattern, $replacement) {
-            $before = Get-Content $path -Raw
-            $after = $before -replace $pattern, $replacement
-            if ($after -eq $before -and $before -notmatch [regex]::Escape($v)) { throw "Could not stamp $path" }
-            Set-Content -Path $path -Value $after -NoNewline
+            $text = Get-Content $path -Raw
+            if ($text -notmatch $pattern) { throw "No version to stamp in $path" }
+            Set-Content -Path $path -Value ($text -replace $pattern, $replacement) -NoNewline
           }
           Stamp 'Directory.Build.props' '<Version>[^<]*</Version>' "<Version>$v</Version>"
           Stamp 'src/AISI.MuiLint.Vsix/source.extension.vsixmanifest' '(<Identity [^>]*Version=")[^"]*' "`${1}$v"

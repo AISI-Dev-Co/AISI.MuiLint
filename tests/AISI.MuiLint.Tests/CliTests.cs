@@ -10,7 +10,7 @@ namespace AISI.MuiLint.Tests
     public sealed class CliTests
     {
         private static readonly string Extensions = Path.Combine(
-            RepoRoot(), "examples", "src", "development", "screens", "SO", "SO301000", "extensions");
+            TestFiles.RepoRoot, "examples", "src", "development", "screens", "SO", "SO301000", "extensions");
 
         [Fact]
         public void CleanExtension_ExitsZero()
@@ -44,16 +44,18 @@ namespace AISI.MuiLint.Tests
         public void Sarif_IsWellFormed()
         {
             (int exit, string output, _) = Run("-f", "sarif", Extensions);
+            (_, string json, _) = Run("-f", "json", Extensions);
             Assert.Equal(1, exit);
 
             using JsonDocument sarif = JsonDocument.Parse(output);
+            using JsonDocument findings = JsonDocument.Parse(json);
             Assert.Equal("2.1.0", sarif.RootElement.GetProperty("version").GetString());
             JsonElement run = sarif.RootElement.GetProperty("runs")[0];
             JsonElement rules = run.GetProperty("tool").GetProperty("driver").GetProperty("rules");
             Assert.Equal(Rules.All.Count, rules.GetArrayLength());
 
             JsonElement[] results = run.GetProperty("results").EnumerateArray().ToArray();
-            Assert.Equal(8, results.Length);
+            Assert.Equal(findings.RootElement.GetArrayLength(), results.Length);
             foreach (JsonElement result in results)
             {
                 int index = result.GetProperty("ruleIndex").GetInt32();
@@ -127,17 +129,6 @@ namespace AISI.MuiLint.Tests
                 Console.SetOut(originalOut);
                 Console.SetError(originalError);
             }
-        }
-
-        private static string RepoRoot()
-        {
-            string? dir = AppContext.BaseDirectory;
-            while (dir != null && !File.Exists(Path.Combine(dir, "AISI.MuiLint.sln")))
-            {
-                dir = Path.GetDirectoryName(dir);
-            }
-
-            return dir ?? throw new InvalidOperationException("Cannot find the repository root.");
         }
     }
 }

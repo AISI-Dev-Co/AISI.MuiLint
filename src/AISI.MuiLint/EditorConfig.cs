@@ -23,7 +23,7 @@ namespace AISI.MuiLint
             string file = HtmlMergeScanner.NormalizePath(path);
 
             // Nearest first; stop at root = true.
-            var configs = new List<KeyValuePair<string, string>>();
+            var configs = new List<(string Directory, string Text)>();
             string? directory = Path.GetDirectoryName(file);
             while (!string.IsNullOrEmpty(directory))
             {
@@ -31,7 +31,7 @@ namespace AISI.MuiLint
                 string? text = readFile(dir.TrimEnd('/') + "/.editorconfig");
                 if (text != null)
                 {
-                    configs.Add(new KeyValuePair<string, string>(dir, text));
+                    configs.Add((dir, text));
                     if (IsRoot(text))
                     {
                         break;
@@ -44,8 +44,8 @@ namespace AISI.MuiLint
             var severities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             for (int i = configs.Count - 1; i >= 0; i--)
             {
-                string relative = file.Substring(configs[i].Key.TrimEnd('/').Length).TrimStart('/');
-                Apply(configs[i].Value, relative, severities);
+                string relative = file.Substring(configs[i].Directory.TrimEnd('/').Length).TrimStart('/');
+                Apply(configs[i].Text, relative, severities);
             }
 
             return severities;

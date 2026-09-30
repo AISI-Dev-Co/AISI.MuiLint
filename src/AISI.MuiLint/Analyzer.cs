@@ -25,8 +25,7 @@ namespace AISI.MuiLint
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Supported;
 
         /// <summary>
-        /// Independent raw-HTML scan. Used by the CLI, the VSIX package stub, and tests.
-        /// Does not require a Roslyn compilation.
+        /// Scans one HTML file's text on its own, as the analyzer does. No compilation needed.
         /// </summary>
         /// <param name="path">File path (for AISI0003/AISI0004 and reporting).</param>
         /// <param name="text">Raw HTML.</param>
