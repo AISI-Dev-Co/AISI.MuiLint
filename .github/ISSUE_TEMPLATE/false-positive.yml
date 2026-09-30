@@ -1,0 +1,36 @@
+name: False positive
+description: MuiLint flagged something that merges fine.
+labels: [false-positive]
+body:
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      placeholder: AISI0009
+    validations:
+      required: true
+  - type: textarea
+    id: html
+    attributes:
+      label: Smallest HTML that triggers it
+      description: Strip anything confidential. Stock field names are fine.
+      render: html
+    validations:
+      required: true
+  - type: input
+    id: path
+    attributes:
+      label: File path, from FrontendSources onwards
+      placeholder: FrontendSources/screen/src/development/screens/SO/SO301000/extensions/SO301000_AISI.html
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it's fine
+      description: What happens when you build and open the screen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Acumatica and MuiLint versions
+      placeholder: 2025 R2, MuiLint 0.2.0
