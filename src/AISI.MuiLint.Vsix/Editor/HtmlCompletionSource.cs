@@ -156,8 +156,7 @@ namespace AISI.MuiLint.Vsix
                 return null;
             }
 
-            string tsPath = Path.ChangeExtension(htmlPath, ".ts");
-            return TryReadAllText(tsPath);
+            return MuiLintPackage.TryReadFile(Path.ChangeExtension(htmlPath, ".ts"));
         }
 
         private static string TryReadBaseHtml(string htmlPath)
@@ -167,52 +166,9 @@ namespace AISI.MuiLint.Vsix
                 return null;
             }
 
-            // Extension HTML under .../<Screen>/extensions/<file>.html → sibling base .../<Screen>/<Screen>.html
-            string dir = Path.GetDirectoryName(htmlPath);
-            if (string.IsNullOrEmpty(dir))
-            {
-                return null;
-            }
-
-            string parentName = Path.GetFileName(dir);
-            if (!string.Equals(parentName, "extensions", StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            string screenDir = Path.GetDirectoryName(dir);
-            if (string.IsNullOrEmpty(screenDir))
-            {
-                return null;
-            }
-
-            string screenName = Path.GetFileName(screenDir);
-            if (string.IsNullOrEmpty(screenName))
-            {
-                return null;
-            }
-
-            string basePath = Path.Combine(screenDir, screenName + ".html");
-            return TryReadAllText(basePath);
-        }
-
-        private static string TryReadAllText(string path)
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(path) && File.Exists(path))
-                {
-                    return File.ReadAllText(path);
-                }
-            }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
-
-            return null;
+            // development/screens/SO/SO301000/extensions/X.html -> screens/SO/SO301000/SO301000.html
+            string stockPath = HtmlMergeScanner.StockHtmlPath(htmlPath);
+            return stockPath == null ? null : MuiLintPackage.TryReadFile(stockPath);
         }
 
         private static string ReadTagName(string text, int caret)

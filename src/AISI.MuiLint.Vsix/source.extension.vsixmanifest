@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="AISI.MuiLint.10c4e8a7-6b91-4f3d-9a2c-7e5d1b8f4a10" Version="0.1.0" Language="en-US" Publisher="AISI Dev Co" />
+    <Identity Id="AISI.MuiLint.10c4e8a7-6b91-4f3d-9a2c-7e5d1b8f4a10" Version="0.2.0" Language="en-US" Publisher="AISI Dev Co" />
     <DisplayName>AISI MuiLint</DisplayName>
-    <Description xml:space="preserve">HTML merge linter for Acumatica Modern UI. Catches self-closing field/qp-* tags, same-file after/before [name] selectors, stock src/screens paths, extension files named as the parent screen, and empty qp-fieldsets. Offers field/qp-* tag, after/before/name attribute, and [name] selector completions plus a Usr field snippet in the HTML editor. Acuminator lints C#; this lints the HTML merge. Not a second AcuMate.</Description>
+    <Description xml:space="preserve">Catches Acumatica Modern UI HTML merge traps as you type: self-closing field/qp-* tags, selectors that point at your own fields or at nothing in the stock screen, malformed selectors, extensions with no matching .ts, duplicate ids, empty fieldsets and misplaced files. Lightbulb fixes, [name] completions from the stock screen, and .editorconfig severities. Acuminator lints your C#; MuiLint lints your Modern UI HTML.</Description>
     <MoreInfo>https://www.aisidev.com/</MoreInfo>
     <License>LICENSE</License>
-    <Tags>acumatica;modern-ui;html;merge;linter;analyzer</Tags>
+    <Tags>acumatica;modern-ui;html;merge;linter;analyzer;erp</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)" />

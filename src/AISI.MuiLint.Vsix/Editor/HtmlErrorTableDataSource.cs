@@ -13,7 +13,7 @@ using Microsoft.VisualStudio.Utilities;
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Error List source for AISI0001–AISI0005 findings on currently open HTML documents.
+    /// Error List source for MuiLint findings on currently open HTML documents.
     /// </summary>
     [Export(typeof(HtmlErrorTableDataSource))]
     [Export(typeof(ITableDataSource))]
@@ -249,11 +249,14 @@ namespace AISI.MuiLint.Vsix
             switch (keyName)
             {
                 case StandardTableKeyNames.ErrorSeverity:
-                    content = __VSERRORCATEGORY.EC_ERROR;
+                    content = Category(diagnostic.Severity);
                     return true;
                 case StandardTableKeyNames.ErrorCode:
                     content = diagnostic.Id;
                     return true;
+                case StandardTableKeyNames.HelpLink:
+                    content = Rules.Find(diagnostic.Id)?.HelpUri;
+                    return content != null;
                 case StandardTableKeyNames.Text:
                     content = diagnostic.Id + ": " + diagnostic.Message;
                     return true;
@@ -277,6 +280,19 @@ namespace AISI.MuiLint.Vsix
                     return true;
                 default:
                     return false;
+            }
+        }
+
+        private static __VSERRORCATEGORY Category(Severity severity)
+        {
+            switch (severity)
+            {
+                case Severity.Warning:
+                    return __VSERRORCATEGORY.EC_WARNING;
+                case Severity.Suggestion:
+                    return __VSERRORCATEGORY.EC_MESSAGE;
+                default:
+                    return __VSERRORCATEGORY.EC_ERROR;
             }
         }
     }
