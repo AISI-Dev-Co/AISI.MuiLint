@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace AISI.MuiLint.Cli
 {
@@ -11,76 +12,216 @@ namespace AISI.MuiLint.Cli
     /// </summary>
     public static class Program
     {
+        private const string Usage =
+@"Usage: muilint [options] <file-or-directory>...
+
+Scans Acumatica Modern UI HTML for merge traps. Directories are searched for *.html,
+skipping node_modules and dot-folders.
+
+Options:
+  -f, --format <text|json|sarif|github>   Output format (default: text).
+                                          github prints workflow commands, so findings
+                                          show up as annotations in GitHub Actions.
+  -h, --help                              Show this help.
+      --version                           Show the version.
+
+Exit codes: 0 no errors, 1 at least one error, 2 bad usage or an unreadable input.
+Warnings and suggestions are reported but never fail the run; raise one to an error
+with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
+
+        private static readonly string[] Formats = { "text", "json", "sarif", "github" };
+
         /// <summary>
         /// Scans each argument as an HTML file or a directory of <c>.html</c> files.
         /// </summary>
-        /// <param name="args">Paths to scan.</param>
-        /// <returns>0 if clean, 1 if any finding, 2 if usage error.</returns>
+        /// <param name="args">Options and paths to scan.</param>
+        /// <returns>0 if no errors, 1 if any error, 2 on usage or input problems.</returns>
         public static int Main(string[] args)
         {
-            if (args is null || args.Length == 0)
-            {
-                Console.Error.WriteLine("Usage: muilint <file-or-directory>...");
-                return 2;
-            }
-
-            int findings = 0;
-            bool missing = false;
-            foreach (string path in Expand(args))
-            {
-                if (path.Length == 0)
-                {
-                    missing = true;
-                    continue;
-                }
-
-                string text = File.ReadAllText(path);
-                IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text);
-                for (int i = 0; i < results.Count; i++)
-                {
-                    Diagnostic d = results[i];
-                    Console.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "{0}({1},{2}): {3}: {4}",
-                        d.Path,
-                        d.Line,
-                        d.Column,
-                        d.Id,
-                        d.Message));
-                    findings++;
-                }
-            }
-
-            if (missing && findings == 0)
-            {
-                return 2;
-            }
-
-            return findings == 0 ? 0 : 1;
-        }
-
-        private static IEnumerable<string> Expand(string[] args)
-        {
+            string format = "text";
+            var inputs = new List<string>();
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
-                if (Directory.Exists(arg))
+                if (arg == "-h" || arg == "--help")
                 {
-                    foreach (string file in Directory.EnumerateFiles(arg, "*.html", SearchOption.AllDirectories))
-                    {
-                        yield return file;
-                    }
+                    Console.WriteLine(Usage);
+                    return 0;
                 }
-                else if (File.Exists(arg))
+
+                if (arg == "--version")
                 {
-                    yield return arg;
+                    Console.WriteLine(Version);
+                    return 0;
+                }
+
+                if (arg == "-f" || arg == "--format")
+                {
+                    if (i + 1 >= args.Length)
+                    {
+                        return Fail(arg + " needs a value.");
+                    }
+
+                    format = args[++i];
+                }
+                else if (arg.StartsWith("--format=", StringComparison.Ordinal))
+                {
+                    format = arg.Substring("--format=".Length);
+                }
+                else if (arg.Length > 1 && arg[0] == '-')
+                {
+                    return Fail("Unknown option " + arg + ".");
                 }
                 else
                 {
-                    Console.Error.WriteLine("Not found: " + arg);
-                    yield return string.Empty;
+                    inputs.Add(arg);
+                }
+            }
+
+            if (inputs.Count == 0)
+            {
+                return Fail(null);
+            }
+
+            if (!Formats.Contains(format))
+            {
+                return Fail("Unknown format '" + format + "'. Pick one of: " + string.Join(", ", Formats) + ".");
+            }
+
+            bool badInput = false;
+            var cache = new Dictionary<string, string?>(StringComparer.Ordinal);
+            var scanned = new List<ScannedFile>();
+            foreach (string path in Expand(inputs, ref badInput))
+            {
+                string text;
+                try
+                {
+                    text = File.ReadAllText(path);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    Console.Error.WriteLine("muilint: cannot read " + path + ": " + ex.Message);
+                    badInput = true;
+                    continue;
+                }
+
+                // Full path so .editorconfig lookup can walk above the current directory.
+                string fullPath = Path.GetFullPath(path);
+                scanned.Add(new ScannedFile(path, HtmlMergeScanner.Analyze(fullPath, text, p => ReadCached(p, cache))));
+            }
+
+            switch (format)
+            {
+                case "json":
+                    Output.WriteJson(Console.Out, scanned);
+                    break;
+                case "sarif":
+                    Output.WriteSarif(Console.Out, scanned, Version);
+                    break;
+                case "github":
+                    Output.WriteGitHub(Console.Out, scanned);
+                    break;
+                default:
+                    Output.WriteText(Console.Out, Console.Error, scanned);
+                    break;
+            }
+
+            if (badInput)
+            {
+                return 2;
+            }
+
+            return scanned.Any(f => f.Diagnostics.Any(d => d.Severity == Severity.Error)) ? 1 : 0;
+        }
+
+        private static string Version
+        {
+            get
+            {
+                string? version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                if (string.IsNullOrEmpty(version))
+                {
+                    return "0.0.0";
+                }
+
+                int plus = version.IndexOf('+', StringComparison.Ordinal);
+                return plus < 0 ? version : version.Substring(0, plus);
+            }
+        }
+
+        private static int Fail(string? message)
+        {
+            if (message != null)
+            {
+                Console.Error.WriteLine("muilint: " + message);
+            }
+
+            Console.Error.WriteLine(Usage);
+            return 2;
+        }
+
+        private static List<string> Expand(List<string> inputs, ref bool badInput)
+        {
+            var files = new List<string>();
+            foreach (string input in inputs)
+            {
+                if (Directory.Exists(input))
+                {
+                    AddHtmlFiles(input, files);
+                }
+                else if (File.Exists(input))
+                {
+                    files.Add(input);
+                }
+                else
+                {
+                    Console.Error.WriteLine("muilint: not found: " + input);
+                    badInput = true;
+                }
+            }
+
+            return files;
+        }
+
+        private static void AddHtmlFiles(string directory, List<string> files)
+        {
+            string[] html = Directory.GetFiles(directory, "*.html");
+            Array.Sort(html, StringComparer.Ordinal);
+            files.AddRange(html);
+
+            string[] subdirectories = Directory.GetDirectories(directory);
+            Array.Sort(subdirectories, StringComparer.Ordinal);
+            foreach (string subdirectory in subdirectories)
+            {
+                string name = Path.GetFileName(subdirectory);
+                if (name != "node_modules" && !name.StartsWith('.'))
+                {
+                    AddHtmlFiles(subdirectory, files);
                 }
             }
         }
+
+        private static string? ReadCached(string path, Dictionary<string, string?> cache)
+        {
+            if (cache.TryGetValue(path, out string? text))
+            {
+                return text;
+            }
+
+            try
+            {
+                text = File.Exists(path) ? File.ReadAllText(path) : null;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                text = null;
+            }
+
+            cache[path] = text;
+            return text;
+        }
     }
+
+    /// <summary>One scanned file: the path as the user gave it, and what was found.</summary>
+    internal sealed record ScannedFile(string Path, IReadOnlyList<Diagnostic> Diagnostics);
 }

@@ -17,7 +17,7 @@ namespace AISI.MuiLint.Vsix
     /// FileAndForget; MEF context is still the fallback until then. Never pragma VSSDK007.
     /// </summary>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [InstalledProductRegistration("AISI MuiLint", "HTML merge linter for Acumatica Modern UI.", "0.1.0")]
+    [InstalledProductRegistration("AISI MuiLint", "HTML merge linter for Acumatica Modern UI.", "0.2.0")]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string, PackageAutoLoadFlags.BackgroundLoad)]
     [ProvideBindingPath]
     [Guid(MuiLintVsPackage.PackageGuidString)]

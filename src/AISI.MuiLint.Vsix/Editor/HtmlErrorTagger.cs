@@ -144,15 +144,38 @@ namespace AISI.MuiLint.Vsix
                 }
 
                 string toolTip = diagnostic.Id + ": " + diagnostic.Message;
-                yield return new TagSpan<IErrorTag>(
-                    translated,
-                    new ErrorTag(PredefinedErrorTypeNames.SyntaxError, toolTip));
+                yield return new TagSpan<IErrorTag>(translated, new ErrorTag(ErrorType(diagnostic.Severity), toolTip));
             }
         }
 
         public void Dispose()
         {
             BeginDispose(unadvise: true);
+        }
+
+        /// <summary>The last analysis: the snapshot it ran on and what it found. Used by quick fixes.</summary>
+        internal bool TryGetAnalysis(out ITextSnapshot snapshot, out IReadOnlyList<Diagnostic> diagnostics)
+        {
+            lock (_gate)
+            {
+                snapshot = _analyzedSnapshot;
+                diagnostics = _diagnostics;
+            }
+
+            return snapshot != null;
+        }
+
+        private static string ErrorType(Severity severity)
+        {
+            switch (severity)
+            {
+                case Severity.Warning:
+                    return PredefinedErrorTypeNames.Warning;
+                case Severity.Suggestion:
+                    return PredefinedErrorTypeNames.Suggestion;
+                default:
+                    return PredefinedErrorTypeNames.SyntaxError;
+            }
         }
 
         internal void DisposeFromBufferClose()

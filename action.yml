@@ -1,0 +1,45 @@
+name: AISI MuiLint
+description: Lint Acumatica Modern UI HTML for merge traps and annotate the pull request.
+author: AISI Dev Co
+branding:
+  icon: check-square
+  color: blue
+
+inputs:
+  path:
+    description: Files or directories to scan, separated by spaces or new lines.
+    required: false
+    default: .
+  sarif-file:
+    description: Also write SARIF here, for github/codeql-action/upload-sarif. Leave empty to skip.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build muilint
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: dotnet build src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj -c Release -o "$RUNNER_TEMP/muilint" --nologo -v quiet
+
+    - name: Run muilint
+      shell: bash
+      env:
+        MUILINT_PATHS: ${{ inputs.path }}
+        MUILINT_SARIF: ${{ inputs.sarif-file }}
+      run: |
+        # Unquoted on purpose: the input is a whitespace-separated list of paths.
+        set -f
+        paths=($MUILINT_PATHS)
+        set +f
+
+        if [ -n "$MUILINT_SARIF" ]; then
+          dotnet "$RUNNER_TEMP/muilint/muilint.dll" --format sarif "${paths[@]}" > "$MUILINT_SARIF" || true
+        fi
+
+        dotnet "$RUNNER_TEMP/muilint/muilint.dll" --format github "${paths[@]}"

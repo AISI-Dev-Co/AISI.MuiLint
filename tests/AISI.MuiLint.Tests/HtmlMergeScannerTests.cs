@@ -32,7 +32,7 @@ namespace AISI.MuiLint.Tests
         public void FailFixture_ReportsExpectedId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = Analyzer.Scan(path, text);
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
             Assert.Contains(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
@@ -41,27 +41,20 @@ namespace AISI.MuiLint.Tests
         public void PassFixture_DoesNotReportId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = Analyzer.Scan(path, text);
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
             Assert.DoesNotContain(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
         [Fact]
-        public void FailFixtures_CoverAllFiveIds()
+        public void Fixtures_CoverEveryRuleButTheStockOne()
         {
-            var ids = new HashSet<string>(FailFixtures().Select(row => (string)row[0]!), StringComparer.Ordinal);
-            Assert.Contains(DiagnosticIds.SelfClosing, ids);
-            Assert.Contains(DiagnosticIds.AfterBeforeSameFile, ids);
-            Assert.Contains(DiagnosticIds.StockScreensPath, ids);
-            Assert.Contains(DiagnosticIds.ExtensionBasename, ids);
-            Assert.Contains(DiagnosticIds.EmptyFieldset, ids);
-            Assert.Equal(5, ids.Count);
-        }
-
-        [Fact]
-        public void PassFixtures_CoverAllFiveIds()
-        {
-            var ids = new HashSet<string>(PassFixtures().Select(row => (string)row[0]!), StringComparer.Ordinal);
-            Assert.Equal(5, ids.Count);
+            // AISI0009 needs a stock screen next to the extension; RuleTests builds one in memory.
+            string[] expected = Rules.All
+                .Select(r => r.Id)
+                .Where(id => id != DiagnosticIds.SelectorNotInStock)
+                .ToArray();
+            Assert.Equal(expected, FailFixtures().Select(row => (string)row[0]!).Distinct().OrderBy(x => x, StringComparer.Ordinal));
+            Assert.Equal(expected, PassFixtures().Select(row => (string)row[0]!).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         }
 
         [Fact]
@@ -101,23 +94,19 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void SupportedDiagnostics_AreTheFiveIds()
+        public void SupportedDiagnostics_MapSeverities()
         {
             var analyzer = new Analyzer();
-            string[] ids = analyzer.SupportedDiagnostics.Select(d => d.Id).OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            Assert.Equal(
-                new[]
-                {
-                    DiagnosticIds.SelfClosing,
-                    DiagnosticIds.AfterBeforeSameFile,
-                    DiagnosticIds.StockScreensPath,
-                    DiagnosticIds.ExtensionBasename,
-                    DiagnosticIds.EmptyFieldset
-                },
-                ids);
-            Assert.All(
-                analyzer.SupportedDiagnostics,
-                d => Assert.Equal(DiagnosticSeverity.Error, d.DefaultSeverity));
+            Assert.Equal(DiagnosticSeverity.Error, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.SelfClosing).DefaultSeverity);
+            Assert.Equal(DiagnosticSeverity.Warning, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.DuplicateNameOrId).DefaultSeverity);
+            Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.FieldWithoutUsrPrefix).DefaultSeverity);
+        }
+
+        [Fact]
+        public void EveryRule_HasADocPage()
+        {
+            string docs = Path.Combine(TestFiles.RepoRoot, "docs", "rules");
+            Assert.All(Rules.All, r => Assert.True(File.Exists(Path.Combine(docs, r.Id + ".md")), "Missing docs/rules/" + r.Id + ".md"));
         }
 
         [Fact]
@@ -173,6 +162,7 @@ namespace AISI.MuiLint.Tests
 
             return compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult();
         }
+
 
         private static TheoryData<string, string> Enumerate(string kind)
         {

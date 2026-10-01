@@ -1,0 +1,20 @@
+<!-- A made-up, trimmed stand-in for the stock Sales Orders screen. Just enough for the examples to resolve against. -->
+<template>
+  <qp-template id="form-Order" name="17-17-14" wg-container="Document_form">
+    <qp-fieldset id="fsColumnA-Order" slot="A" view.bind="Document">
+      <field name="OrderType"></field>
+      <field name="OrderNbr"></field>
+      <field name="Status"></field>
+      <field name="OrderDate"></field>
+    </qp-fieldset>
+    <qp-fieldset id="fsColumnB-Order" slot="B" view.bind="Document">
+      <field name="CustomerID"></field>
+      <field name="LocationID"></field>
+    </qp-fieldset>
+  </qp-template>
+  <qp-tabbar id="tabs">
+    <qp-tab id="tab-Details" caption="Details">
+      <qp-grid id="grid-Transactions" view.bind="Transactions"></qp-grid>
+    </qp-tab>
+  </qp-tabbar>
+</template>

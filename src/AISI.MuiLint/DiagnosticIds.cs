@@ -23,5 +23,20 @@ namespace AISI.MuiLint
 
         /// <summary>Empty <c>qp-fieldset</c> (whitespace or comments only).</summary>
         public const string EmptyFieldset = "AISI0005";
+
+        /// <summary>Unbalanced brackets or quotes in a merge selector.</summary>
+        public const string MalformedSelector = "AISI0006";
+
+        /// <summary>Extension HTML with no TypeScript file of the same name beside it.</summary>
+        public const string ExtensionWithoutTypeScript = "AISI0007";
+
+        /// <summary>The same field name (per view) or id appears twice in one file.</summary>
+        public const string DuplicateNameOrId = "AISI0008";
+
+        /// <summary>A merge selector points at a name or id the stock screen does not have.</summary>
+        public const string SelectorNotInStock = "AISI0009";
+
+        /// <summary>A field added by an extension is not Usr-prefixed.</summary>
+        public const string FieldWithoutUsrPrefix = "AISI0010";
     }
 }

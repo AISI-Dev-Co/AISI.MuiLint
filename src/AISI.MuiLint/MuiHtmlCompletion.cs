@@ -83,6 +83,13 @@ namespace AISI.MuiLint
                 new MuiCompletionItem("qp-grid", "qp-grid", MuiCompletionKind.Tag, "Grid bound with view.bind."),
                 new MuiCompletionItem("qp-template", "qp-template", MuiCompletionKind.Tag, "Layout template, for example name=\"7-10-7\"."),
                 new MuiCompletionItem("qp-include", "qp-include", MuiCompletionKind.Tag, "Shared template include (extension-name)."),
+                new MuiCompletionItem("qp-tabbar", "qp-tabbar", MuiCompletionKind.Tag, "Tab strip. Holds qp-tab elements."),
+                new MuiCompletionItem("qp-tab", "qp-tab", MuiCompletionKind.Tag, "One tab inside a qp-tabbar. Give it an id and a caption."),
+                new MuiCompletionItem("qp-panel", "qp-panel", MuiCompletionKind.Tag, "Dialog (smart panel) bound to a view."),
+                new MuiCompletionItem("qp-button", "qp-button", MuiCompletionKind.Tag, "Button bound to an action with state.bind."),
+                new MuiCompletionItem("qp-splitter", "qp-splitter", MuiCompletionKind.Tag, "Resizable split between two areas."),
+                new MuiCompletionItem("qp-tree", "qp-tree", MuiCompletionKind.Tag, "Tree bound to a view."),
+                new MuiCompletionItem("qp-label", "qp-label", MuiCompletionKind.Tag, "Static text."),
             };
 
             return items;
@@ -106,6 +113,16 @@ namespace AISI.MuiLint
                 new MuiCompletionItem("name", "name=\"\"", MuiCompletionKind.Attribute, "Field or template name."),
                 new MuiCompletionItem("id", "id=\"\"", MuiCompletionKind.Attribute, "Element id used by selectors."),
             };
+
+            if (HasCaption(tagName))
+            {
+                items.Add(new MuiCompletionItem("caption", "caption=\"\"", MuiCompletionKind.Attribute, "Text shown in the header."));
+            }
+
+            if (string.Equals(tagName, "qp-button", StringComparison.OrdinalIgnoreCase))
+            {
+                items.Add(new MuiCompletionItem("state.bind", "state.bind=\"\"", MuiCompletionKind.Attribute, "Action the button runs."));
+            }
 
             if (IsViewBound(tagName))
             {
