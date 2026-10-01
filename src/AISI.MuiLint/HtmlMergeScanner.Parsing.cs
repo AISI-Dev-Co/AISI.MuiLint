@@ -48,6 +48,33 @@ namespace AISI.MuiLint
         public bool IsEndTag { get; }
 
         public IReadOnlyList<HtmlAttribute> Attributes { get; }
+
+        public bool HasAttribute(string name)
+        {
+            for (int i = 0; i < Attributes.Count; i++)
+            {
+                if (string.Equals(Attributes[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Value of the first attribute called <paramref name="name"/>, or empty.</summary>
+        public string GetAttribute(string name)
+        {
+            for (int i = 0; i < Attributes.Count; i++)
+            {
+                if (string.Equals(Attributes[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Attributes[i].Value;
+                }
+            }
+
+            return string.Empty;
+        }
     }
 
     internal static class HtmlTagReader
@@ -185,6 +212,41 @@ namespace AISI.MuiLint
             }
 
             return tags;
+        }
+
+        /// <summary>
+        /// Index of each tag's enclosing start tag, or -1 at the top level. Forgiving: an end tag
+        /// closes the nearest open tag with its name, and unclosed tags simply stay open.
+        /// </summary>
+        public static int[] Parents(IReadOnlyList<HtmlTag> tags)
+        {
+            var parents = new int[tags.Count];
+            var open = new List<int>();
+            for (int i = 0; i < tags.Count; i++)
+            {
+                HtmlTag tag = tags[i];
+                parents[i] = open.Count > 0 ? open[open.Count - 1] : -1;
+                if (!tag.IsEndTag)
+                {
+                    if (!tag.SelfClosing)
+                    {
+                        open.Add(i);
+                    }
+
+                    continue;
+                }
+
+                for (int o = open.Count - 1; o >= 0; o--)
+                {
+                    if (string.Equals(tags[open[o]].Name, tag.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        open.RemoveRange(o, open.Count - o);
+                        break;
+                    }
+                }
+            }
+
+            return parents;
         }
 
         private static bool IsNameChar(char c)

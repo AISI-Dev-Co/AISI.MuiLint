@@ -1,0 +1,28 @@
+name: New rule idea
+description: A Modern UI merge mistake MuiLint should catch.
+labels: [new-rule]
+body:
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What you wrote
+      render: html
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What the merge did
+      description: Missing field, wrong place, build error, nothing at all…
+    validations:
+      required: true
+  - type: textarea
+    id: right
+    attributes:
+      label: What you should have written
+      render: html
+  - type: input
+    id: version
+    attributes:
+      label: Acumatica version
+      placeholder: 2025 R2

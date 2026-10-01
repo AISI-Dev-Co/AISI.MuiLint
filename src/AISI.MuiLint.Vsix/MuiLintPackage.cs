@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using AISI.MuiLint;
 
 namespace AISI.MuiLint.Vsix
@@ -23,7 +25,25 @@ namespace AISI.MuiLint.Vsix
         /// <returns>Findings in source order.</returns>
         public static IReadOnlyList<Diagnostic> AnalyzeHtml(string path, string text)
         {
-            return HtmlMergeScanner.Analyze(path, text);
+            // A buffer with no real file behind it has no neighbours to look at.
+            return HtmlMergeScanner.Analyze(path, text, Path.IsPathRooted(path) ? TryReadFile : null);
+        }
+
+        /// <summary>Reads a file, or returns null if it is missing or locked.</summary>
+        public static string? TryReadFile(string path)
+        {
+            try
+            {
+                return File.Exists(path) ? File.ReadAllText(path) : null;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
     }
 }
