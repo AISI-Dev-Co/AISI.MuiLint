@@ -1,11 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <!--
     Packable VS 2022 VSIX project. On Windows with the VSSDK, `dotnet build` produces a .vsix
     that MEF-hooks the HTML editor (htmlx + html) and the Error List.
     On Linux the Visual Studio SDK packing targets are absent: MuiLintPackage.AnalyzeHtml still
     compiles as net472; Editor/** MEF files are Compile-Remove'd. CreateVsixContainer is
-    forced off outside Windows so the solution can build on this box.
+    forced off outside Windows so the solution still builds on Linux and macOS.
   -->
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
@@ -82,5 +84,9 @@
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>
+
+  <!-- VSSDK packing targets must load after Sdk.targets, which would otherwise reset the build hooks they add. -->
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="$([MSBuild]::IsOSPlatform('Windows')) And Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
 
 </Project>

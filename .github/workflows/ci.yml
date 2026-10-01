@@ -71,5 +71,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AISI.MuiLint.vsix
-          path: '**/*.vsix'
+          path: src/AISI.MuiLint.Vsix/bin/Release/**/*.vsix
           if-no-files-found: error
