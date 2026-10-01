@@ -9,8 +9,6 @@ A linter for Acumatica Modern UI HTML, for Visual Studio, the command line and G
 get merged into the stock screen at build time, and when the merge can't place something it doesn't complain. The
 field just isn't there. MuiLint catches those mistakes while you're typing, and again in CI.
 
-It reads raw HTML text. It doesn't convert Classic UI, emit TypeScript, or analyse `view.bind`. It isn't a second
-AcuMate, and it contains no GPL code.
 
 ## What it catches
 
