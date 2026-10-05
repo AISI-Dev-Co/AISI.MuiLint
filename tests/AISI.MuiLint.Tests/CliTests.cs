@@ -28,7 +28,7 @@ namespace AISI.MuiLint.Tests
             Assert.Contains("SO301000_Broken.html(4,3): error AISI0001: ", output, StringComparison.Ordinal);
             Assert.Contains("warning AISI0009", output, StringComparison.Ordinal);
             Assert.Contains("info AISI0010", output, StringComparison.Ordinal);
-            Assert.Contains("1 file scanned, 5 errors, 2 warnings, 1 suggestion", summary, StringComparison.Ordinal);
+            Assert.Contains("1 file scanned, 6 errors, 2 warnings, 2 suggestions", summary, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -37,7 +37,9 @@ namespace AISI.MuiLint.Tests
             (_, string output, _) = Run("--format", "json", Extensions);
             using JsonDocument json = JsonDocument.Parse(output);
             string[] ids = json.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            Assert.Equal(Rules.All.Select(r => r.Id).Where(id => id != DiagnosticIds.StockScreensPath && id != DiagnosticIds.ExtensionBasename), ids);
+            // The broken example has no .ts on purpose (AISI0007), so there is nothing to bind against.
+            string[] skipped = { DiagnosticIds.StockScreensPath, DiagnosticIds.ExtensionBasename, DiagnosticIds.BindingNotInTypeScript };
+            Assert.Equal(Rules.All.Select(r => r.Id).Where(id => !skipped.Contains(id)), ids);
         }
 
         [Fact]

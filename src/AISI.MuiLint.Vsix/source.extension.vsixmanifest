@@ -3,7 +3,7 @@
   <Metadata>
     <Identity Id="AISI.MuiLint.10c4e8a7-6b91-4f3d-9a2c-7e5d1b8f4a10" Version="0.2.0" Language="en-US" Publisher="AISI Dev Co" />
     <DisplayName>AISI MuiLint</DisplayName>
-    <Description xml:space="preserve">Catches Acumatica Modern UI HTML merge traps as you type: self-closing field/qp-* tags, selectors that point at your own fields or at nothing in the stock screen, malformed selectors, extensions with no matching .ts, duplicate ids, empty fieldsets and misplaced files. Lightbulb fixes, [name] completions from the stock screen, and .editorconfig severities. Acuminator lints your C#; MuiLint lints your Modern UI HTML.</Description>
+    <Description xml:space="preserve">Catches Acumatica Modern UI HTML merge traps as you type: self-closing field/qp-* tags, selectors that point at your own fields or at nothing in the stock screen, malformed selectors, extensions with no matching .ts, duplicate ids, empty fieldsets, misplaced files, and views, fields and actions your screen's TypeScript never declares. Lightbulb fixes, completions and go to definition into the stock screen and the .ts, and .editorconfig severities. Acuminator lints your C#; MuiLint lints your Modern UI HTML.</Description>
     <MoreInfo>https://www.aisidev.com/</MoreInfo>
     <License>LICENSE</License>
     <Tags>acumatica;modern-ui;html;merge;linter;analyzer;erp</Tags>

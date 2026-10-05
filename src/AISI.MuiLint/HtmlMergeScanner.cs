@@ -7,12 +7,12 @@ using System.Text.RegularExpressions;
 namespace AISI.MuiLint
 {
     /// <summary>
-    /// Independent raw-HTML text scanner for Acumatica Modern UI merge traps. No Roslyn
-    /// compilation, no view.bind analysis, no PX types.
+    /// Raw-text scanner for Acumatica Modern UI HTML. No Roslyn compilation and no site: given a
+    /// way to read files it also checks the HTML against the stock screen and the screen's .ts.
     /// </summary>
     public static partial class HtmlMergeScanner
     {
-        private static readonly Regex NameSelector = new Regex(
+        internal static readonly Regex NameSelector = new Regex(
             "\\[name\\s*=\\s*(?:(['\"])(?<n>.*?)\\1|(?<n>[^\\s\\]]+))\\]",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
@@ -21,6 +21,11 @@ namespace AISI.MuiLint
             StringComparer.OrdinalIgnoreCase);
 
         private static readonly char[] IdSeparators = { ' ', '\t', '\r', '\n', ',' };
+
+        // AcuMate's list: these are fine without an id.
+        private static readonly HashSet<string> IdOptional = new HashSet<string>(
+            new[] { "qp-field", "qp-label", "qp-include" },
+            StringComparer.OrdinalIgnoreCase);
 
         private static readonly Regex SuppressionComment = new Regex(
             "<!--\\s*muilint-disable(?<next>-next-line)?(?<ids>(?:\\s[^>]*?)?)\\s*-->",
@@ -77,6 +82,15 @@ namespace AISI.MuiLint
             Scan0005(path, masked, tags, lineMap, results);
             Scan0006(path, tags, lineMap, results);
             Scan0008(path, tags, parents, lineMap, results);
+            Scan0012(path, tags, lineMap, results);
+            Scan0013(path, tags, lineMap, results);
+
+            // Stock screens are what they are; checking them against their own .ts is just noise.
+            ScreenModel? screen = readFile == null || IsStockScreensPath(path) ? null : ScreenModel.Read(path, readFile);
+            if (screen != null)
+            {
+                Scan0011(path, tags, parents, screen, lineMap, results);
+            }
 
             if (IsExtensionFile(path))
             {
@@ -385,7 +399,7 @@ namespace AISI.MuiLint
                         continue;
                     }
 
-                    string? problem = FindSelectorProblem(attr.Value);
+                    string? problem = FindBracketProblem(attr.Value);
                     if (problem == null)
                     {
                         continue;
@@ -403,14 +417,14 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>Checks brackets, parentheses and quotes balance. Returns null when they do.</summary>
-        internal static string? FindSelectorProblem(string selector)
+        /// <summary>Checks brackets, braces, parentheses and quotes balance. Returns null when they do.</summary>
+        internal static string? FindBracketProblem(string value)
         {
             var open = new Stack<char>();
             char quote = '\0';
-            for (int i = 0; i < selector.Length; i++)
+            for (int i = 0; i < value.Length; i++)
             {
-                char c = selector[i];
+                char c = value[i];
                 if (quote != '\0')
                 {
                     if (c == quote)
@@ -429,11 +443,13 @@ namespace AISI.MuiLint
                         break;
                     case '[':
                     case '(':
+                    case '{':
                         open.Push(c);
                         break;
                     case ']':
                     case ')':
-                        char expected = c == ']' ? '[' : '(';
+                    case '}':
+                        char expected = c == ']' ? '[' : c == ')' ? '(' : '{';
                         if (open.Count == 0 || open.Pop() != expected)
                         {
                             return "unexpected '" + c + "'";
@@ -516,6 +532,67 @@ namespace AISI.MuiLint
                     names.Add(scope + "\n" + name, tag);
                 }
             }
+        }
+
+        private static void Scan0012(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
+        {
+            foreach (HtmlTag tag in tags)
+            {
+                if (tag.IsEndTag
+                    || !IsQpTag(tag.Name)
+                    || tag.HasAttribute("id")
+                    || tag.HasAttribute("modify")
+                    || tag.HasAttribute("remove")
+                    || IdOptional.Contains(tag.Name))
+                {
+                    continue;
+                }
+
+                string message = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<{0}> has no id, so other customizations cannot target it with #id and tests cannot find it.",
+                    tag.Name);
+                results.Add(Create(DiagnosticIds.QpControlWithoutId, message, path, tag.Start, tag.End - tag.Start, lineMap));
+            }
+        }
+
+        private static void Scan0013(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
+        {
+            foreach (HtmlTag tag in tags)
+            {
+                for (int a = 0; a < tag.Attributes.Count && !tag.IsEndTag; a++)
+                {
+                    HtmlAttribute attr = tag.Attributes[a];
+                    string? problem = string.Equals(attr.Name, "config.bind", StringComparison.OrdinalIgnoreCase)
+                        ? FindBracketProblem(attr.Value)
+                        : null;
+                    if (problem == null)
+                    {
+                        continue;
+                    }
+
+                    string message = string.Format(
+                        CultureInfo.InvariantCulture,
+                        "config.bind does not parse: {0}. The binding expression is broken, so the control cannot get its settings.",
+                        problem);
+                    results.Add(Create(DiagnosticIds.MalformedConfig, message, path, attr.ValueStart, attr.Value.Length, lineMap));
+                }
+            }
+        }
+
+        /// <summary>The view.bind of the nearest enclosing element, or empty.</summary>
+        internal static string NearestView(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
+        {
+            for (int p = parents[index]; p >= 0; p = parents[p])
+            {
+                string view = tags[p].GetAttribute("view.bind");
+                if (view.Length > 0)
+                {
+                    return view;
+                }
+            }
+
+            return string.Empty;
         }
 
         private static string FieldScope(IReadOnlyList<HtmlTag> tags, int[] parents, int index, out string label)
@@ -648,7 +725,7 @@ namespace AISI.MuiLint
             return new string(chars);
         }
 
-        private static bool IsFieldTag(string name)
+        internal static bool IsFieldTag(string name)
         {
             return string.Equals(name, "field", StringComparison.OrdinalIgnoreCase);
         }
@@ -666,7 +743,7 @@ namespace AISI.MuiLint
             return string.Equals(name, "qp-fieldset", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool IsMergeOperator(string name)
+        internal static bool IsMergeOperator(string name)
         {
             return MergeOperators.Contains(name);
         }

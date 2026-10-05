@@ -24,9 +24,12 @@ field just isn't there. MuiLint catches those mistakes while you're typing, and 
 | [AISI0008](docs/rules/AISI0008.md) | warning | The same id twice in a file, or the same field twice in the same view. |
 | [AISI0009](docs/rules/AISI0009.md) | warning | A selector naming a `[name]` or `#id` the stock screen doesn't have. Usually a typo. |
 | [AISI0010](docs/rules/AISI0010.md) | suggestion | A field the extension adds without the `Usr` prefix. |
+| [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field, `state.bind` or `qp-panel` id that the screen's `.ts` doesn't declare. |
+| [AISI0012](docs/rules/AISI0012.md) | suggestion | A `qp-*` control without an `id`, so nothing else can target it. |
+| [AISI0013](docs/rules/AISI0013.md) | error | A `config.bind` with an unclosed `{`, `[`, `(` or quote. |
 
-AISI0007 and AISI0009 look at neighbouring files, so they run in the CLI, the Action and the VSIX, but not in the
-Roslyn analyser.
+AISI0007, AISI0009 and AISI0011 look at neighbouring files, so they run in the CLI, the Action and the VSIX, but not in
+the Roslyn analyser.
 
 Want to see them all at once? `examples/` has a made-up stock screen, a clean extension and one that trips every
 rule:
@@ -47,6 +50,10 @@ In the HTML editor you get:
   suppress any finding on its line or in the file.
 - **Completions** for Modern UI tags and merge attributes, and `[name='…']` values inside `after`/`before`. The values
   come from the stock screen first, then `PXFieldState` fields in the sibling `.ts`, so you anchor on something that exists.
+  Inside `view.bind`, `state.bind` and a field's `name` you get the views, actions and fields the screen's TypeScript
+  declares; fields come from the view you're in.
+- **Go to definition** (F12): on a selector's `[name='…']` or `#id` it opens the stock screen HTML at that element, and
+  on `view.bind`, `state.bind` or a field's `name` it opens the `.ts` at the declaration, extensions included.
 
 It hooks both the VS 2022 Web Tools editor (`htmlx`) and the classic HTML editor (`html`), and doesn't need the full
 web workload.
@@ -157,6 +164,17 @@ For an extension at `…/src/development/screens/SO/SO301000/extensions/SO301000
 `src/customizationScreens/<Project>/`), the stock screen is `…/src/screens/SO/SO301000/SO301000.html`. MuiLint reads
 the names and ids in it and follows its `qp-include url="…"` files. If any include can't be read, AISI0009 skips that
 screen rather than guessing.
+
+## How the TypeScript is read
+
+AISI0011, the binding completions and F12 read the `.ts` next to the HTML and follow its imports, both relative ones
+(`./views`) and `src/…` ones (`src/screens/SO/SO301000/SO301000`). They find the class that extends `PXScreen`, its
+`createSingle`/`createCollection` views, and the members of each view's class through its base classes. Extension
+interfaces such as `interface SOOrderHeader_AISI extends SOOrderHeader {}` are merged into the class they extend, the
+way TypeScript does it.
+
+None of this needs a site. In return, MuiLint only knows what's in your files. If a view's class extends something it
+can't open, it doesn't check that view's fields rather than guess.
 
 ## Roslyn analyser
 

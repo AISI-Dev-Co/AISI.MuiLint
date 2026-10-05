@@ -1,0 +1,7 @@
+<template>
+  <field name="UsrPriority" after="[name='OrderDate']"></field>
+  <qp-fieldset id="fsLines-Custom" after="#fsColumnB-Order" view.bind="Transactions">
+    <field name="OrderQty"></field>
+  </qp-fieldset>
+  <qp-button id="btnAddInvBySite" after="#fsLines-Custom" state.bind="AddInvBySite"></qp-button>
+</template>
