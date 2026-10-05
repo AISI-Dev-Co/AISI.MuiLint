@@ -92,6 +92,21 @@ namespace AISI.MuiLint
                 "Added field is not Usr-prefixed",
                 Severity.Suggestion,
                 "Custom DAC fields carry the Usr prefix. A field an extension adds without it is either a stock field being moved (fine) or a name that will not bind."),
+            new Rule(
+                DiagnosticIds.BindingNotInTypeScript,
+                "Binding not declared in the screen's TypeScript",
+                Severity.Warning,
+                "view.bind, a field's name, state.bind or a qp-panel id refers to something the screen's .ts (with everything it imports and its extensions) does not declare. Modern UI only binds what the TypeScript declares."),
+            new Rule(
+                DiagnosticIds.QpControlWithoutId,
+                "qp-* control without an id",
+                Severity.Suggestion,
+                "Modern UI controls should carry an id so customizations can target them with #id and tests can find them. qp-field, qp-label and qp-include are exempt, as are elements that modify or remove an existing one."),
+            new Rule(
+                DiagnosticIds.MalformedConfig,
+                "Malformed config.bind",
+                Severity.Error,
+                "config.bind has an unclosed brace, bracket, parenthesis or quote, so the binding expression cannot be parsed."),
         };
 
         /// <summary>Looks up a rule by id.</summary>

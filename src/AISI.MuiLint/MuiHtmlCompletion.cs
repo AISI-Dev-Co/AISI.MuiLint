@@ -64,13 +64,23 @@ namespace AISI.MuiLint
                 return MuiCompletionTarget.AttributeName;
             }
 
-            if (string.Equals(quotedAttribute, "after", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(quotedAttribute, "before", StringComparison.OrdinalIgnoreCase))
+            string tagName = ReadTagName(inTag);
+            switch (quotedAttribute.ToLowerInvariant())
             {
-                return MuiCompletionTarget.SelectorValue;
+                case "after":
+                case "before":
+                    return MuiCompletionTarget.SelectorValue;
+                case "view.bind":
+                    return MuiCompletionTarget.ViewValue;
+                case "state.bind":
+                    return MuiCompletionTarget.ActionValue;
+                case "id" when string.Equals(tagName, "qp-panel", StringComparison.OrdinalIgnoreCase):
+                    return MuiCompletionTarget.ViewValue;
+                case "name" when string.Equals(tagName, "field", StringComparison.OrdinalIgnoreCase):
+                    return MuiCompletionTarget.FieldValue;
+                default:
+                    return MuiCompletionTarget.None;
             }
-
-            return MuiCompletionTarget.None;
         }
 
         /// <summary>Modern UI element names this slice completes.</summary>

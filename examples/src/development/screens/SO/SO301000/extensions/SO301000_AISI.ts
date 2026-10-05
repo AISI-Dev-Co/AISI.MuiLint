@@ -1,5 +1,5 @@
 import { PXFieldState } from "client-controls";
-import { SO301000, SOOrderHeader } from "../SO301000";
+import { SO301000, SOOrderHeader } from "src/screens/SO/SO301000/SO301000";
 
 export interface SO301000_AISI extends SO301000 {}
 export class SO301000_AISI {}

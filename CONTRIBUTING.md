@@ -49,6 +49,14 @@ Match the code around you: plain loops over LINQ in the scanner, `string.Format`
 for messages, and comments only where the why isn't obvious. Messages should say what's wrong and what the merge will
 do about it, in plain words.
 
+## Releasing
+
+1. Run **Release VSIX** by hand (Actions → Release VSIX → Run workflow) with the version you're about to tag. It
+   stamps that version, packs the VSIX, checks it with `.github/scripts/verify-vsix.ps1` and leaves it in the run's
+   artifacts. Install it in VS and poke at it before going further.
+2. Bump `CHANGELOG.md`, then publish a GitHub release tagged `v<version>`. The same workflow runs again and attaches
+   `AISI.MuiLint-<version>.vsix` to the release.
+
 ## Pull requests
 
 Keep them to one change, make sure `dotnet test` passes, and say which Acumatica version you checked the behaviour

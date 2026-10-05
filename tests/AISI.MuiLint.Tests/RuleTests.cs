@@ -142,9 +142,9 @@ namespace AISI.MuiLint.Tests
         [InlineData("[name='A]", "unclosed ' quote")]
         [InlineData("#fs]", "unexpected ']'")]
         [InlineData("qp-tab:nth-child(2]", "unexpected ']'")]
-        public void FindSelectorProblem_ExplainsWhatIsWrong(string selector, string? expected)
+        public void FindBracketProblem_ExplainsWhatIsWrong(string selector, string? expected)
         {
-            Assert.Equal(expected, HtmlMergeScanner.FindSelectorProblem(selector));
+            Assert.Equal(expected, HtmlMergeScanner.FindBracketProblem(selector));
         }
 
         [Fact]

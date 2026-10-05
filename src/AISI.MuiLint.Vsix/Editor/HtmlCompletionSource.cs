@@ -65,6 +65,18 @@ namespace AISI.MuiLint.Vsix
                     }
 
                     break;
+                case MuiCompletionTarget.ViewValue:
+                case MuiCompletionTarget.FieldValue:
+                case MuiCompletionTarget.ActionValue:
+                    {
+                        string path = TryGetFilePath();
+                        if (path != null && Path.IsPathRooted(path))
+                        {
+                            items.AddRange(MuiHtmlCompletion.GetBindingValues(path, text, caret, target, MuiLintPackage.TryReadFile));
+                        }
+                    }
+
+                    break;
                 case MuiCompletionTarget.None:
                     // Always-available Usr field expansion when not inside a tag.
                     items.Add(MuiHtmlCompletion.UsrFieldSnippet());
@@ -200,7 +212,7 @@ namespace AISI.MuiLint.Vsix
                 caret = text.Length;
             }
 
-            if (target == MuiCompletionTarget.SelectorValue)
+            if (target != MuiCompletionTarget.TagName && target != MuiCompletionTarget.AttributeName && target != MuiCompletionTarget.None)
             {
                 int start = caret;
                 while (start > 0)

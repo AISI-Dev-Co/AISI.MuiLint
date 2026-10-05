@@ -18,6 +18,12 @@
   <!-- AISI0005: nothing inside -->
   <qp-fieldset id="fsColumnC-AISI" after="#fsColumnB-Order" view.bind="Document"></qp-fieldset>
 
+  <!-- AISI0012: no id, so nothing can target it -->
+  <qp-grid after="#fsColumnB-Order" view.bind="Transactions"></qp-grid>
+
+  <!-- AISI0013: config.bind is missing its closing brace -->
+  <qp-grid id="grid-Extra" after="#fsColumnB-Order" view.bind="Transactions" config.bind="{ allowInsert: false"></qp-grid>
+
   <!-- AISI0008: same id again -->
   <qp-fieldset id="fsColumnC-AISI" after="#fsColumnA-Order" view.bind="Document">
     <field name="UsrDeliveryWindow"></field>
