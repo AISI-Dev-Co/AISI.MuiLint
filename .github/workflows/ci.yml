@@ -67,9 +67,15 @@ jobs:
       - name: Pack VSIX
         run: dotnet build src/AISI.MuiLint.Vsix/AISI.MuiLint.Vsix.csproj --configuration Release
 
+      - name: Verify VSIX
+        shell: pwsh
+        run: |
+          [xml] $props = Get-Content Directory.Build.props -Raw
+          .github/scripts/verify-vsix.ps1 -Path src/AISI.MuiLint.Vsix/bin/Release/net472/AISI.MuiLint.Vsix.vsix -Version $props.Project.PropertyGroup.Version
+
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
         with:
           name: AISI.MuiLint.vsix
-          path: src/AISI.MuiLint.Vsix/bin/Release/**/*.vsix
+          path: src/AISI.MuiLint.Vsix/bin/Release/net472/AISI.MuiLint.Vsix.vsix
           if-no-files-found: error
