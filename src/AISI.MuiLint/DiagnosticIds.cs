@@ -38,5 +38,14 @@ namespace AISI.MuiLint
 
         /// <summary>A field added by an extension is not Usr-prefixed.</summary>
         public const string FieldWithoutUsrPrefix = "AISI0010";
+
+        /// <summary>A view, field, action or panel the screen's TypeScript does not declare.</summary>
+        public const string BindingNotInTypeScript = "AISI0011";
+
+        /// <summary>A <c>qp-*</c> control without an id.</summary>
+        public const string QpControlWithoutId = "AISI0012";
+
+        /// <summary>Unbalanced brackets or quotes in <c>config.bind</c>.</summary>
+        public const string MalformedConfig = "AISI0013";
     }
 }

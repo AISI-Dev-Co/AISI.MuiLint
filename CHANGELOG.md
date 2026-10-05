@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **AISI0011** (warning): a `view.bind`, field name, `state.bind` or `qp-panel` id that the screen's TypeScript
+  doesn't declare. Reads the `.ts` beside the HTML and its imports, with extension interfaces merged in. No site
+  needed.
+- **AISI0012** (suggestion): a `qp-*` control without an `id`.
+- **AISI0013** (error): a malformed `config.bind`.
+- VSIX: completions for `view.bind`, `state.bind`, field names and `qp-panel` ids, taken from the screen's TypeScript.
+- VSIX: go to definition (F12), from a selector into the stock screen HTML and from a binding into the `.ts`.
+- A manual dry run for the release workflow, and a check of the packed VSIX's contents in CI and in releases.
+
 ## [0.2.0] - 2026-09-30
 
 First public release.

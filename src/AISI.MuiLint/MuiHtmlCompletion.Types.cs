@@ -18,6 +18,15 @@ namespace AISI.MuiLint
 
         /// <summary>Caret is inside the quoted value of <c>after=</c> or <c>before=</c>.</summary>
         SelectorValue = 3,
+
+        /// <summary>Caret is inside <c>view.bind=</c>, or a qp-panel's <c>id=</c>.</summary>
+        ViewValue = 4,
+
+        /// <summary>Caret is inside the <c>name=</c> of a <c>&lt;field&gt;</c>.</summary>
+        FieldValue = 5,
+
+        /// <summary>Caret is inside <c>state.bind=</c>.</summary>
+        ActionValue = 6,
     }
 
     /// <summary>Kind of a completion candidate.</summary>
@@ -34,6 +43,9 @@ namespace AISI.MuiLint
 
         /// <summary>A multi-character expansion such as the Usr field block.</summary>
         Snippet = 3,
+
+        /// <summary>A view, field or action name from the screen's TypeScript.</summary>
+        BindingValue = 4,
     }
 
     /// <summary>One completion candidate. Editor-free so it is testable on Linux.</summary>

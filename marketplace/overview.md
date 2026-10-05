@@ -18,13 +18,17 @@ Acuminator lints your C#. MuiLint lints the `.html` side of your customisation: 
 | AISI0008 | The same id, or the same field in the same view, twice |
 | AISI0009 | Selectors naming a `[name]` or `#id` the stock screen doesn't have |
 | AISI0010 | Added fields without the `Usr` prefix (a hint, not an error) |
+| AISI0011 | `view.bind`, fields, `state.bind` or a `qp-panel` id that the screen's `.ts` doesn't declare |
+| AISI0012 | `qp-*` controls without an `id` (a hint) |
+| AISI0013 | A `config.bind` with an unclosed brace, bracket or quote |
 
 Each id in the Error List links to a page explaining the rule, with a before and after.
 
 ## And also
 
 - **Lightbulb fixes** (Ctrl+.): close a self-closing tag, remove an empty fieldset, or suppress a finding on the line or in the file.
-- **Completions** for Modern UI tags, merge attributes, and `[name='…']` values read from the stock screen, so you anchor on a field that actually exists.
+- **Completions** for Modern UI tags, merge attributes, and `[name='…']` values read from the stock screen, so you anchor on a field that actually exists. Inside `view.bind`, `state.bind` and a field's `name` you get what the screen's TypeScript declares.
+- **Go to definition** (F12) from a selector into the stock screen HTML, and from a view, action or field into its TypeScript declaration.
 - **Severities from `.editorconfig`**, using the same `dotnet_diagnostic.AISI0008.severity = error` keys as Roslyn.
 - A **command-line tool and a GitHub Action** that run the same rules in CI, with SARIF output for code scanning.
 

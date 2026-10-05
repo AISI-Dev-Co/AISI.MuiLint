@@ -8,7 +8,7 @@ namespace AISI.MuiLint
 {
     public static partial class HtmlMergeScanner
     {
-        private static readonly Regex IdSelector = new Regex(
+        internal static readonly Regex IdSelector = new Regex(
             "#(?<id>[A-Za-z_][A-Za-z0-9_-]*)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
@@ -109,7 +109,7 @@ namespace AISI.MuiLint
                 for (int a = 0; a < tag.Attributes.Count; a++)
                 {
                     HtmlAttribute attr = tag.Attributes[a];
-                    if (!IsMergeOperator(attr.Name) || FindSelectorProblem(attr.Value) != null)
+                    if (!IsMergeOperator(attr.Name) || FindBracketProblem(attr.Value) != null)
                     {
                         continue;
                     }
@@ -117,7 +117,7 @@ namespace AISI.MuiLint
                     foreach (Match match in NameSelector.Matches(attr.Value))
                     {
                         string name = match.Groups["n"].Value;
-                        if (name.Length > 0 && !localNames.Contains(name) && !stock.Names.Contains(name))
+                        if (name.Length > 0 && !localNames.Contains(name) && !stock.Names.ContainsKey(name))
                         {
                             results.Add(Create(
                                 DiagnosticIds.SelectorNotInStock,
@@ -132,7 +132,7 @@ namespace AISI.MuiLint
                     foreach (Match match in IdSelector.Matches(BlankBracketsAndQuotes(attr.Value)))
                     {
                         string id = match.Groups["id"].Value;
-                        if (!localIds.Contains(id) && !stock.Ids.Contains(id))
+                        if (!localIds.Contains(id) && !stock.Ids.ContainsKey(id))
                         {
                             results.Add(Create(
                                 DiagnosticIds.SelectorNotInStock,
@@ -174,7 +174,7 @@ namespace AISI.MuiLint
                 }
 
                 string field = name.Substring(name.LastIndexOf('.') + 1);
-                if (field.StartsWith("Usr", StringComparison.Ordinal) || (stock != null && stock.Names.Contains(name)))
+                if (field.StartsWith("Usr", StringComparison.Ordinal) || (stock != null && stock.Names.ContainsKey(name)))
                 {
                     continue;
                 }
@@ -205,7 +205,7 @@ namespace AISI.MuiLint
             return false;
         }
 
-        private static string BlankBracketsAndQuotes(string selector)
+        internal static string BlankBracketsAndQuotes(string selector)
         {
             char[] chars = selector.ToCharArray();
             int depth = 0;
@@ -241,7 +241,7 @@ namespace AISI.MuiLint
         }
 
         /// <summary>Names and ids of a stock screen, including anything it pulls in with qp-include.</summary>
-        private sealed class StockScreen
+        internal sealed class StockScreen
         {
             private StockScreen(string fileName)
             {
@@ -250,9 +250,11 @@ namespace AISI.MuiLint
 
             public string FileName { get; }
 
-            public HashSet<string> Names { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            /// <summary>Each name, and where it first appears.</summary>
+            public Dictionary<string, SourceLocation> Names { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
-            public HashSet<string> Ids { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            /// <summary>Each id, and where it first appears.</summary>
+            public Dictionary<string, SourceLocation> Ids { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
             public static StockScreen? Read(string extensionPath, Func<string, string?> readFile)
             {
@@ -272,6 +274,7 @@ namespace AISI.MuiLint
             private bool Collect(string filePath, string html, Func<string, string?> readFile, int depth)
             {
                 IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(MaskComments(html));
+                var lineMap = new LineMap(html);
                 for (int i = 0; i < tags.Count; i++)
                 {
                     HtmlTag tag = tags[i];
@@ -280,8 +283,19 @@ namespace AISI.MuiLint
                         continue;
                     }
 
-                    Names.Add(tag.GetAttribute("name"));
-                    Ids.Add(tag.GetAttribute("id"));
+                    lineMap.ToLineCol(tag.Start, out int line, out int column);
+                    var location = new SourceLocation(filePath, line, column);
+                    string name = tag.GetAttribute("name");
+                    string id = tag.GetAttribute("id");
+                    if (!Names.ContainsKey(name))
+                    {
+                        Names.Add(name, location);
+                    }
+
+                    if (!Ids.ContainsKey(id))
+                    {
+                        Ids.Add(id, location);
+                    }
 
                     if (!string.Equals(tag.Name, "qp-include", StringComparison.OrdinalIgnoreCase))
                     {
@@ -294,7 +308,7 @@ namespace AISI.MuiLint
                         return false;
                     }
 
-                    string includePath = CombinePath(filePath, url);
+                    string includePath = ScreenModel.Combine(filePath, url);
                     string? included = readFile(includePath);
                     if (included == null || !Collect(includePath, included, readFile, depth + 1))
                     {
@@ -303,28 +317,6 @@ namespace AISI.MuiLint
                 }
 
                 return true;
-            }
-
-            private static string CombinePath(string fromFile, string relative)
-            {
-                var parts = new List<string>(NormalizePath(fromFile).Split('/'));
-                parts.RemoveAt(parts.Count - 1);
-                foreach (string part in NormalizePath(relative).Split('/'))
-                {
-                    if (part == "..")
-                    {
-                        if (parts.Count > 0)
-                        {
-                            parts.RemoveAt(parts.Count - 1);
-                        }
-                    }
-                    else if (part.Length > 0 && part != ".")
-                    {
-                        parts.Add(part);
-                    }
-                }
-
-                return string.Join("/", parts);
             }
         }
     }
