@@ -134,7 +134,8 @@ namespace AISI.MuiLint.Vsix
                 document.FilePath,
                 caret.Value.Snapshot.GetText(),
                 caret.Value.Position,
-                MuiLintPackage.TryReadFile);
+                MuiLintPackage.TryReadFile,
+                MuiLintPackage.TryListFolder);
             if (target == null)
             {
                 return false;

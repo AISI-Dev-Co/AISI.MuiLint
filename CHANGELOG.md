@@ -26,6 +26,10 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 ### Changed
 
+- AISI0009, AISI0011 and the TypeScript rules now see every extension of the screen: the stock screen's own
+  `extensions` folder, `development/screens`, and every project under `customizationScreens`. A field or view another
+  extension declares no longer gets reported as missing.
+
 - Selector completions only offer targets from the stock screen. Names from the same file or the `.ts` were never
   valid anchors (AISI0002, AISI0009).
 
@@ -65,6 +69,10 @@ First public release.
 - `examples/` with a stand-in stock screen, a clean extension and a broken one.
 
 ### Changed
+
+- AISI0009, AISI0011 and the TypeScript rules now see every extension of the screen: the stock screen's own
+  `extensions` folder, `development/screens`, and every project under `customizationScreens`. A field or view another
+  extension declares no longer gets reported as missing.
 
 - CLI output is now MSBuild style (`path(line,col): error AISI0001: message`) followed by a summary on stderr.
 - CLI exits 1 only for errors; warnings and suggestions are reported but don't fail the run.

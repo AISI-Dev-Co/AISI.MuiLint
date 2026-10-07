@@ -26,17 +26,70 @@ namespace AISI.MuiLint
                 throw new ArgumentNullException(nameof(extensionHtmlPath));
             }
 
-            string[] parts = NormalizePath(extensionHtmlPath).Split('/');
-            int extensions = parts.Length - 2;
-            int module = extensions - 2;
-            if (module < 1 || !string.Equals(parts[extensions], "extensions", StringComparison.OrdinalIgnoreCase))
+            if (!IsExtensionFile(extensionHtmlPath) || !TryLocateScreen(extensionHtmlPath, out string src, out string module, out string screen))
             {
                 return null;
             }
 
+            return src + "screens/" + module + "/" + screen + "/" + screen + ".html";
+        }
+
+        /// <summary>
+        /// Every extension of the screen <paramref name="path"/> belongs to, wherever it lives: the
+        /// stock screen's own extensions folder, development/screens, and each project under
+        /// customizationScreens. Nothing imports these; the build stitches them all in.
+        /// </summary>
+        /// <param name="path">Any file of the screen, or of one of its extensions.</param>
+        /// <param name="fileExtension">".ts" or ".html".</param>
+        /// <param name="listFolder">Lists what's directly inside a folder, files and subfolders. Null finds nothing.</param>
+        internal static IEnumerable<string> ScreenExtensions(string path, string fileExtension, Func<string, IEnumerable<string>>? listFolder)
+        {
+            if (listFolder == null || !TryLocateScreen(path, out string src, out string module, out string screen))
+            {
+                yield break;
+            }
+
+            string tail = module + "/" + screen + "/extensions";
+            var folders = new List<string> { src + "screens/" + tail, src + "development/screens/" + tail };
+            foreach (string project in listFolder(src + "customizationScreens"))
+            {
+                string projectPath = NormalizePath(project);
+                folders.Add(projectPath + "/" + tail);
+                folders.Add(projectPath + "/screens/" + tail);
+            }
+
+            foreach (string folder in folders)
+            {
+                foreach (string file in listFolder(folder))
+                {
+                    string filePath = NormalizePath(file);
+                    if (filePath.EndsWith(fileExtension, StringComparison.OrdinalIgnoreCase) && !filePath.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return filePath;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Finds the screen a file belongs to: the folder that holds the screens trees (usually
+        /// <c>…/src/</c>, with a trailing slash), the module and the screen id. Works for the stock
+        /// screen, a development screen, a customizationScreens project, and their extensions.
+        /// </summary>
+        private static bool TryLocateScreen(string path, out string src, out string module, out string screen)
+        {
+            src = module = screen = string.Empty;
+            string[] parts = NormalizePath(path).Split('/');
+            int screenIndex = IsExtensionFile(path) ? parts.Length - 3 : parts.Length - 2;
+            int moduleIndex = screenIndex - 1;
+            if (moduleIndex < 1)
+            {
+                return false;
+            }
+
             // Walk back from the module folder to the start of the screens tree.
             int root = -1;
-            for (int i = module - 1; i >= 0 && i >= module - 3; i--)
+            for (int i = moduleIndex - 1; i >= 0 && i >= moduleIndex - 3; i--)
             {
                 if (string.Equals(parts[i], "development", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(parts[i], "customizationScreens", StringComparison.OrdinalIgnoreCase))
@@ -46,19 +99,20 @@ namespace AISI.MuiLint
                 }
             }
 
-            if (root < 0 && string.Equals(parts[module - 1], "screens", StringComparison.OrdinalIgnoreCase))
+            if (root < 0 && string.Equals(parts[moduleIndex - 1], "screens", StringComparison.OrdinalIgnoreCase))
             {
-                root = module - 1;
+                root = moduleIndex - 1;
             }
 
             if (root < 0)
             {
-                return null;
+                return false;
             }
 
-            string screen = parts[extensions - 1];
-            string prefix = root == 0 ? string.Empty : string.Join("/", parts, 0, root) + "/";
-            return prefix + "screens/" + parts[module] + "/" + screen + "/" + screen + ".html";
+            src = root == 0 ? string.Empty : string.Join("/", parts, 0, root) + "/";
+            module = parts[moduleIndex];
+            screen = parts[screenIndex];
+            return true;
         }
 
         internal static bool IsExtensionFile(string path)
@@ -270,7 +324,11 @@ namespace AISI.MuiLint
             /// <paramref name="allowPartial"/> is false: a half-known screen only produces false alarms,
             /// though it is still good enough to complete from.
             /// </summary>
-            public static StockScreen? Read(string extensionPath, Func<string, string?> readFile, bool allowPartial = false)
+            public static StockScreen? Read(
+                string extensionPath,
+                Func<string, string?> readFile,
+                bool allowPartial = false,
+                Func<string, IEnumerable<string>>? listFolder = null)
             {
                 string? stockPath = StockHtmlPath(extensionPath);
                 string? html = stockPath == null ? null : readFile(stockPath);
@@ -281,6 +339,18 @@ namespace AISI.MuiLint
 
                 var stock = new StockScreen(Path.GetFileName(stockPath));
                 stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>());
+
+                // Every other extension of the screen is merged in too, so what they add can be targeted.
+                string self = NormalizePath(extensionPath);
+                foreach (string path in ScreenExtensions(extensionPath, ".html", listFolder))
+                {
+                    string? extension = string.Equals(path, self, StringComparison.OrdinalIgnoreCase) ? null : readFile(path);
+                    if (extension != null)
+                    {
+                        stock.Collect(path, extension, readFile, 0, Array.Empty<string>());
+                    }
+                }
+
                 return stock._complete || allowPartial ? stock : null;
             }
 

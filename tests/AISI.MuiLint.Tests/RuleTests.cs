@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace AISI.MuiLint.Tests
@@ -93,6 +94,19 @@ namespace AISI.MuiLint.Tests
             var files = new Dictionary<string, string> { [TypeScript] = string.Empty };
             const string html = "<template><field name=\"UsrA\" after=\"[name='Nope']\"></field></template>";
             Assert.DoesNotContain(Scan(html, files), x => x.Id == DiagnosticIds.SelectorNotInStock);
+        }
+
+        [Fact]
+        public void SelectorNotInStock_CountsWhatOtherExtensionsAdd()
+        {
+            Dictionary<string, string> files = WithStock();
+            files["/site/src/screens/SO/SO301000/extensions/SO301000_Payments.html"] = "<template><qp-fieldset id=\"fsPayments\"><field name=\"PaymentTotal\"></field></qp-fieldset></template>";
+            files["/site/src/customizationScreens/Shipping/SO/SO301000/extensions/SO301000_Shipping.html"] = "<template><field name=\"UsrCarrier\" after=\"[name='Status']\"></field></template>";
+
+            const string html = "<template><field name=\"UsrA\" after=\"#fsPayments [name='PaymentTotal']\"></field><field name=\"UsrB\" after=\"[name='UsrCarrier']\"></field></template>";
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(Extension, html, path => files.TryGetValue(path, out string? text) ? text : null, BindingTests.Lister(files));
+            Assert.DoesNotContain(results, x => x.Id == DiagnosticIds.SelectorNotInStock);
+            Assert.Equal(3, Scan(html, files).Count(x => x.Id == DiagnosticIds.SelectorNotInStock));
         }
 
         [Fact]

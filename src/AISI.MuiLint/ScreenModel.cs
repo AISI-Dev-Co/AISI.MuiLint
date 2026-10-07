@@ -29,7 +29,7 @@ namespace AISI.MuiLint
     /// </summary>
     internal sealed class ScreenModel
     {
-        private const int MaxModules = 64;
+        private const int MaxModules = 128;
 
         private readonly Dictionary<string, (TsClass Class, TsModule Module)> _classes = new Dictionary<string, (TsClass, TsModule)>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _mergedInto = new Dictionary<string, List<string>>(StringComparer.Ordinal);
@@ -51,18 +51,16 @@ namespace AISI.MuiLint
 
         /// <summary>
         /// Reads the screen behind <paramref name="path"/> (an HTML file or its .ts), or returns
-        /// null when there is no .ts or no single screen class can be found in what it imports.
+        /// null when there is no .ts or no single screen class can be found in what it reads.
         /// </summary>
-        public static ScreenModel? Read(string path, Func<string, string?> readFile)
-        {
-            return Read(path, readFile, null);
-        }
-
-        /// <summary>
-        /// As <see cref="Read(string, Func{string, string?})"/>, but with the .ts itself already in
-        /// hand, for example an editor buffer with unsaved changes.
-        /// </summary>
-        public static ScreenModel? Read(string path, Func<string, string?> readFile, string? tsText)
+        /// <param name="path">The HTML or .ts being checked.</param>
+        /// <param name="readFile">Returns a file's text, or null.</param>
+        /// <param name="tsText">The .ts itself when it's already in hand, such as an editor buffer with unsaved changes.</param>
+        /// <param name="listFolder">
+        /// Lists what's directly inside a folder. With it, every extension of the screen is read too,
+        /// wherever it lives (see <see cref="HtmlMergeScanner.ScreenExtensions"/>).
+        /// </param>
+        public static ScreenModel? Read(string path, Func<string, string?> readFile, string? tsText = null, Func<string, IEnumerable<string>>? listFolder = null)
         {
             string tsPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(path, ".ts"));
             string? text = tsText ?? readFile(tsPath);
@@ -75,6 +73,15 @@ namespace AISI.MuiLint
             var modules = new Queue<TsModule>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath };
             modules.Enqueue(new TsModule(tsPath, text));
+            foreach (string extension in HtmlMergeScanner.ScreenExtensions(tsPath, ".ts", listFolder))
+            {
+                string? extensionText = seen.Count < MaxModules && seen.Add(extension) ? readFile(extension) : null;
+                if (extensionText != null)
+                {
+                    modules.Enqueue(new TsModule(extension, extensionText));
+                }
+            }
+
             while (modules.Count > 0)
             {
                 TsModule module = modules.Dequeue();

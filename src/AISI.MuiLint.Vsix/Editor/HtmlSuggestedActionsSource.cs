@@ -101,7 +101,7 @@ namespace AISI.MuiLint.Vsix
                 }
                 else if (diagnostic.Id == DiagnosticIds.BindingNotInTypeScript && Path.IsPathRooted(diagnostic.Path))
                 {
-                    FieldDeclaration plan = TypeScriptFixes.PlanFieldDeclaration(diagnostic.Path, text, diagnostic, MuiLintPackage.TryReadFile);
+                    FieldDeclaration plan = TypeScriptFixes.PlanFieldDeclaration(diagnostic.Path, text, diagnostic, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
                     if (plan != null)
                     {
                         string title = "Declare " + plan.Field + " in " + plan.TargetClass + " (" + Path.GetFileName(plan.TsPath) + ")";

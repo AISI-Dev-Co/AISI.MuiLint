@@ -16,16 +16,18 @@ namespace AISI.MuiLint
         /// <param name="caret">Caret offset into <paramref name="text"/>.</param>
         /// <param name="target">What <see cref="Classify"/> said the caret is in.</param>
         /// <param name="readFile">Returns a file's text, or null when it does not exist.</param>
+        /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen counts. Optional.</param>
         public static IReadOnlyList<MuiCompletionItem> GetValues(
             string htmlPath,
             string text,
             int caret,
             MuiCompletionTarget target,
-            Func<string, string?> readFile)
+            Func<string, string?> readFile,
+            Func<string, IEnumerable<string>>? listFolder = null)
         {
             if (target == MuiCompletionTarget.SelectorValue)
             {
-                return GetSelectorValues(htmlPath, text, caret, readFile);
+                return GetSelectorValues(htmlPath, text, caret, readFile, listFolder);
             }
 
             if (target == MuiCompletionTarget.AttributeValue)
@@ -33,11 +35,11 @@ namespace AISI.MuiLint
                 int open = text.LastIndexOf('<', Math.Max(0, caret - 1));
                 string inTag = open < 0 ? string.Empty : text.Substring(open, caret - open);
                 string attribute = TryGetOpenQuotedAttribute(inTag, out _) ?? string.Empty;
-                return GetAttributeValues(ReadTagName(inTag), attribute, htmlPath, readFile);
+                return GetAttributeValues(ReadTagName(inTag), attribute, htmlPath, readFile, listFolder);
             }
 
             var items = new List<MuiCompletionItem>();
-            ScreenModel? screen = ScreenModel.Read(htmlPath, readFile);
+            ScreenModel? screen = ScreenModel.Read(htmlPath, readFile, listFolder: listFolder);
             if (screen == null)
             {
                 return items;

@@ -113,6 +113,35 @@ namespace AISI.MuiLint.Tests
             }
         }
 
+        [Fact]
+        public void FieldsFromAnyExtensionOfTheScreen_Count()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "muilint-" + Guid.NewGuid().ToString("N"));
+            string src = Path.Combine(root, "src");
+            void Write(string relative, string text)
+            {
+                string path = Path.Combine(src, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, text);
+            }
+
+            Write("screens/SO/SO301000/SO301000.ts", "export class SO301000 extends PXScreen {\n    Document = createSingle(SOOrderHeader);\n}\nexport class SOOrderHeader extends PXView {\n    OrderNbr: PXFieldState;\n}\n");
+            Write("screens/SO/SO301000/extensions/SO301000_Payments.ts", "import { SOOrderHeader } from \"../SO301000\";\nexport interface SOOrderHeader_Payments extends SOOrderHeader {}\nexport class SOOrderHeader_Payments {\n    PaymentTotal: PXFieldState;\n}\n");
+            Write("customizationScreens/Shipping/SO/SO301000/extensions/SO301000_Shipping.ts", "import { SOOrderHeader } from \"src/screens/SO/SO301000/SO301000\";\nexport interface SOOrderHeader_Shipping extends SOOrderHeader {}\nexport class SOOrderHeader_Shipping {\n    UsrCarrier: PXFieldState;\n}\n");
+            Write("development/screens/SO/SO301000/extensions/SO301000_AISI.ts", "import { SO301000 } from \"src/screens/SO/SO301000/SO301000\";\nexport interface SO301000_AISI extends SO301000 {}\nexport class SO301000_AISI {}\n");
+            Write("development/screens/SO/SO301000/extensions/SO301000_AISI.html", "<template><qp-fieldset id=\"f\" after=\"#x\" view.bind=\"Document\"><field name=\"PaymentTotal\"></field><field name=\"UsrCarrier\"></field><field name=\"UsrMissing\"></field></qp-fieldset></template>");
+            try
+            {
+                (_, string output, _) = Run(Path.Combine(src, "development"));
+                string finding = Assert.Single(output.Split('\n', StringSplitOptions.RemoveEmptyEntries), line => line.Contains("AISI0011", StringComparison.Ordinal));
+                Assert.Contains("UsrMissing", finding, StringComparison.Ordinal);
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
         private static (int Exit, string Output, string Summary) Run(params string[] args)
         {
             TextWriter originalOut = Console.Out;

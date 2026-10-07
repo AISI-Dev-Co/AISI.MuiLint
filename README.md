@@ -197,10 +197,16 @@ For an extension at `…/src/development/screens/SO/SO301000/extensions/SO301000
 the names and ids in it and follows its `qp-include url="…"` files. If any include can't be read, AISI0009 skips that
 screen rather than guessing.
 
+Every extension of the screen counts as well, wherever it lives: `…/src/screens/SO/SO301000/extensions/`,
+`…/src/development/screens/SO/SO301000/extensions/`, and `extensions` under each project in
+`…/src/customizationScreens/`. Whatever their HTML adds can be targeted, and whatever their `.ts` declares can be
+bound to.
+
 ## How the TypeScript is read
 
 AISI0011, the binding completions and F12 read the `.ts` next to the HTML and follow its imports, both relative ones
-(`./views`) and `src/…` ones (`src/screens/SO/SO301000/SO301000`). They find the class that extends `PXScreen`, its
+(`./views`) and `src/…` ones (`src/screens/SO/SO301000/SO301000`), plus every other extension `.ts` of the screen
+(see above). They find the class that extends `PXScreen`, its
 `createSingle`/`createCollection` views, and the members of each view's class through its base classes. Extension
 interfaces such as `interface SOOrderHeader_AISI extends SOOrderHeader {}` are merged into the class they extend, the
 way TypeScript does it. AISI0015 and AISI0016 use the same model when they check a `.ts` file.

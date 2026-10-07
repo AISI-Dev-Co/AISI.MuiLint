@@ -34,8 +34,13 @@ namespace AISI.MuiLint
         /// Returns another file's text, or null when it does not exist. Needed to follow imports
         /// and to read .editorconfig; null limits the scan to this file.
         /// </param>
+        /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen is read too. Optional.</param>
         /// <returns>Zero or more findings, in source order.</returns>
-        public static IReadOnlyList<Diagnostic> Analyze(string path, string text, Func<string, string?>? readFile)
+        public static IReadOnlyList<Diagnostic> Analyze(
+            string path,
+            string text,
+            Func<string, string?>? readFile,
+            Func<string, IEnumerable<string>>? listFolder = null)
         {
             if (path is null)
             {
@@ -64,7 +69,7 @@ namespace AISI.MuiLint
                 Scan0014(path, module, lineMap, results);
             }
 
-            ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text);
+            ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text, listFolder);
             if (screen != null)
             {
                 Scan0015(path, module, screen, lineMap, results);

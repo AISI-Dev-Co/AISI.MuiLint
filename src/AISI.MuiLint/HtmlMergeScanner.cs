@@ -54,8 +54,17 @@ namespace AISI.MuiLint
         /// <c>dotnet_diagnostic.AISI*.severity</c> in .editorconfig. Null keeps the scan to
         /// <paramref name="text"/> alone.
         /// </param>
+        /// <param name="listFolder">
+        /// Lists what's directly inside a folder, files and subfolders, as full paths. With it, every
+        /// extension of the screen counts: the views and fields their .ts declare, and the names and
+        /// ids their HTML adds. Optional.
+        /// </param>
         /// <returns>Zero or more findings, in source order.</returns>
-        public static IReadOnlyList<Diagnostic> Analyze(string path, string text, Func<string, string?>? readFile)
+        public static IReadOnlyList<Diagnostic> Analyze(
+            string path,
+            string text,
+            Func<string, string?>? readFile,
+            Func<string, IEnumerable<string>>? listFolder = null)
         {
             if (path is null)
             {
@@ -86,7 +95,7 @@ namespace AISI.MuiLint
             Scan0013(path, tags, lineMap, results);
 
             // Stock screens are what they are; checking them against their own .ts is just noise.
-            ScreenModel? screen = readFile == null || IsStockScreensPath(path) ? null : ScreenModel.Read(path, readFile);
+            ScreenModel? screen = readFile == null || IsStockScreensPath(path) ? null : ScreenModel.Read(path, readFile, listFolder: listFolder);
             if (screen != null)
             {
                 Scan0011(path, tags, parents, screen, lineMap, results);
@@ -98,7 +107,7 @@ namespace AISI.MuiLint
                 if (readFile != null)
                 {
                     TryPath0007(path, readFile, lineMap, results);
-                    stock = StockScreen.Read(path, readFile);
+                    stock = StockScreen.Read(path, readFile, listFolder: listFolder);
                     if (stock != null)
                     {
                         Scan0009(path, tags, stock, lineMap, results);

@@ -107,7 +107,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
 
                 // Full path so .editorconfig lookup can walk above the current directory.
                 string fullPath = Path.GetFullPath(path);
-                scanned.Add(new ScannedFile(path, MuiLinter.Analyze(fullPath, text, p => ReadCached(p, cache))));
+                scanned.Add(new ScannedFile(path, MuiLinter.Analyze(fullPath, text, p => ReadCached(p, cache), ListFolder)));
             }
 
             switch (format)
@@ -198,6 +198,18 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
                 {
                     AddFiles(subdirectory, files);
                 }
+            }
+        }
+
+        private static IEnumerable<string> ListFolder(string folder)
+        {
+            try
+            {
+                return Directory.Exists(folder) ? Directory.GetFileSystemEntries(folder) : Array.Empty<string>();
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return Array.Empty<string>();
             }
         }
 

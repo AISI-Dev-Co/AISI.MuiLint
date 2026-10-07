@@ -20,10 +20,10 @@ namespace AISI.MuiLint
         /// Attributes the stock screen uses on <paramref name="tagName"/> that <see cref="GetAttributes"/>
         /// doesn't already offer. Empty when there's no stock screen to learn from.
         /// </summary>
-        public static IReadOnlyList<MuiCompletionItem> GetStockAttributes(string tagName, string htmlPath, Func<string, string?> readFile)
+        public static IReadOnlyList<MuiCompletionItem> GetStockAttributes(string tagName, string htmlPath, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
             var items = new List<MuiCompletionItem>();
-            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock == null || !stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes))
             {
                 return items;
@@ -51,10 +51,10 @@ namespace AISI.MuiLint
         /// values. Once the selector names a container (<c>#fsColumnA-Order [name='|</c>), only the
         /// names inside that container are offered.
         /// </summary>
-        private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile)
+        private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
             var items = new List<MuiCompletionItem>();
-            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock == null)
             {
                 return items;
@@ -94,10 +94,10 @@ namespace AISI.MuiLint
         }
 
         /// <summary>Values the stock screen gives <paramref name="attribute"/> on <paramref name="tagName"/>.</summary>
-        private static List<MuiCompletionItem> GetAttributeValues(string tagName, string attribute, string htmlPath, Func<string, string?> readFile)
+        private static List<MuiCompletionItem> GetAttributeValues(string tagName, string attribute, string htmlPath, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
             var items = new List<MuiCompletionItem>();
-            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock != null
                 && stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes)
                 && attributes.TryGetValue(attribute, out List<string>? values))

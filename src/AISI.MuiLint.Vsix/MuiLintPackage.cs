@@ -25,7 +25,24 @@ namespace AISI.MuiLint.Vsix
         public static IReadOnlyList<Diagnostic> Analyze(string path, string text)
         {
             // A buffer with no real file behind it has no neighbours to look at.
-            return MuiLinter.Analyze(path, text, Path.IsPathRooted(path) ? TryReadFile : null);
+            return Path.IsPathRooted(path) ? MuiLinter.Analyze(path, text, TryReadFile, TryListFolder) : MuiLinter.Analyze(path, text, null);
+        }
+
+        /// <summary>What's directly inside a folder, or nothing if it's missing or locked.</summary>
+        public static IEnumerable<string> TryListFolder(string path)
+        {
+            try
+            {
+                return Directory.Exists(path) ? Directory.GetFileSystemEntries(path) : Array.Empty<string>();
+            }
+            catch (IOException)
+            {
+                return Array.Empty<string>();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Array.Empty<string>();
+            }
         }
 
         /// <summary>Reads a file, or returns null if it is missing or locked.</summary>

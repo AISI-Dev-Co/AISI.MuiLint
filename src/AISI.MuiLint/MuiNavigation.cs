@@ -34,12 +34,12 @@ namespace AISI.MuiLint
     /// </summary>
     internal static class MuiNavigation
     {
-        public static SourceLocation? FindDefinition(string path, string text, int caret, Func<string, string?> readFile)
+        public static SourceLocation? FindDefinition(string path, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
-            return Find(path, text, caret, readFile)?.Location;
+            return Find(path, text, caret, readFile, listFolder)?.Location;
         }
 
-        public static NavigationTarget? Find(string path, string text, int caret, Func<string, string?> readFile)
+        public static NavigationTarget? Find(string path, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(HtmlMergeScanner.MaskComments(text));
             for (int i = 0; i < tags.Count; i++)
@@ -55,7 +55,7 @@ namespace AISI.MuiLint
                     int offset = caret - attr.ValueStart;
                     if (attr.Value.Length > 0 && offset >= 0 && offset <= attr.Value.Length)
                     {
-                        return Resolve(path, tags, i, attr, offset, readFile);
+                        return Resolve(path, tags, i, attr, offset, readFile, listFolder);
                     }
                 }
 
@@ -71,18 +71,19 @@ namespace AISI.MuiLint
             int index,
             HtmlAttribute attr,
             int offset,
-            Func<string, string?> readFile)
+            Func<string, string?> readFile,
+            Func<string, IEnumerable<string>>? listFolder)
         {
             if (HtmlMergeScanner.IsMergeOperator(attr.Name))
             {
-                return FindInStock(path, attr, offset, readFile);
+                return FindInStock(path, attr, offset, readFile, listFolder);
             }
 
             HtmlTag tag = tags[index];
             bool view = Is(attr.Name, "view.bind") || (Is(attr.Name, "id") && Is(tag.Name, "qp-panel"));
             bool action = Is(attr.Name, "state.bind");
             bool field = Is(attr.Name, "name") && HtmlMergeScanner.IsFieldTag(tag.Name);
-            ScreenModel? screen = view || action || field ? ScreenModel.Read(path, readFile) : null;
+            ScreenModel? screen = view || action || field ? ScreenModel.Read(path, readFile, listFolder: listFolder) : null;
             if (screen == null)
             {
                 return null;
@@ -131,9 +132,9 @@ namespace AISI.MuiLint
                 : (NavigationTarget?)null;
         }
 
-        private static NavigationTarget? FindInStock(string path, HtmlAttribute attr, int offset, Func<string, string?> readFile)
+        private static NavigationTarget? FindInStock(string path, HtmlAttribute attr, int offset, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
-            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(path, readFile, allowPartial: true);
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(path, readFile, allowPartial: true, listFolder: listFolder);
             if (stock == null)
             {
                 return null;

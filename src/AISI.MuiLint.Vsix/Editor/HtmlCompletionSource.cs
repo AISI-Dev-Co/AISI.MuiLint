@@ -59,7 +59,7 @@ namespace AISI.MuiLint.Vsix
                     items.AddRange(MuiHtmlCompletion.GetAttributes(tagName));
                     if (canRead)
                     {
-                        items.AddRange(MuiHtmlCompletion.GetStockAttributes(tagName, path, MuiLintPackage.TryReadFile));
+                        items.AddRange(MuiHtmlCompletion.GetStockAttributes(tagName, path, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder));
                     }
 
                     break;
@@ -70,7 +70,7 @@ namespace AISI.MuiLint.Vsix
                 default:
                     if (canRead)
                     {
-                        items.AddRange(MuiHtmlCompletion.GetValues(path, text, caret, target, MuiLintPackage.TryReadFile));
+                        items.AddRange(MuiHtmlCompletion.GetValues(path, text, caret, target, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder));
                         if (target == MuiCompletionTarget.FieldValue)
                         {
                             AddDacFields(items, path);

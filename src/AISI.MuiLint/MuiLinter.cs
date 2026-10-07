@@ -19,7 +19,11 @@ namespace AISI.MuiLint
         }
 
         /// <summary>Runs <see cref="TypeScriptScanner"/> on .ts files and <see cref="HtmlMergeScanner"/> on anything else.</summary>
-        public static IReadOnlyList<Diagnostic> Analyze(string path, string text, Func<string, string?>? readFile)
+        public static IReadOnlyList<Diagnostic> Analyze(
+            string path,
+            string text,
+            Func<string, string?>? readFile,
+            Func<string, IEnumerable<string>>? listFolder = null)
         {
             if (path is null)
             {
@@ -27,8 +31,8 @@ namespace AISI.MuiLint
             }
 
             return path.EndsWith(".ts", StringComparison.OrdinalIgnoreCase)
-                ? TypeScriptScanner.Analyze(path, text, readFile)
-                : HtmlMergeScanner.Analyze(path, text, readFile);
+                ? TypeScriptScanner.Analyze(path, text, readFile, listFolder)
+                : HtmlMergeScanner.Analyze(path, text, readFile, listFolder);
         }
     }
 }

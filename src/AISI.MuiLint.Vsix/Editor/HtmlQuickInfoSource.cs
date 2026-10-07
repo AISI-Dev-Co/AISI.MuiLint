@@ -58,7 +58,7 @@ namespace AISI.MuiLint.Vsix
             return Task.Run(
                 () =>
                 {
-                    NavigationTarget? target = MuiNavigation.Find(path, snapshot.GetText(), caret, MuiLintPackage.TryReadFile);
+                    NavigationTarget? target = MuiNavigation.Find(path, snapshot.GetText(), caret, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
                     if (target == null)
                     {
                         return null;

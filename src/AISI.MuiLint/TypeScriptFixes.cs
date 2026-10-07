@@ -55,7 +55,7 @@ namespace AISI.MuiLint
         /// Works out where the field behind an AISI0011 "not declared on view" finding should go,
         /// or returns null when we can't say (no view, a view class we can't find, a stock screen).
         /// </summary>
-        public static FieldDeclaration? PlanFieldDeclaration(string htmlPath, string htmlText, Diagnostic diagnostic, Func<string, string?> readFile)
+        public static FieldDeclaration? PlanFieldDeclaration(string htmlPath, string htmlText, Diagnostic diagnostic, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(HtmlMergeScanner.MaskComments(htmlText));
             for (int i = 0; i < tags.Count; i++)
@@ -66,7 +66,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                ScreenModel? screen = ScreenModel.Read(htmlPath, readFile);
+                ScreenModel? screen = ScreenModel.Read(htmlPath, readFile, listFolder: listFolder);
                 string name = tag.GetAttribute("name");
                 if (screen == null || name.Length == 0)
                 {
