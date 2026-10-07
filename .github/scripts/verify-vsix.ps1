@@ -35,9 +35,12 @@ try {
     if ($licence -and $files -notcontains $licence) { $problems.Add("manifest licence $licence is not in the package") }
 
     foreach ($asset in $manifest.PackageManifest.Assets.Asset) {
-      if ($files -notcontains $asset.Path) { $problems.Add("$($asset.Type) asset '$($asset.Path)' is not in the package") }
+      if ($files -notcontains $asset.Path.Replace('\', '/')) { $problems.Add("$($asset.Type) asset '$($asset.Path)' is not in the package") }
     }
   }
+
+  # The snippets pkgdef points VS at this folder; an empty one means the snippets fell out of the build.
+  if (-not ($files | Where-Object { $_ -like 'Snippets/TypeScript/*.snippet' })) { $problems.Add('no TypeScript snippets in Snippets/TypeScript') }
 
   foreach ($dll in 'AISI.MuiLint.dll', 'AISI.MuiLint.Vsix.dll') {
     $full = Join-Path $work $dll

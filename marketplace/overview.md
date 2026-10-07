@@ -32,6 +32,7 @@ Each id in the Error List links to a page explaining the rule, with a before and
 - **Lightbulb fixes** (Ctrl+.): close a self-closing tag, remove an empty fieldset, declare a missing field in your TypeScript extension (writing the extension if there isn't one), create a missing extension `.ts`, or suppress a finding on the line or in the file.
 - **Completions** for Modern UI tags and attributes; the stock screen's `#ids` and `[name='…']` values in every merge selector, scoped to the container you've named; the views, fields and actions your TypeScript declares; and the fields of the C# DAC extensions in your solution.
 - **Go to definition** (F12) and **hover** from a selector into the stock screen HTML, and from a view, action or field into its TypeScript declaration.
+- **TypeScript snippets** for fields, actions, views, view and screen extensions, and their imports: type `muifield`, `muiext`, `muiscreenext` and so on, then Tab twice.
 - **Severities from `.editorconfig`**, using the same `dotnet_diagnostic.AISI0008.severity = error` keys as Roslyn.
 - A **command-line tool and a GitHub Action** that run the same rules in CI, with SARIF output for code scanning.
 

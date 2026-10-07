@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Import from a stock screen</Title>
+      <Shortcut>muiimportscreen</Shortcut>
+      <Description>Import the screen class, or a view class to extend, from the stock screen. Some screens keep their view classes in views.ts instead.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>screen</ID>
+          <ToolTip>The screen id.</ToolTip>
+          <Default>SO301000</Default>
+        </Literal>
+        <Literal>
+          <ID>class</ID>
+          <ToolTip>The view class.</ToolTip>
+          <Default>SOLine</Default>
+        </Literal>
+        <Literal>
+          <ID>module</ID>
+          <ToolTip>The screen's module folder, the first two letters of its id.</ToolTip>
+          <Default>SO</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[import { $screen$, $class$ } from "src/screens/$module$/$screen$/$screen$";$end$]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

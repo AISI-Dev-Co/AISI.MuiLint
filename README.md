@@ -69,6 +69,19 @@ You get:
 - **Go to definition** (F12): on a selector's `[name='…']` or `#id` it opens the stock screen HTML at that element, and
   on `view.bind`, `state.bind` or a field's `name` it opens the `.ts` at the declaration, extensions included.
 - **Hover** over the same things to see what they are and where they're declared.
+- **TypeScript snippets.** Type the shortcut and press Tab twice, or use Insert Snippet (Ctrl+K, X):
+
+  | Shortcut | Inserts |
+  | --- | --- |
+  | `muifield` | `Name: PXFieldState;` |
+  | `muifieldcc` | `Name: PXFieldState<PXFieldOptions.CommitChanges>;` |
+  | `muiaction` | `Name: PXActionState;` |
+  | `muicollection` / `muisingle` | `View = createCollection(Class);` / `createSingle` |
+  | `muiviewclass` | a new `class X extends PXView` with its first field |
+  | `muiext` | an extension of a view class: the interface and class pair, with a field |
+  | `muiscreenext` | the start of a screen extension `.ts`, with the stock screen imported |
+  | `muiimports` | the `client-controls` import for views, fields and actions |
+  | `muiimportscreen` | an import of the screen class and a view class from the stock screen |
 
 It hooks both the VS 2022 Web Tools editor (`htmlx`) and the classic HTML editor (`html`), and doesn't need the full
 web workload.

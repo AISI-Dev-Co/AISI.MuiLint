@@ -1,0 +1,3 @@
+// Puts the TypeScript snippets in VS's snippet search path: Tab-Tab and Insert Snippet both find them.
+[$RootKey$\Languages\CodeExpansions\TypeScript\Paths]
+"AISI.MuiLint"="$PackageFolder$\Snippets\TypeScript"

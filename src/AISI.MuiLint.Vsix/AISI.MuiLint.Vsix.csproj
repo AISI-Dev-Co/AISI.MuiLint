@@ -83,6 +83,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Content Include="Snippets\TypeScript\*.snippet">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Snippets\AISI.MuiLint.Snippets.pkgdef">
+      <Link>AISI.MuiLint.Snippets.pkgdef</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
   </ItemGroup>
 
   <!-- VSSDK packing targets must load after Sdk.targets, which would otherwise reset the build hooks they add. -->

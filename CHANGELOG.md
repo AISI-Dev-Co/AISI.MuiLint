@@ -21,6 +21,8 @@ All notable changes to this project are documented here. Versions follow [Semant
   - attributes the stock screen uses on a tag, and the values it gives them;
   - fields from the C# DAC extensions in your solution.
 - VSIX hover on selectors and bindings.
+- VSIX TypeScript snippets: `muifield`, `muifieldcc`, `muiaction`, `muicollection`, `muisingle`, `muiviewclass`,
+  `muiext`, `muiscreenext`, `muiimports` and `muiimportscreen`.
 
 ### Changed
 
