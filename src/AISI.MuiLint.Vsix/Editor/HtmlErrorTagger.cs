@@ -20,7 +20,7 @@ using Microsoft.VisualStudio.Utilities;
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Squiggle tagger: runs <see cref="MuiLintPackage.AnalyzeHtml"/> off the UI thread
+    /// Squiggle tagger: runs <see cref="MuiLintPackage.Analyze"/> off the UI thread
     /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
     /// Teardown is buffer-close (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), content-type
     /// drop, or <see cref="ITextDocument"/> dispose — not view-refcount.
@@ -28,7 +28,6 @@ namespace AISI.MuiLint.Vsix
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
         private const int DebounceMilliseconds = 300;
-        private const string FallbackPath = "buffer.html";
 
         private readonly ITextBuffer _buffer;
         private readonly ITextDocumentFactoryService _textDocumentFactory;
@@ -249,7 +248,7 @@ namespace AISI.MuiLint.Vsix
             }
 
             IContentType type = _buffer.ContentType;
-            if (type == null || (!type.IsOfType("htmlx") && !type.IsOfType("html")))
+            if (type == null || (!type.IsOfType("htmlx") && !type.IsOfType("html") && !IsTypeScript(type)))
             {
                 Dispose();
             }
@@ -382,7 +381,7 @@ namespace AISI.MuiLint.Vsix
             IReadOnlyList<Diagnostic> diagnostics;
             try
             {
-                diagnostics = await Task.Run(() => MuiLintPackage.AnalyzeHtml(path, text), token)
+                diagnostics = await Task.Run(() => MuiLintPackage.Analyze(path, text), token)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -449,7 +448,13 @@ namespace AISI.MuiLint.Vsix
                 return document.FilePath;
             }
 
-            return FallbackPath;
+            // No file yet: lint the text as whatever the editor thinks it is.
+            return IsTypeScript(_buffer.ContentType) ? "buffer.ts" : "buffer.html";
+        }
+
+        private static bool IsTypeScript(IContentType type)
+        {
+            return type != null && type.IsOfType("TypeScript");
         }
 
         private void RequestHookBufferClose()

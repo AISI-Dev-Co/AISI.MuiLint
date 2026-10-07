@@ -54,29 +54,91 @@ namespace AISI.MuiLint.Tests
             Assert.Contains(attrs, a => a.DisplayText == "name");
         }
 
-        [Fact]
-        public void GetSelectorValues_PrefersBaseHtml_MarksSameFile_ReadsPxFieldState()
+        private const string StockHtml =
+            "<template>\n" +
+            "  <qp-template id=\"form-Order\" name=\"17-17-14\" wg-container=\"Document_form\">\n" +
+            "    <qp-fieldset id=\"fsColumnA-Order\" slot=\"A\" view.bind=\"Document\">\n" +
+            "      <field name=\"OrderType\"></field>\n" +
+            "      <field name=\"OrderNbr\"></field>\n" +
+            "    </qp-fieldset>\n" +
+            "    <qp-fieldset id=\"fsColumnB-Order\" slot=\"B\" view.bind=\"Document\">\n" +
+            "      <field name=\"CustomerID\"></field>\n" +
+            "    </qp-fieldset>\n" +
+            "  </qp-template>\n" +
+            "</template>\n";
+
+        [Theory]
+        [InlineData("after")]
+        [InlineData("before")]
+        [InlineData("append")]
+        [InlineData("prepend")]
+        [InlineData("modify")]
+        [InlineData("remove")]
+        [InlineData("replace")]
+        public void Classify_EveryMergeOperatorIsASelector(string attribute)
         {
-            const string baseHtml = "<field name=\"InventoryID\"></field><field name=\"Descr\"></field>";
-            const string currentHtml = "<field name=\"UsrLocal\" after=\"[name='InventoryID']\"></field>";
-            const string siblingTs = "export class SO301000 { InventoryID: PXFieldState; SiteID: PXFieldState; }";
+            string text = "<qp-fieldset " + attribute + "=\"#fs";
+            Assert.Equal(MuiCompletionTarget.SelectorValue, MuiHtmlCompletion.Classify(text, text.Length));
+        }
 
-            IReadOnlyList<MuiCompletionItem> items = MuiHtmlCompletion.GetSelectorValues(
-                currentHtml,
-                baseHtml,
-                siblingTs);
+        [Fact]
+        public void Selector_OffersStockNamesAndIdsButNotLayouts()
+        {
+            string[] values = Values("<template><field name=\"UsrA\" after=\"|");
+            Assert.Contains("[name='OrderType']", values);
+            Assert.Contains("[name='CustomerID']", values);
+            Assert.Contains("#fsColumnA-Order", values);
+            Assert.DoesNotContain("[name='17-17-14']", values);
+        }
 
-            Assert.Equal("[name='InventoryID']", items[0].DisplayText);
-            Assert.Contains("base HTML", items[0].Description, StringComparison.Ordinal);
-            Assert.Contains(items, i => i.DisplayText == "[name='Descr']" && i.Description.IndexOf("base HTML", StringComparison.Ordinal) >= 0);
-            Assert.Contains(items, i => i.DisplayText == "[name='SiteID']" && i.Description.IndexOf("PXFieldState", StringComparison.Ordinal) >= 0);
+        [Fact]
+        public void Selector_ScopesNamesToTheContainerItAlreadyNames()
+        {
+            const string html = "<template><field name=\"UsrA\" after=\"#fsColumnB-Order [name='Cu|";
+            Assert.Equal(new[] { "[name='CustomerID']" }, Values(html).Where(v => v.StartsWith("[", StringComparison.Ordinal)));
 
-            MuiCompletionItem sameFile = Assert.Single(items, i => i.DisplayText == "[name='UsrLocal']");
-            Assert.Contains("same file", sameFile.Description, StringComparison.Ordinal);
-            Assert.Contains("AISI0002", sameFile.Description, StringComparison.Ordinal);
+            int caret = html.IndexOf('|');
+            string text = html.Remove(caret, 1);
+            Assert.Equal(text.IndexOf("[name='Cu", StringComparison.Ordinal), MuiHtmlCompletion.ApplicableStart(text, caret, MuiCompletionTarget.SelectorValue));
+        }
 
-            // Base wins over same-file duplicate; InventoryID must not be re-listed as same-file.
-            Assert.Equal(1, items.Count(i => i.DisplayText == "[name='InventoryID']"));
+        [Fact]
+        public void AttributeValuesAndNames_AreLearntFromTheStockScreen()
+        {
+            Assert.Equal(new[] { "A", "B" }, Values("<template><qp-fieldset id=\"x\" slot=\"|"));
+            Assert.Equal(new[] { "17-17-14" }, Values("<template><qp-template id=\"x\" name=\"|"));
+
+            IReadOnlyList<MuiCompletionItem> extra = MuiHtmlCompletion.GetStockAttributes("qp-template", BindingTests.Extension, Reader());
+            Assert.Contains(extra, a => a.DisplayText == "wg-container");
+            Assert.DoesNotContain(extra, a => a.DisplayText == "id");
+        }
+
+        [Theory]
+        [InlineData("<qp-grid view.bind=\"Doc|", "Doc")]
+        [InlineData("<field after=\"#fs [name='Ord|", "[name='Ord")]
+        [InlineData("<qp-gr|", "qp-gr")]
+        [InlineData("<field na|", "na")]
+        public void ApplicableStart_CoversWhatIsBeingTyped(string html, string typed)
+        {
+            int caret = html.IndexOf('|');
+            string text = html.Remove(caret, 1);
+            MuiCompletionTarget target = MuiHtmlCompletion.Classify(text, caret);
+            Assert.Equal(typed, text.Substring(MuiHtmlCompletion.ApplicableStart(text, caret, target), caret - MuiHtmlCompletion.ApplicableStart(text, caret, target)));
+        }
+
+        private static string[] Values(string htmlWithCaret)
+        {
+            int caret = htmlWithCaret.IndexOf('|');
+            string text = htmlWithCaret.Remove(caret, 1);
+            MuiCompletionTarget target = MuiHtmlCompletion.Classify(text, caret);
+            return MuiHtmlCompletion.GetValues(BindingTests.Extension, text, caret, target, Reader()).Select(i => i.DisplayText).ToArray();
+        }
+
+        private static Func<string, string?> Reader()
+        {
+            Dictionary<string, string> files = BindingTests.Files();
+            files["/site/src/screens/SO/SO301000/SO301000.html"] = StockHtml;
+            return p => files.TryGetValue(p, out string? text) ? text : null;
         }
 
         [Fact]

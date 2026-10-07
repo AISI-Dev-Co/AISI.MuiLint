@@ -3,7 +3,7 @@
 [![CI](https://github.com/AISI-Dev-Co/AISI.MuiLint/actions/workflows/ci.yml/badge.svg)](https://github.com/AISI-Dev-Co/AISI.MuiLint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A linter for Acumatica Modern UI HTML, for Visual Studio, the command line and GitHub Actions.
+A linter for Acumatica Modern UI HTML and TypeScript, for Visual Studio, the command line and GitHub Actions.
 
 **Acuminator lints your C#. MuiLint lints the HTML merge.** Modern UI customisations are HTML extension files that
 get merged into the stock screen at build time, and when the merge can't place something it doesn't complain. The
@@ -27,12 +27,15 @@ field just isn't there. MuiLint catches those mistakes while you're typing, and 
 | [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field, `state.bind` or `qp-panel` id that the screen's `.ts` doesn't declare. |
 | [AISI0012](docs/rules/AISI0012.md) | suggestion | A `qp-*` control without an `id`, so nothing else can target it. |
 | [AISI0013](docs/rules/AISI0013.md) | error | A `config.bind` with an unclosed `{`, `[`, `(` or quote. |
+| [AISI0014](docs/rules/AISI0014.md) | warning | Half a TypeScript extension: an `interface X extends Y` without its `class X`, or the other way round. |
+| [AISI0015](docs/rules/AISI0015.md) | warning | `primaryView` in `@graphInfo`, or `view` in `@handleEvent`, naming a view the screen doesn't have. |
+| [AISI0016](docs/rules/AISI0016.md) | error | `createSingle`/`createCollection` given a class that isn't a `PXView`, usually an extension class. |
 
-AISI0007, AISI0009 and AISI0011 look at neighbouring files, so they run in the CLI, the Action and the VSIX, but not in
-the Roslyn analyser.
+AISI0014–AISI0016 check `.ts` files. They, and the rules that look at neighbouring files (AISI0007, AISI0009,
+AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn analyser.
 
-Want to see them all at once? `examples/` has a made-up stock screen, a clean extension and one that trips every
-rule:
+Want to see them all at once? `examples/` has a made-up stock screen, a clean extension, and a broken `.html` and
+`.ts` that between them trip every rule:
 
 ```sh
 dotnet run --project src/AISI.MuiLint.Cli -- examples/src/development/screens
@@ -43,17 +46,29 @@ dotnet run --project src/AISI.MuiLint.Cli -- examples/src/development/screens
 Download `AISI.MuiLint-<version>.vsix` from the [latest release](https://github.com/AISI-Dev-Co/AISI.MuiLint/releases/latest),
 then **Extensions → Manage Extensions → ⋮ → Install from VSIX…** and restart VS.
 
-In the HTML editor you get:
+You get:
 
-- **Squiggles and Error List entries** for every rule, coloured by severity. The id in the Error List links to the rule's page.
-- **Lightbulb fixes** (Ctrl+.): add the missing closing tag (AISI0001), remove an empty fieldset (AISI0005), or
-  suppress any finding on its line or in the file.
-- **Completions** for Modern UI tags and merge attributes, and `[name='…']` values inside `after`/`before`. The values
-  come from the stock screen first, then `PXFieldState` fields in the sibling `.ts`, so you anchor on something that exists.
-  Inside `view.bind`, `state.bind` and a field's `name` you get the views, actions and fields the screen's TypeScript
-  declares; fields come from the view you're in.
+- **Squiggles and Error List entries** for every rule, in the HTML and in the screen's TypeScript, coloured by
+  severity. The id in the Error List links to the rule's page.
+- **Lightbulb fixes** (Ctrl+.) in the HTML:
+  - add the missing closing tag (AISI0001), or remove an empty fieldset (AISI0005);
+  - declare a field the HTML uses but the TypeScript doesn't (AISI0011). It opens the `.ts` and adds the field to your
+    extension of the view's class, writing that extension and its imports if there isn't one yet;
+  - create the missing extension `.ts` (AISI0007);
+  - suppress any finding on its line or in the file.
+- **Completions:**
+  - Modern UI tags and attributes, plus any attribute the stock screen uses on that tag, and the values it gives it
+    (`slot`, a template's layout name).
+  - In any merge selector (`after`, `before`, `append`, `prepend`, `modify`, `remove`, `replace`), the stock screen's
+    `#ids` and `[name='…']` values. Once you've named a container (`#fsColumnA-Order [name='`), you only get the
+    fields inside it.
+  - Inside `view.bind`, `state.bind`, a field's `name` and a `qp-panel` id, the views, actions and fields the
+    screen's TypeScript declares; fields come from the view you're in.
+  - For a field's `name`, also the fields of the C# DAC extensions in your solution that the `.ts` doesn't declare
+    yet. Pick one, and the AISI0011 lightbulb declares it.
 - **Go to definition** (F12): on a selector's `[name='…']` or `#id` it opens the stock screen HTML at that element, and
   on `view.bind`, `state.bind` or a field's `name` it opens the `.ts` at the declaration, extensions included.
+- **Hover** over the same things to see what they are and where they're declared.
 
 It hooks both the VS 2022 Web Tools editor (`htmlx`) and the classic HTML editor (`html`), and doesn't need the full
 web workload.
@@ -66,14 +81,15 @@ The CLI needs the .NET 8 SDK:
 dotnet run --project src/AISI.MuiLint.Cli -c Release -- path/to/FrontendSources/screen/src/development/screens
 ```
 
-Give it files or directories. Directories are searched for `*.html`, skipping `node_modules` and dot-folders. Point it
-at `development/screens` or `customizationScreens`; if you point it at the whole `src` folder, every stock screen is
-reported under AISI0003.
+Give it files or directories. Directories are searched for `*.html` and `*.ts`, skipping `node_modules` and
+dot-folders. Point it at `development/screens` or `customizationScreens`; if you point it at the whole `src` folder,
+every stock screen's HTML is reported under AISI0003.
 
 ```
 examples/…/SO301000_Broken.html(4,3): error AISI0001: Self-closing <field> is not valid for Acumatica Modern UI merge. Use <field ...></field>.
 examples/…/SO301000_Broken.html(13,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, so the merge has nothing to attach to. …
-muilint: 2 files scanned, 5 errors, 2 warnings, 1 suggestion.
+examples/…/SO301000_BrokenTs.ts(8,5): error AISI0016: View 'ExtraLines' is created from SOLine_BrokenTs, which does not extend PXView, so it has no fields. …
+muilint: 4 files scanned, 7 errors, 4 warnings, 2 suggestions.
 ```
 
 | Option | |
@@ -97,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: AISI-Dev-Co/AISI.MuiLint@v0.2.0
+      - uses: AISI-Dev-Co/AISI.MuiLint@v0.3.0
         with:
           path: FrontendSources/screen/src/development/screens
 ```
@@ -114,7 +130,7 @@ private repository needs GitHub Advanced Security.
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: AISI-Dev-Co/AISI.MuiLint@v0.2.0
+      - uses: AISI-Dev-Co/AISI.MuiLint@v0.3.0
         with:
           path: FrontendSources/screen/src/development/screens
           sarif-file: muilint.sarif
@@ -158,6 +174,9 @@ Values are `error`, `warning`, `suggestion`, `silent`/`none` (off) and `default`
 `<!-- muilint-disable AISI0009 -->` anywhere in a file switches a rule off for that file. Leave out the id to switch off
 everything, and list several ids to switch off more than one. The lightbulb writes these comments for you.
 
+In a `.ts` file the same comments are line comments: `// muilint-disable-next-line AISI0014` and
+`// muilint-disable AISI0015`.
+
 ## How the stock screen is found
 
 For an extension at `…/src/development/screens/SO/SO301000/extensions/SO301000_AISI.html` (or the same under
@@ -171,7 +190,14 @@ AISI0011, the binding completions and F12 read the `.ts` next to the HTML and fo
 (`./views`) and `src/…` ones (`src/screens/SO/SO301000/SO301000`). They find the class that extends `PXScreen`, its
 `createSingle`/`createCollection` views, and the members of each view's class through its base classes. Extension
 interfaces such as `interface SOOrderHeader_AISI extends SOOrderHeader {}` are merged into the class they extend, the
-way TypeScript does it.
+way TypeScript does it. AISI0015 and AISI0016 use the same model when they check a `.ts` file.
+
+TypeScript checks only run on files under a `screens` or `customizationScreens` folder, so the rest of your
+TypeScript is left alone.
+
+The C# field completions read the `.cs` files in whichever comes first walking up from the HTML: a folder that holds a
+`.sln`, or a site's `App_Data/Projects`, where Acumatica keeps extension libraries. They offer every property of each
+`PXCacheExtension`, `Usr` prefix or not.
 
 None of this needs a site. In return, MuiLint only knows what's in your files. If a view's class extends something it
 can't open, it doesn't check that view's fields rather than guess.

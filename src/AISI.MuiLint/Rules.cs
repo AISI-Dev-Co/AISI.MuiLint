@@ -107,6 +107,21 @@ namespace AISI.MuiLint
                 "Malformed config.bind",
                 Severity.Error,
                 "config.bind has an unclosed brace, bracket, parenthesis or quote, so the binding expression cannot be parsed."),
+            new Rule(
+                DiagnosticIds.HalfAnExtension,
+                "Half an extension",
+                Severity.Warning,
+                "A TypeScript extension is an interface and a class of the same name: the interface says what is extended, the class says what is added. With only one of the two, it compiles and nothing is added."),
+            new Rule(
+                DiagnosticIds.DecoratorViewNotDeclared,
+                "Decorator names an unknown view",
+                Severity.Warning,
+                "primaryView in @graphInfo, or view in @handleEvent, names a view the screen's TypeScript does not declare."),
+            new Rule(
+                DiagnosticIds.ViewFromNonView,
+                "View created from a class that isn't a PXView",
+                Severity.Error,
+                "createSingle and createCollection need a class that extends PXView. Given anything else, such as an extension class, the view has no fields."),
         };
 
         /// <summary>Looks up a rule by id.</summary>

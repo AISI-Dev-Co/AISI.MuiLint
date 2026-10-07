@@ -6,40 +6,6 @@ namespace AISI.MuiLint
 {
     public static partial class MuiHtmlCompletion
     {
-        /// <summary>
-        /// Values for <c>after=</c> / <c>before=</c>. Base-HTML names come first because a
-        /// selector must match the original screen; same-file names are still listed but
-        /// marked, since AISI0002 flags them. Sibling <c>*.ts</c> supplies PXFieldState names.
-        /// </summary>
-        /// <param name="currentHtml">Text of the HTML being edited. May be null.</param>
-        /// <param name="baseHtml">Text of the resolved base screen HTML. May be null.</param>
-        /// <param name="siblingTypeScript">Text of the sibling screen/extension TS. May be null.</param>
-        public static IReadOnlyList<MuiCompletionItem> GetSelectorValues(
-            string currentHtml,
-            string baseHtml,
-            string siblingTypeScript)
-        {
-            var items = new List<MuiCompletionItem>();
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (string name in ReadHtmlNames(baseHtml))
-            {
-                Add(items, seen, name, "base HTML [name] — valid after/before target");
-            }
-
-            foreach (string name in ReadPxFieldStateNames(siblingTypeScript))
-            {
-                Add(items, seen, name, "sibling .ts PXFieldState");
-            }
-
-            foreach (string name in ReadHtmlNames(currentHtml))
-            {
-                Add(items, seen, name, "same file — HTML merge sees only stock HTML (AISI0002)");
-            }
-
-            return items;
-        }
-
         /// <summary>The one expansion in this slice: a Usr field after a stock field.</summary>
         public static MuiCompletionItem UsrFieldSnippet()
         {
@@ -50,78 +16,99 @@ namespace AISI.MuiLint
                 "Usr field after a stock selector. Replace StockField and UsrMyField; the anchor must exist in the stock HTML.");
         }
 
-        /// <summary>Every <c>name=</c> attribute value in <paramref name="html"/>, comments masked.</summary>
-        public static IReadOnlyList<string> ReadHtmlNames(string html)
+        /// <summary>
+        /// Attributes the stock screen uses on <paramref name="tagName"/> that <see cref="GetAttributes"/>
+        /// doesn't already offer. Empty when there's no stock screen to learn from.
+        /// </summary>
+        public static IReadOnlyList<MuiCompletionItem> GetStockAttributes(string tagName, string htmlPath, Func<string, string?> readFile)
         {
-            var names = new List<string>();
-            if (string.IsNullOrEmpty(html))
+            var items = new List<MuiCompletionItem>();
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            if (stock == null || !stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes))
             {
-                return names;
+                return items;
+            }
+
+            var offered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (MuiCompletionItem item in GetAttributes(tagName))
+            {
+                offered.Add(item.DisplayText);
+            }
+
+            foreach (string attribute in attributes.Keys)
+            {
+                if (offered.Add(attribute))
+                {
+                    items.Add(new MuiCompletionItem(attribute, attribute + "=\"\"", MuiCompletionKind.Attribute, "used on <" + tagName + "> in " + stock.FileName));
+                }
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// Targets for a merge selector, from the stock screen: its <c>#ids</c>, and <c>[name='…']</c>
+        /// values. Once the selector names a container (<c>#fsColumnA-Order [name='|</c>), only the
+        /// names inside that container are offered.
+        /// </summary>
+        private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile)
+        {
+            var items = new List<MuiCompletionItem>();
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            if (stock == null)
+            {
+                return items;
+            }
+
+            int valueStart = ValueStart(text, caret);
+            string earlier = text.Substring(valueStart, ApplicableStart(text, caret, MuiCompletionTarget.SelectorValue) - valueStart);
+            MatchCollection containers = HtmlMergeScanner.IdSelector.Matches(HtmlMergeScanner.BlankBracketsAndQuotes(earlier));
+            string container = containers.Count > 0 ? containers[containers.Count - 1].Groups["id"].Value : string.Empty;
+
+            IEnumerable<string> names = stock.Names.Keys;
+            string where = "in " + stock.FileName;
+            if (container.Length > 0 && stock.NamesUnder.TryGetValue(container, out List<string>? inside))
+            {
+                names = inside;
+                where = "inside #" + container;
             }
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(HtmlMergeScanner.MaskComments(html));
-            for (int i = 0; i < tags.Count; i++)
+            foreach (string name in names)
             {
-                HtmlTag tag = tags[i];
-                if (tag.IsEndTag)
+                if (name.Length > 0 && !LooksLikeTemplateName(name) && seen.Add(name))
                 {
-                    continue;
-                }
-
-                for (int a = 0; a < tag.Attributes.Count; a++)
-                {
-                    HtmlAttribute attr = tag.Attributes[a];
-                    if (!string.Equals(attr.Name, "name", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (attr.Value.Length > 0 && !LooksLikeTemplateName(attr.Value) && seen.Add(attr.Value))
-                    {
-                        names.Add(attr.Value);
-                    }
+                    items.Add(new MuiCompletionItem("[name='" + name + "']", "[name='" + name + "']", MuiCompletionKind.SelectorValue, where));
                 }
             }
 
-            return names;
+            foreach (string id in stock.Ids.Keys)
+            {
+                if (id.Length > 0)
+                {
+                    items.Add(new MuiCompletionItem("#" + id, "#" + id, MuiCompletionKind.SelectorValue, "id in " + stock.FileName));
+                }
+            }
+
+            return items;
         }
 
-        /// <summary>Field names declared as <c>Foo: PXFieldState</c> in a screen TS.</summary>
-        public static IReadOnlyList<string> ReadPxFieldStateNames(string typeScript)
+        /// <summary>Values the stock screen gives <paramref name="attribute"/> on <paramref name="tagName"/>.</summary>
+        private static List<MuiCompletionItem> GetAttributeValues(string tagName, string attribute, string htmlPath, Func<string, string?> readFile)
         {
-            var names = new List<string>();
-            if (string.IsNullOrEmpty(typeScript))
+            var items = new List<MuiCompletionItem>();
+            HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true);
+            if (stock != null
+                && stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes)
+                && attributes.TryGetValue(attribute, out List<string>? values))
             {
-                return names;
-            }
-
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            MatchCollection matches = PxFieldStateField.Matches(typeScript);
-            for (int i = 0; i < matches.Count; i++)
-            {
-                string name = matches[i].Groups["n"].Value;
-                if (name.Length > 0 && seen.Add(name))
+                foreach (string value in values)
                 {
-                    names.Add(name);
+                    items.Add(new MuiCompletionItem(value, value, MuiCompletionKind.AttributeValue, "used on <" + tagName + "> in " + stock.FileName));
                 }
             }
 
-            return names;
-        }
-
-        private static void Add(List<MuiCompletionItem> items, HashSet<string> seen, string name, string description)
-        {
-            if (name.Length == 0 || !seen.Add(name))
-            {
-                return;
-            }
-
-            items.Add(new MuiCompletionItem(
-                "[name='" + name + "']",
-                "[name='" + name + "']",
-                MuiCompletionKind.SelectorValue,
-                description));
+            return items;
         }
 
         private static bool IsViewBound(string tagName)
@@ -160,11 +147,12 @@ namespace AISI.MuiLint
             return true;
         }
 
-        private static string? TryGetOpenQuotedAttribute(string inTag)
+        /// <summary>The attribute whose quoted value is still open at the end of <paramref name="inTag"/>, and where its quote is.</summary>
+        private static string? TryGetOpenQuotedAttribute(string inTag, out int quoteIndex)
         {
+            quoteIndex = -1;
             int i = 0;
             int n = inTag.Length;
-            string? attributeOfOpenQuote = null;
             while (i < n)
             {
                 char c = inTag[i];
@@ -184,14 +172,14 @@ namespace AISI.MuiLint
 
                 if (j >= n)
                 {
-                    attributeOfOpenQuote = attribute;
-                    break;
+                    quoteIndex = i;
+                    return attribute;
                 }
 
                 i = j + 1;
             }
 
-            return attributeOfOpenQuote;
+            return null;
         }
 
         private static string ReadAttributeNameBefore(string inTag, int quoteIndex)

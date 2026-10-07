@@ -61,7 +61,7 @@ namespace AISI.MuiLint
             return prefix + "screens/" + parts[module] + "/" + screen + "/" + screen + ".html";
         }
 
-        private static bool IsExtensionFile(string path)
+        internal static bool IsExtensionFile(string path)
         {
             string directory = Path.GetFileName(Path.GetDirectoryName(NormalizePath(path)) ?? string.Empty);
             return string.Equals(directory, "extensions", StringComparison.OrdinalIgnoreCase);
@@ -243,6 +243,8 @@ namespace AISI.MuiLint
         /// <summary>Names and ids of a stock screen, including anything it pulls in with qp-include.</summary>
         internal sealed class StockScreen
         {
+            private bool _complete = true;
+
             private StockScreen(string fileName)
             {
                 FileName = fileName;
@@ -256,7 +258,19 @@ namespace AISI.MuiLint
             /// <summary>Each id, and where it first appears.</summary>
             public Dictionary<string, SourceLocation> Ids { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
-            public static StockScreen? Read(string extensionPath, Func<string, string?> readFile)
+            /// <summary>For each id, the names inside that element (includes followed).</summary>
+            public Dictionary<string, List<string>> NamesUnder { get; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>Tag → attribute → the values the stock screen uses for it, first seen first.</summary>
+            public Dictionary<string, Dictionary<string, List<string>>> Attributes { get; } =
+                new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>
+            /// Reads the stock screen. Null when there is none, or when an include can't be followed and
+            /// <paramref name="allowPartial"/> is false: a half-known screen only produces false alarms,
+            /// though it is still good enough to complete from.
+            /// </summary>
+            public static StockScreen? Read(string extensionPath, Func<string, string?> readFile, bool allowPartial = false)
             {
                 string? stockPath = StockHtmlPath(extensionPath);
                 string? html = stockPath == null ? null : readFile(stockPath);
@@ -266,14 +280,14 @@ namespace AISI.MuiLint
                 }
 
                 var stock = new StockScreen(Path.GetFileName(stockPath));
-                return stock.Collect(stockPath, html, readFile, 0) ? stock : null;
+                stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>());
+                return stock._complete || allowPartial ? stock : null;
             }
 
-            // False when an include cannot be followed. Then we do not know every target, and a
-            // half-known stock screen would only produce false alarms.
-            private bool Collect(string filePath, string html, Func<string, string?> readFile, int depth)
+            private void Collect(string filePath, string html, Func<string, string?> readFile, int depth, IReadOnlyList<string> outerIds)
             {
                 IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(MaskComments(html));
+                int[] parents = HtmlTagReader.Parents(tags);
                 var lineMap = new LineMap(html);
                 for (int i = 0; i < tags.Count; i++)
                 {
@@ -297,26 +311,80 @@ namespace AISI.MuiLint
                         Ids.Add(id, location);
                     }
 
+                    List<string> ids = EnclosingIds(tags, parents, i, outerIds);
+                    if (name.Length > 0)
+                    {
+                        foreach (string container in ids)
+                        {
+                            if (!NamesUnder.TryGetValue(container, out List<string>? names))
+                            {
+                                names = new List<string>();
+                                NamesUnder.Add(container, names);
+                            }
+
+                            names.Add(name);
+                        }
+                    }
+
+                    RecordAttributes(tag);
                     if (!string.Equals(tag.Name, "qp-include", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
                     string url = tag.GetAttribute("url");
-                    if (url.Length == 0 || depth >= 4)
+                    string? included = url.Length == 0 || depth >= 4 ? null : readFile(ScreenModel.Combine(filePath, url));
+                    if (included == null)
                     {
-                        return false;
+                        _complete = false;
+                        continue;
                     }
 
-                    string includePath = ScreenModel.Combine(filePath, url);
-                    string? included = readFile(includePath);
-                    if (included == null || !Collect(includePath, included, readFile, depth + 1))
+                    if (id.Length > 0)
                     {
-                        return false;
+                        ids.Add(id);
+                    }
+
+                    Collect(ScreenModel.Combine(filePath, url), included, readFile, depth + 1, ids);
+                }
+            }
+
+            private static List<string> EnclosingIds(IReadOnlyList<HtmlTag> tags, int[] parents, int index, IReadOnlyList<string> outerIds)
+            {
+                var ids = new List<string>(outerIds);
+                for (int p = parents[index]; p >= 0; p = parents[p])
+                {
+                    string id = tags[p].GetAttribute("id");
+                    if (id.Length > 0)
+                    {
+                        ids.Add(id);
                     }
                 }
 
-                return true;
+                return ids;
+            }
+
+            private void RecordAttributes(HtmlTag tag)
+            {
+                if (!Attributes.TryGetValue(tag.Name, out Dictionary<string, List<string>>? attributes))
+                {
+                    attributes = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                    Attributes.Add(tag.Name, attributes);
+                }
+
+                foreach (HtmlAttribute attr in tag.Attributes)
+                {
+                    if (!attributes.TryGetValue(attr.Name, out List<string>? values))
+                    {
+                        values = new List<string>();
+                        attributes.Add(attr.Name, values);
+                    }
+
+                    if (attr.Value.Length > 0 && !values.Contains(attr.Value))
+                    {
+                        values.Add(attr.Value);
+                    }
+                }
             }
         }
     }

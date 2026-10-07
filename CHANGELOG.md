@@ -6,6 +6,31 @@ All notable changes to this project are documented here. Versions follow [Semant
 
 ### Added
 
+- **AISI0014** (warning): half a TypeScript extension, an `interface X extends Y` without its `class X` or the other
+  way round.
+- **AISI0015** (warning): `primaryView` in `@graphInfo`, or `view` in `@handleEvent`, naming a view the screen doesn't
+  have.
+- **AISI0016** (error): `createSingle`/`createCollection` given a class that isn't a `PXView`.
+- The CLI, the Action and the VSIX now check `.ts` files under `screens` and `customizationScreens` folders, with
+  `// muilint-disable` comments.
+- VSIX lightbulb: declare a field the HTML uses but the TypeScript doesn't (AISI0011), writing the extension class and
+  its imports when needed. Another creates the missing extension `.ts` (AISI0007).
+- VSIX completions:
+  - `#ids` as well as `[name='…']` in every merge selector, not just `after`/`before`, with names scoped to the
+    container the selector already names;
+  - attributes the stock screen uses on a tag, and the values it gives them;
+  - fields from the C# DAC extensions in your solution.
+- VSIX hover on selectors and bindings.
+
+### Changed
+
+- Selector completions only offer targets from the stock screen. Names from the same file or the `.ts` were never
+  valid anchors (AISI0002, AISI0009).
+
+## [0.3.0] - 2026-10-05
+
+### Added
+
 - **AISI0011** (warning): a `view.bind`, field name, `state.bind` or `qp-panel` id that the screen's TypeScript
   doesn't declare. Reads the `.ts` beside the HTML and its imports, with extension interfaces merged in. No site
   needed.

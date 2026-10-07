@@ -5,7 +5,6 @@ using System.IO;
 using AISI.MuiLint;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Projection;
 
 namespace AISI.MuiLint.Vsix
 {
@@ -40,10 +39,13 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            SnapshotPoint point = triggerPoint.Value;
             string text = snapshot.GetText();
-            int caret = point.Position;
+            int caret = triggerPoint.Value.Position;
             MuiCompletionTarget target = MuiHtmlCompletion.Classify(text, caret);
+
+            // Without a file on disk there is no stock screen or .ts to read.
+            string path = EditorDocuments.Find(_buffer, _textDocumentFactory)?.FilePath;
+            bool canRead = !string.IsNullOrEmpty(path) && Path.IsPathRooted(path);
 
             var items = new List<MuiCompletionItem>();
             switch (target)
@@ -53,33 +55,28 @@ namespace AISI.MuiLint.Vsix
                     items.Add(MuiHtmlCompletion.UsrFieldSnippet());
                     break;
                 case MuiCompletionTarget.AttributeName:
-                    items.AddRange(MuiHtmlCompletion.GetAttributes(ReadTagName(text, caret)));
-                    break;
-                case MuiCompletionTarget.SelectorValue:
+                    string tagName = ReadTagName(text, caret);
+                    items.AddRange(MuiHtmlCompletion.GetAttributes(tagName));
+                    if (canRead)
                     {
-                        string path = TryGetFilePath();
-                        items.AddRange(MuiHtmlCompletion.GetSelectorValues(
-                            text,
-                            TryReadBaseHtml(path),
-                            TryReadSiblingTypeScript(path)));
-                    }
-
-                    break;
-                case MuiCompletionTarget.ViewValue:
-                case MuiCompletionTarget.FieldValue:
-                case MuiCompletionTarget.ActionValue:
-                    {
-                        string path = TryGetFilePath();
-                        if (path != null && Path.IsPathRooted(path))
-                        {
-                            items.AddRange(MuiHtmlCompletion.GetBindingValues(path, text, caret, target, MuiLintPackage.TryReadFile));
-                        }
+                        items.AddRange(MuiHtmlCompletion.GetStockAttributes(tagName, path, MuiLintPackage.TryReadFile));
                     }
 
                     break;
                 case MuiCompletionTarget.None:
                     // Always-available Usr field expansion when not inside a tag.
                     items.Add(MuiHtmlCompletion.UsrFieldSnippet());
+                    break;
+                default:
+                    if (canRead)
+                    {
+                        items.AddRange(MuiHtmlCompletion.GetValues(path, text, caret, target, MuiLintPackage.TryReadFile));
+                        if (target == MuiCompletionTarget.FieldValue)
+                        {
+                            AddDacFields(items, path);
+                        }
+                    }
+
                     break;
             }
 
@@ -89,7 +86,7 @@ namespace AISI.MuiLint.Vsix
             }
 
             ITrackingSpan applicableTo = snapshot.CreateTrackingSpan(
-                FindApplicableSpan(text, caret, target),
+                Span.FromBounds(MuiHtmlCompletion.ApplicableStart(text, caret, target), caret),
                 SpanTrackingMode.EdgeInclusive);
 
             var completions = new List<Completion>(items.Count);
@@ -119,68 +116,23 @@ namespace AISI.MuiLint.Vsix
             _disposed = true;
         }
 
-        /// <summary>
-        /// Resolve the on-disk HTML path. htmlx often has a null path on the top
-        /// (projection/elision) buffer — walk <see cref="IProjectionBufferBase"/>
-        /// like the error tagger's <c>TryGetHtmlDocument</c>.
-        /// </summary>
-        private string TryGetFilePath()
+        /// <summary>Fields from the C# DAC extensions in the solution that the .ts doesn't declare yet.</summary>
+        private static void AddDacFields(List<MuiCompletionItem> items, string htmlPath)
         {
-            ITextDocument document;
-            if (_textDocumentFactory.TryGetTextDocument(_buffer, out document)
-                && document != null
-                && !string.IsNullOrEmpty(document.FilePath))
+            var offered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MuiCompletionItem item in items)
             {
-                return document.FilePath;
+                offered.Add(item.DisplayText);
             }
 
-            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(_buffer, ProjectionSources);
-            for (int i = 0; i < sources.Count; i++)
+            foreach (DacField field in DacFieldIndex.Get(DacFieldIndex.FindSourceFolder(htmlPath)))
             {
-                ITextBuffer source = sources[i];
-                if (source != null
-                    && _textDocumentFactory.TryGetTextDocument(source, out document)
-                    && document != null
-                    && !string.IsNullOrEmpty(document.FilePath))
+                if (offered.Add(field.Name))
                 {
-                    return document.FilePath;
+                    string description = "on " + field.Dac + " via " + field.Extension + " (C#). Not in the .ts yet; the lightbulb can declare it.";
+                    items.Add(new MuiCompletionItem(field.Name, field.Name, MuiCompletionKind.BindingValue, description));
                 }
             }
-
-            return null;
-        }
-
-        private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
-        {
-            IProjectionBufferBase projection = buffer as IProjectionBufferBase;
-            if (projection == null)
-            {
-                return null;
-            }
-
-            return projection.SourceBuffers;
-        }
-
-        private static string TryReadSiblingTypeScript(string htmlPath)
-        {
-            if (string.IsNullOrEmpty(htmlPath))
-            {
-                return null;
-            }
-
-            return MuiLintPackage.TryReadFile(Path.ChangeExtension(htmlPath, ".ts"));
-        }
-
-        private static string TryReadBaseHtml(string htmlPath)
-        {
-            if (string.IsNullOrEmpty(htmlPath))
-            {
-                return null;
-            }
-
-            // development/screens/SO/SO301000/extensions/X.html -> screens/SO/SO301000/SO301000.html
-            string stockPath = HtmlMergeScanner.StockHtmlPath(htmlPath);
-            return stockPath == null ? null : MuiLintPackage.TryReadFile(stockPath);
         }
 
         private static string ReadTagName(string text, int caret)
@@ -198,50 +150,6 @@ namespace AISI.MuiLint.Vsix
             }
 
             return text.Substring(open + 1, i - (open + 1));
-        }
-
-        private static Span FindApplicableSpan(string text, int caret, MuiCompletionTarget target)
-        {
-            if (caret < 0)
-            {
-                caret = 0;
-            }
-
-            if (caret > text.Length)
-            {
-                caret = text.Length;
-            }
-
-            if (target != MuiCompletionTarget.TagName && target != MuiCompletionTarget.AttributeName && target != MuiCompletionTarget.None)
-            {
-                int start = caret;
-                while (start > 0)
-                {
-                    char c = text[start - 1];
-                    if (c == '"' || c == '\'')
-                    {
-                        break;
-                    }
-
-                    start--;
-                }
-
-                return Span.FromBounds(start, caret);
-            }
-
-            int tokenStart = caret;
-            while (tokenStart > 0)
-            {
-                char c = text[tokenStart - 1];
-                if (char.IsWhiteSpace(c) || c == '<' || c == '>' || c == '"' || c == '\'' || c == '=')
-                {
-                    break;
-                }
-
-                tokenStart--;
-            }
-
-            return Span.FromBounds(tokenStart, caret);
         }
     }
 }

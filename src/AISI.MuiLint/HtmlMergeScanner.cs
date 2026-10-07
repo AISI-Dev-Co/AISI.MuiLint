@@ -108,7 +108,7 @@ namespace AISI.MuiLint
                 Scan0010(path, tags, parents, stock, lineMap, results);
             }
 
-            RemoveSuppressed(text, lineMap, results);
+            RemoveSuppressed(text, SuppressionComment, lineMap, results);
             if (readFile != null)
             {
                 ApplyConfiguredSeverities(path, readFile, results);
@@ -118,14 +118,14 @@ namespace AISI.MuiLint
             return results;
         }
 
-        private static void RemoveSuppressed(string text, LineMap lineMap, List<Diagnostic> results)
+        internal static void RemoveSuppressed(string text, Regex comments, LineMap lineMap, List<Diagnostic> results)
         {
             if (results.Count == 0 || text.IndexOf("muilint-disable", StringComparison.OrdinalIgnoreCase) < 0)
             {
                 return;
             }
 
-            foreach (Match match in SuppressionComment.Matches(text))
+            foreach (Match match in comments.Matches(text))
             {
                 var ids = new HashSet<string>(
                     match.Groups["ids"].Value.Split(IdSeparators, StringSplitOptions.RemoveEmptyEntries),
@@ -142,7 +142,7 @@ namespace AISI.MuiLint
             }
         }
 
-        private static void ApplyConfiguredSeverities(string path, Func<string, string?> readFile, List<Diagnostic> results)
+        internal static void ApplyConfiguredSeverities(string path, Func<string, string?> readFile, List<Diagnostic> results)
         {
             if (results.Count == 0)
             {
@@ -176,7 +176,7 @@ namespace AISI.MuiLint
             }
         }
 
-        private static int CompareDiagnostics(Diagnostic a, Diagnostic b)
+        internal static int CompareDiagnostics(Diagnostic a, Diagnostic b)
         {
             int byStart = a.Start.CompareTo(b.Start);
             if (byStart != 0)
@@ -772,7 +772,7 @@ namespace AISI.MuiLint
             return true;
         }
 
-        private static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
+        internal static Diagnostic Create(string id, string message, string path, int start, int length, LineMap lineMap)
         {
             if (start < 0)
             {

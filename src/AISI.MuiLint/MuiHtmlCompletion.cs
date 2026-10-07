@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
@@ -14,10 +13,6 @@ namespace AISI.MuiLint
         /// <summary>Insert text of the Usr field expansion.</summary>
         public const string UsrFieldSnippetText =
             "<field after=\"[name='StockField']\" name=\"UsrMyField\"></field>";
-
-        private static readonly Regex PxFieldStateField = new Regex(
-            @"(?<n>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*PXFieldState",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         /// <summary>
         /// Decides what the caret is asking for. <paramref name="caret"/> is a character
@@ -58,18 +53,20 @@ namespace AISI.MuiLint
                 return MuiCompletionTarget.TagName;
             }
 
-            string? quotedAttribute = TryGetOpenQuotedAttribute(inTag);
+            string? quotedAttribute = TryGetOpenQuotedAttribute(inTag, out _);
             if (quotedAttribute == null)
             {
                 return MuiCompletionTarget.AttributeName;
             }
 
             string tagName = ReadTagName(inTag);
+            if (HtmlMergeScanner.IsMergeOperator(quotedAttribute))
+            {
+                return MuiCompletionTarget.SelectorValue;
+            }
+
             switch (quotedAttribute.ToLowerInvariant())
             {
-                case "after":
-                case "before":
-                    return MuiCompletionTarget.SelectorValue;
                 case "view.bind":
                     return MuiCompletionTarget.ViewValue;
                 case "state.bind":
@@ -78,9 +75,65 @@ namespace AISI.MuiLint
                     return MuiCompletionTarget.ViewValue;
                 case "name" when string.Equals(tagName, "field", StringComparison.OrdinalIgnoreCase):
                     return MuiCompletionTarget.FieldValue;
-                default:
+                case "id":
+                case "caption":
+                    // Ids are meant to be unique, captions are prose: nothing to suggest.
                     return MuiCompletionTarget.None;
+                default:
+                    return quotedAttribute.EndsWith(".bind", StringComparison.OrdinalIgnoreCase)
+                        ? MuiCompletionTarget.None
+                        : MuiCompletionTarget.AttributeValue;
             }
+        }
+
+        /// <summary>
+        /// Where the text a completion replaces starts. Inside a selector that is the current part
+        /// (<c>#fs [name='Ord|</c> → <c>[name='Ord</c>), inside any other value the whole value,
+        /// elsewhere the word under the caret.
+        /// </summary>
+        public static int ApplicableStart(string text, int caret, MuiCompletionTarget target)
+        {
+            if (text is null)
+            {
+                throw new ArgumentNullException(nameof(text));
+            }
+
+            caret = Math.Max(0, Math.Min(caret, text.Length));
+            int start = caret;
+            switch (target)
+            {
+                case MuiCompletionTarget.TagName:
+                case MuiCompletionTarget.AttributeName:
+                case MuiCompletionTarget.None:
+                    while (start > 0 && !char.IsWhiteSpace(text[start - 1]) && "<>\"'=".IndexOf(text[start - 1]) < 0)
+                    {
+                        start--;
+                    }
+
+                    return start;
+                case MuiCompletionTarget.SelectorValue:
+                    int valueStart = ValueStart(text, caret);
+                    while (start > valueStart && !char.IsWhiteSpace(text[start - 1]))
+                    {
+                        start--;
+                    }
+
+                    return start;
+                default:
+                    return ValueStart(text, caret);
+            }
+        }
+
+        /// <summary>Just after the opening quote of the attribute value the caret is in, or the caret itself.</summary>
+        private static int ValueStart(string text, int caret)
+        {
+            int open = text.LastIndexOf('<', Math.Max(0, caret - 1));
+            if (open < 0 || TryGetOpenQuotedAttribute(text.Substring(open, caret - open), out int quote) == null)
+            {
+                return caret;
+            }
+
+            return open + quote + 1;
         }
 
         /// <summary>Modern UI element names this slice completes.</summary>

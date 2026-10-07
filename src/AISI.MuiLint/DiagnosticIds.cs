@@ -47,5 +47,14 @@ namespace AISI.MuiLint
 
         /// <summary>Unbalanced brackets or quotes in <c>config.bind</c>.</summary>
         public const string MalformedConfig = "AISI0013";
+
+        /// <summary>An extension interface without its class, or the other way round.</summary>
+        public const string HalfAnExtension = "AISI0014";
+
+        /// <summary>A decorator names a view the screen doesn't have.</summary>
+        public const string DecoratorViewNotDeclared = "AISI0015";
+
+        /// <summary>createSingle/createCollection given a class that isn't a PXView.</summary>
+        public const string ViewFromNonView = "AISI0016";
     }
 }

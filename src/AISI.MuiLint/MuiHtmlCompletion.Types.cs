@@ -16,7 +16,7 @@ namespace AISI.MuiLint
         /// <summary>Caret is where an attribute name goes.</summary>
         AttributeName = 2,
 
-        /// <summary>Caret is inside the quoted value of <c>after=</c> or <c>before=</c>.</summary>
+        /// <summary>Caret is inside a merge selector: <c>after</c>, <c>before</c>, <c>append</c> and the rest.</summary>
         SelectorValue = 3,
 
         /// <summary>Caret is inside <c>view.bind=</c>, or a qp-panel's <c>id=</c>.</summary>
@@ -27,6 +27,9 @@ namespace AISI.MuiLint
 
         /// <summary>Caret is inside <c>state.bind=</c>.</summary>
         ActionValue = 6,
+
+        /// <summary>Caret is inside any other attribute value, such as <c>slot=</c> or a template's <c>name=</c>.</summary>
+        AttributeValue = 7,
     }
 
     /// <summary>Kind of a completion candidate.</summary>
@@ -38,7 +41,7 @@ namespace AISI.MuiLint
         /// <summary>Attribute name (merge operator or common attribute).</summary>
         Attribute = 1,
 
-        /// <summary>A <c>[name='X']</c> selector value for after/before.</summary>
+        /// <summary>A <c>[name='X']</c> or <c>#id</c> selector value.</summary>
         SelectorValue = 2,
 
         /// <summary>A multi-character expansion such as the Usr field block.</summary>
@@ -46,6 +49,9 @@ namespace AISI.MuiLint
 
         /// <summary>A view, field or action name from the screen's TypeScript.</summary>
         BindingValue = 4,
+
+        /// <summary>A value the stock screen uses for the same attribute.</summary>
+        AttributeValue = 5,
     }
 
     /// <summary>One completion candidate. Editor-free so it is testable on Linux.</summary>

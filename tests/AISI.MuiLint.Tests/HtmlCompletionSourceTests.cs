@@ -13,7 +13,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void ProjectionSources_UsesProjectionBufferBase_NotProjectionBuffer()
         {
-            string src = ReadEditor("HtmlCompletionSource.cs");
+            string src = ReadEditor("EditorDocuments.cs");
             Assert.Contains("buffer as IProjectionBufferBase", src, StringComparison.Ordinal);
             string withoutBase = src.Replace("as IProjectionBufferBase", string.Empty, StringComparison.Ordinal);
             Assert.DoesNotContain("as IProjectionBuffer", withoutBase, StringComparison.Ordinal);
