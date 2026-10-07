@@ -85,6 +85,7 @@ namespace AISI.MuiLint
             string masked = MaskComments(text);
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(masked);
             int[] parents = HtmlTagReader.Parents(tags);
+            TryPath0017(path, MergeAttributeIn(tags), lineMap, results);
 
             Scan0001(path, tags, lineMap, results);
             Scan0002(path, tags, lineMap, results);
@@ -226,6 +227,58 @@ namespace AISI.MuiLint
                 parentFolder);
 
             results.Add(Create(DiagnosticIds.ExtensionBasename, message, path, 0, 0, lineMap));
+        }
+
+        /// <summary>
+        /// AISI0017, for HTML and TypeScript alike: a file under development/screens or
+        /// customizationScreens, outside an extensions folder, that is an extension anyway.
+        /// <paramref name="evidence"/> says what gave it away in the file itself, or is null.
+        /// </summary>
+        internal static void TryPath0017(string path, string? evidence, LineMap lineMap, List<Diagnostic> results)
+        {
+            string normalized = NormalizePath(path);
+            bool customTree = normalized.IndexOf("/development/screens/", StringComparison.OrdinalIgnoreCase) >= 0
+                || normalized.IndexOf("/customizationScreens/", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!customTree || IsExtensionFile(path))
+            {
+                return;
+            }
+
+            string fileName = Path.GetFileName(normalized);
+            string folder = Path.GetFileName(Path.GetDirectoryName(normalized) ?? string.Empty);
+            if (fileName.StartsWith(folder + "_", StringComparison.OrdinalIgnoreCase))
+            {
+                evidence = "is named like an extension of " + folder;
+            }
+
+            if (evidence == null)
+            {
+                return;
+            }
+
+            string message = string.Format(
+                CultureInfo.InvariantCulture,
+                "{0} {1}, but it isn't in an extensions folder, so it is never merged. Move it to the screen's extensions folder ({2}/extensions/).",
+                fileName,
+                evidence,
+                folder);
+            results.Add(Create(DiagnosticIds.ExtensionOutsideExtensions, message, path, 0, 0, lineMap));
+        }
+
+        private static string? MergeAttributeIn(IReadOnlyList<HtmlTag> tags)
+        {
+            foreach (HtmlTag tag in tags)
+            {
+                foreach (HtmlAttribute attr in tag.Attributes)
+                {
+                    if (!tag.IsEndTag && IsMergeOperator(attr.Name))
+                    {
+                        return "uses " + attr.Name + "=, which only an extension can";
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static void Scan0001(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)

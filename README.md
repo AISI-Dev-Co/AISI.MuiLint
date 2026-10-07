@@ -30,12 +30,15 @@ field just isn't there. MuiLint catches those mistakes while you're typing, and 
 | [AISI0014](docs/rules/AISI0014.md) | warning | Half a TypeScript extension: an `interface X extends Y` without its `class X`, or the other way round. |
 | [AISI0015](docs/rules/AISI0015.md) | warning | `primaryView` in `@graphInfo`, or `view` in `@handleEvent`, naming a view the screen doesn't have. |
 | [AISI0016](docs/rules/AISI0016.md) | error | `createSingle`/`createCollection` given a class that isn't a `PXView`, usually an extension class. |
+| [AISI0017](docs/rules/AISI0017.md) | error | An extension `.html` or `.ts` saved outside the screen's `extensions` folder, so it is never merged. |
 
-AISI0014–AISI0016 check `.ts` files. They, and the rules that look at neighbouring files (AISI0007, AISI0009,
-AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn analyser.
+AISI0014–AISI0016 check `.ts` files, and AISI0017 checks both. The `.ts` rules, and the rules that look at
+neighbouring files (AISI0007, AISI0009, AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn
+analyser.
 
 Want to see them all at once? `examples/` has a made-up stock screen, a clean extension, and a broken `.html` and
-`.ts` that between them trip every rule:
+`.ts` that between them trip nearly every rule (the ones about where a file lives can't fire on a file that lives in
+the right place):
 
 ```sh
 dotnet run --project src/AISI.MuiLint.Cli -- examples/src/development/screens

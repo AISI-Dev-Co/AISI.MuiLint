@@ -37,8 +37,15 @@ namespace AISI.MuiLint.Tests
             (_, string output, _) = Run("--format", "json", Extensions);
             using JsonDocument json = JsonDocument.Parse(output);
             string[] ids = json.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            // The broken example has no .ts on purpose (AISI0007), so there is nothing to bind against.
-            string[] skipped = { DiagnosticIds.StockScreensPath, DiagnosticIds.ExtensionBasename, DiagnosticIds.BindingNotInTypeScript };
+            // The broken example has no .ts on purpose (AISI0007), so there is nothing to bind against, and an
+            // example inside extensions/ can't be outside it.
+            string[] skipped =
+            {
+                DiagnosticIds.StockScreensPath,
+                DiagnosticIds.ExtensionBasename,
+                DiagnosticIds.BindingNotInTypeScript,
+                DiagnosticIds.ExtensionOutsideExtensions,
+            };
             Assert.Equal(Rules.All.Select(r => r.Id).Where(id => !skipped.Contains(id)), ids);
         }
 

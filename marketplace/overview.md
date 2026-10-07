@@ -24,6 +24,7 @@ Acuminator lints your C#. MuiLint lints the front end of your customisation: the
 | AISI0014 | Half a TypeScript extension: the interface without its class, or the other way round |
 | AISI0015 | `primaryView` or `@handleEvent` naming a view the screen doesn't have |
 | AISI0016 | A view created from a class that isn't a `PXView` |
+| AISI0017 | An extension saved outside the screen's `extensions` folder |
 
 Each id in the Error List links to a page explaining the rule, with a before and after.
 

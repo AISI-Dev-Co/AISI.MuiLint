@@ -56,5 +56,8 @@ namespace AISI.MuiLint
 
         /// <summary>createSingle/createCollection given a class that isn't a PXView.</summary>
         public const string ViewFromNonView = "AISI0016";
+
+        /// <summary>An extension .html or .ts outside an extensions folder.</summary>
+        public const string ExtensionOutsideExtensions = "AISI0017";
     }
 }

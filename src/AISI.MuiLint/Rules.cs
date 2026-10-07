@@ -122,6 +122,11 @@ namespace AISI.MuiLint
                 "View created from a class that isn't a PXView",
                 Severity.Error,
                 "createSingle and createCollection need a class that extends PXView. Given anything else, such as an extension class, the view has no fields."),
+            new Rule(
+                DiagnosticIds.ExtensionOutsideExtensions,
+                "Extension outside an extensions folder",
+                Severity.Error,
+                "The build only merges extension .html and .ts files from the screen's extensions folder. One named like an extension, using merge attributes, or declaring an extension class anywhere else is never merged."),
         };
 
         /// <summary>Looks up a rule by id.</summary>

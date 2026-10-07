@@ -69,6 +69,8 @@ namespace AISI.MuiLint
                 Scan0014(path, module, lineMap, results);
             }
 
+            HtmlMergeScanner.TryPath0017(path, ExtensionPairIn(module), lineMap, results);
+
             ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text, listFolder);
             if (screen != null)
             {
@@ -118,6 +120,20 @@ namespace AISI.MuiLint
                     c.Name);
                 results.Add(HtmlMergeScanner.Create(DiagnosticIds.HalfAnExtension, message, path, c.NameStart, c.Name.Length, lineMap));
             }
+        }
+
+        private static string? ExtensionPairIn(TsModule module)
+        {
+            foreach (TsInterface i in module.Interfaces)
+            {
+                TsClass? c = module.FindClass(i.Name);
+                if (c != null && c.Base.Length == 0)
+                {
+                    return "declares the extension " + i.Name + " of " + string.Join(", ", i.Bases);
+                }
+            }
+
+            return null;
         }
 
         private static bool DeclaresModernUiMembers(TsClass c)

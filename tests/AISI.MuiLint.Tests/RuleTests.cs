@@ -110,6 +110,20 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
+        public void ExtensionOutsideExtensions_SpotsMergeAttributesInAnyFolder()
+        {
+            const string html = "<template><qp-fieldset modify=\"#fsColumnA-Order\" caption=\"Order\"></qp-fieldset></template>";
+            Diagnostic d = Assert.Single(
+                HtmlMergeScanner.Analyze("/site/src/development/screens/SO/SO301000/ext/Mine.html", html),
+                x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+            Assert.Contains("uses modify=", d.Message, StringComparison.Ordinal);
+            Assert.Equal((0, 0), (d.Start, d.Length));
+
+            // Outside the custom trees it's not ours to judge.
+            Assert.DoesNotContain(HtmlMergeScanner.Analyze("/elsewhere/Mine.html", html), x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+        }
+
+        [Fact]
         public void ExtensionWithoutTypeScript_NeedsTheTsSibling()
         {
             const string html = "<template></template>";

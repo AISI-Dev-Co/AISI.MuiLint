@@ -84,6 +84,29 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(Severity.Error, d.Severity);
         }
 
+        [Theory]
+        [InlineData("/site/src/development/screens/SO/SO301000/SO301000_Custom.ts", "export class Helper {}", "named like an extension of SO301000")]
+        [InlineData("/site/src/development/screens/SO/SO301000/lines.ts", "export interface SOLine_X extends SOLine {}\nexport class SOLine_X { UsrA: PXFieldState; }", "declares the extension SOLine_X of SOLine")]
+        [InlineData("/site/src/customizationScreens/AISI/screens/SO/SO301000/SO301000_AISI.ts", "export class Helper {}", "named like an extension of SO301000")]
+        public void ExtensionOutsideExtensions_IsReported(string path, string ts, string why)
+        {
+            Diagnostic d = Assert.Single(TypeScriptScanner.Analyze(path, ts, null), x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+            Assert.Contains(why, d.Message, StringComparison.Ordinal);
+            Assert.Equal(Severity.Error, d.Severity);
+        }
+
+        [Theory]
+        [InlineData("/site/src/development/screens/SO/SO301000/extensions/SO301000_Custom.ts")]
+        [InlineData("/site/src/development/screens/XX/XX301000/XX301000.ts")]
+        [InlineData("/site/src/development/screens/XX/XX301000/views.ts")]
+        public void ExtensionOutsideExtensions_LeavesScreensAndRealExtensionsAlone(string path)
+        {
+            const string ts = "export class XX301000 extends PXScreen {}\nexport interface SOLine_X extends SOLine {}\nexport class SOLine_X { UsrA: PXFieldState; }";
+            bool screenFile = !path.Contains("/extensions/", StringComparison.Ordinal);
+            IReadOnlyList<Diagnostic> results = TypeScriptScanner.Analyze(path, screenFile ? "export class XX301000 extends PXScreen {}" : ts, null);
+            Assert.DoesNotContain(results, x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+        }
+
         [Fact]
         public void LineCommentsSuppress()
         {

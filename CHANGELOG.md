@@ -11,6 +11,8 @@ All notable changes to this project are documented here. Versions follow [Semant
 - **AISI0015** (warning): `primaryView` in `@graphInfo`, or `view` in `@handleEvent`, naming a view the screen doesn't
   have.
 - **AISI0016** (error): `createSingle`/`createCollection` given a class that isn't a `PXView`.
+- **AISI0017** (error): an extension `.html` or `.ts` under `development/screens` or `customizationScreens` that isn't in
+  an `extensions` folder, so the build never merges it.
 - The CLI, the Action and the VSIX now check `.ts` files under `screens` and `customizationScreens` folders, with
   `// muilint-disable` comments.
 - VSIX lightbulb: declare a field the HTML uses but the TypeScript doesn't (AISI0011), writing the extension class and
