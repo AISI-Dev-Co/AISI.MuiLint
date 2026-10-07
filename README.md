@@ -15,7 +15,6 @@ field just isn't there. MuiLint catches those mistakes while you're typing, and 
 | Id | Severity | Catches |
 | --- | --- | --- |
 | [AISI0001](docs/rules/AISI0001.md) | error | Self-closing `<field/>` or `<qp-*/>` tags. The merge doesn't treat them as a start/end pair. |
-| [AISI0002](docs/rules/AISI0002.md) | error | `after`/`before` `[name='X']` where `X` is added by the same file. The merge only sees stock HTML. |
 | [AISI0003](docs/rules/AISI0003.md) | error | A customisation saved under the stock `src/screens` tree instead of `development/screens` or `customizationScreens`. |
 | [AISI0004](docs/rules/AISI0004.md) | error | `SO301000/extensions/SO301000.html`: an extension named like the screen it extends. |
 | [AISI0005](docs/rules/AISI0005.md) | error | An empty `qp-fieldset` (fieldsets that `modify`/`remove`/`replace` are exempt). |
@@ -103,9 +102,9 @@ every stock screen's HTML is reported under AISI0003.
 
 ```
 examples/…/SO301000_Broken.html(4,3): error AISI0001: Self-closing <field> is not valid for Acumatica Modern UI merge. Use <field ...></field>.
-examples/…/SO301000_Broken.html(13,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, so the merge has nothing to attach to. …
+examples/…/SO301000_Broken.html(10,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, so the merge has nothing to attach to. …
 examples/…/SO301000_BrokenTs.ts(8,5): error AISI0016: View 'ExtraLines' is created from SOLine_BrokenTs, which does not extend PXView, so it has no fields. …
-muilint: 4 files scanned, 7 errors, 4 warnings, 2 suggestions.
+muilint: 4 files scanned, 6 errors, 4 warnings, 2 suggestions.
 ```
 
 | Option | |
@@ -183,8 +182,8 @@ Values are `error`, `warning`, `suggestion`, `silent`/`none` (off) and `default`
 ### Suppressing a single finding
 
 ```html
-<!-- muilint-disable-next-line AISI0002 -->
-<field name="UsrRush" after="[name='UsrPriority']"></field>
+<!-- muilint-disable-next-line AISI0009 -->
+<field name="UsrRush" after="[name='SomethingAnotherPackageAdds']"></field>
 ```
 
 `<!-- muilint-disable AISI0009 -->` anywhere in a file switches a rule off for that file. Leave out the id to switch off

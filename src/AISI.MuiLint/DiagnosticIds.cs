@@ -8,10 +8,7 @@ namespace AISI.MuiLint
         /// <summary>Self-closing <c>&lt;field&gt;</c> or <c>&lt;qp-*&gt;</c> tag.</summary>
         public const string SelfClosing = "AISI0001";
 
-        /// <summary>
-        /// <c>after</c>/<c>before</c> <c>[name='X']</c> where <c>X</c> is a <c>name=</c> in the same file.
-        /// </summary>
-        public const string AfterBeforeSameFile = "AISI0002";
+        // AISI0002 is retired: anchoring on a field the same file adds works. Don't reuse the id.
 
         /// <summary>Path is stock <c>src/screens</c> rather than <c>development/screens</c>.</summary>
         public const string StockScreensPath = "AISI0003";

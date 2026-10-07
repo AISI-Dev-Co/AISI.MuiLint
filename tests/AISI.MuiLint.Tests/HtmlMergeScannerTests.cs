@@ -77,14 +77,6 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void AfterBefore_DoesNotTreatSelectorAsADefinedName()
-        {
-            const string html = "<template><field name=\"UsrA\" after=\"[name='OrderNbr']\"></field></template>";
-            IReadOnlyList<Diagnostic> results = Analyzer.Scan("ext.html", html);
-            Assert.DoesNotContain(results, d => d.Id == DiagnosticIds.AfterBeforeSameFile);
-        }
-
-        [Fact]
         public void Fieldset_DoesNotMatchAsField()
         {
             const string html = "<template><fieldset name=\"x\"/></template>";

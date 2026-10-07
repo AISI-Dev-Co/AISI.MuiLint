@@ -143,7 +143,7 @@ namespace AISI.MuiLint
             LineMap lineMap,
             List<Diagnostic> results)
         {
-            // Same-file targets are AISI0002's business, not this rule's.
+            // Anchoring on something this file adds earlier is fine: the merge applies elements in order.
             var localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (HtmlTag tag in tags)

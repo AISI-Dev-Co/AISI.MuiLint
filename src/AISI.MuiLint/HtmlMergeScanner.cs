@@ -88,7 +88,6 @@ namespace AISI.MuiLint
             TryPath0017(path, MergeAttributeIn(tags), lineMap, results);
 
             Scan0001(path, tags, lineMap, results);
-            Scan0002(path, tags, lineMap, results);
             Scan0005(path, masked, tags, lineMap, results);
             Scan0006(path, tags, lineMap, results);
             Scan0008(path, tags, parents, lineMap, results);
@@ -302,72 +301,6 @@ namespace AISI.MuiLint
                     tag.Name);
 
                 results.Add(Create(DiagnosticIds.SelfClosing, message, path, tag.Start, tag.End - tag.Start, lineMap));
-            }
-        }
-
-        private static void Scan0002(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
-        {
-            var namesInFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < tags.Count; i++)
-            {
-                HtmlTag tag = tags[i];
-                if (tag.IsEndTag)
-                {
-                    continue;
-                }
-
-                for (int a = 0; a < tag.Attributes.Count; a++)
-                {
-                    HtmlAttribute attr = tag.Attributes[a];
-                    if (string.Equals(attr.Name, "name", StringComparison.OrdinalIgnoreCase)
-                        && attr.Value.Length > 0)
-                    {
-                        namesInFile.Add(attr.Value);
-                    }
-                }
-            }
-
-            if (namesInFile.Count == 0)
-            {
-                return;
-            }
-
-            for (int i = 0; i < tags.Count; i++)
-            {
-                HtmlTag tag = tags[i];
-                if (tag.IsEndTag)
-                {
-                    continue;
-                }
-
-                for (int a = 0; a < tag.Attributes.Count; a++)
-                {
-                    HtmlAttribute attr = tag.Attributes[a];
-                    if (!IsAfterOrBefore(attr.Name))
-                    {
-                        continue;
-                    }
-
-                    MatchCollection matches = NameSelector.Matches(attr.Value);
-                    for (int m = 0; m < matches.Count; m++)
-                    {
-                        Match match = matches[m];
-                        string referenced = match.Groups["n"].Value;
-                        if (referenced.Length == 0 || !namesInFile.Contains(referenced))
-                        {
-                            continue;
-                        }
-
-                        int spanStart = attr.ValueStart + match.Index;
-                        int spanLength = match.Length;
-                        string message = string.Format(
-                            CultureInfo.InvariantCulture,
-                            "after/before selector [name='{0}'] targets a name defined in this same file. HTML merge sees only stock HTML, so this selector will not match.",
-                            referenced);
-
-                        results.Add(Create(DiagnosticIds.AfterBeforeSameFile, message, path, spanStart, spanLength, lineMap));
-                    }
-                }
             }
         }
 
@@ -808,12 +741,6 @@ namespace AISI.MuiLint
         internal static bool IsMergeOperator(string name)
         {
             return MergeOperators.Contains(name);
-        }
-
-        private static bool IsAfterOrBefore(string name)
-        {
-            return string.Equals(name, "after", StringComparison.OrdinalIgnoreCase)
-                   || string.Equals(name, "before", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasMergeOperation(HtmlTag tag)

@@ -92,6 +92,18 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
+        public void Selector_OffersWhatThisFileAddsAbove()
+        {
+            // Acumatica's own T-series example chains UsrRepairItemType after UsrRepairItem.
+            string[] values = Values("<template><field after=\"#fsColumnA-Order [name='OrderType']\" name=\"UsrRepairItem\"></field>"
+                + "<qp-fieldset id=\"fsAISI\" after=\"#fsColumnA-Order\"></qp-fieldset>"
+                + "<field name=\"UsrRepairItemType\" after=\"#fsColumnA-Order |");
+            Assert.Equal("[name='UsrRepairItem']", values[0]);
+            Assert.Contains("#fsAISI", values);
+            Assert.DoesNotContain("[name='UsrRepairItemType']", values);
+        }
+
+        [Fact]
         public void Selector_ScopesNamesToTheContainerItAlreadyNames()
         {
             const string html = "<template><field name=\"UsrA\" after=\"#fsColumnB-Order [name='Cu|";

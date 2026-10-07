@@ -48,11 +48,6 @@ namespace AISI.MuiLint
                 Severity.Error,
                 "Acumatica Modern UI merge does not treat self-closing <field> or <qp-*> tags as a full start/end pair. Use explicit end tags."),
             new Rule(
-                DiagnosticIds.AfterBeforeSameFile,
-                "after/before name selector defined in this file",
-                Severity.Error,
-                "HTML merge only sees stock HTML. An after/before [name='X'] selector cannot target a name introduced in the same extension file."),
-            new Rule(
                 DiagnosticIds.StockScreensPath,
                 "Stock src/screens path",
                 Severity.Error,

@@ -9,7 +9,6 @@ Acuminator lints your C#. MuiLint lints the front end of your customisation: the
 | Id | Catches |
 | --- | --- |
 | AISI0001 | Self-closing `<field/>` or `<qp-*/>` tags |
-| AISI0002 | `after`/`before` pointing at a field this same file adds |
 | AISI0003 | Customisations saved under the stock `src/screens` tree |
 | AISI0004 | `SO301000/extensions/SO301000.html` (an extension named like the screen) |
 | AISI0005 | Empty `qp-fieldset` |

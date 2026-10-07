@@ -47,13 +47,29 @@ namespace AISI.MuiLint
         }
 
         /// <summary>
-        /// Targets for a merge selector, from the stock screen: its <c>#ids</c>, and <c>[name='…']</c>
-        /// values. Once the selector names a container (<c>#fsColumnA-Order [name='|</c>), only the
-        /// names inside that container are offered.
+        /// Targets for a merge selector: fields and ids this file adds above the caret, then the stock
+        /// screen's <c>#ids</c> and <c>[name='…']</c> values. Once the selector names a container
+        /// (<c>#fsColumnA-Order [name='|</c>), only the stock names inside that container are offered.
         /// </summary>
         private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
             var items = new List<MuiCompletionItem>();
+            string above = text.Substring(0, text.LastIndexOf('<', caret - 1) + 1);
+            foreach (HtmlTag tag in HtmlTagReader.Read(HtmlMergeScanner.MaskComments(above)))
+            {
+                string name = tag.GetAttribute("name");
+                string id = tag.GetAttribute("id");
+                if (HtmlMergeScanner.IsFieldTag(tag.Name) && name.Length > 0)
+                {
+                    items.Add(new MuiCompletionItem("[name='" + name + "']", "[name='" + name + "']", MuiCompletionKind.SelectorValue, "added in this file"));
+                }
+
+                if (id.Length > 0)
+                {
+                    items.Add(new MuiCompletionItem("#" + id, "#" + id, MuiCompletionKind.SelectorValue, "added in this file"));
+                }
+            }
+
             HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock == null)
             {

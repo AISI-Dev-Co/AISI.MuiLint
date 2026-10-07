@@ -59,12 +59,16 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void SelectorNotInStock_LeavesSameFileTargetsToAisi0002()
+        public void SelectorNotInStock_AcceptsFieldsThisFileAdds()
         {
-            const string html = "<template><field name=\"UsrA\" after=\"[name='Status']\"></field><field name=\"UsrB\" after=\"[name='UsrA']\"></field></template>";
+            // The shape of Acumatica's own IN202500_PhoneRepairShop example: the second field chains off the first.
+            const string html = "<template>"
+                + "<field after=\"#fsColumnA-Order [name='Status']\" name=\"UsrRepairItem\"></field>"
+                + "<field after=\"#fsColumnA-Order [name='UsrRepairItem']\" name=\"UsrRepairItemType\"></field>"
+                + "</template>";
             IReadOnlyList<Diagnostic> results = Scan(html, WithStock());
+            Assert.DoesNotContain(results, x => x.Severity == Severity.Error);
             Assert.DoesNotContain(results, x => x.Id == DiagnosticIds.SelectorNotInStock);
-            Assert.Contains(results, x => x.Id == DiagnosticIds.AfterBeforeSameFile);
         }
 
         [Fact]

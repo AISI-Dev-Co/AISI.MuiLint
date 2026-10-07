@@ -32,8 +32,14 @@ All notable changes to this project are documented here. Versions follow [Semant
   `extensions` folder, `development/screens`, and every project under `customizationScreens`. A field or view another
   extension declares no longer gets reported as missing.
 
-- Selector completions only offer targets from the stock screen. Names from the same file or the `.ts` were never
-  valid anchors (AISI0002, AISI0009).
+- Selector completions offer the fields and ids this file adds above the caret, then the stock screen's. Names from
+  the `.ts` are no longer offered: a field the HTML doesn't place isn't an anchor.
+
+### Removed
+
+- **AISI0002** (after/before anchored on a field the same file adds). It was wrong: the merge applies elements in
+  order, so a later element can anchor on an earlier one, and Acumatica's own training does exactly that. The id
+  won't be reused.
 
 ## [0.3.0] - 2026-10-05
 

@@ -28,7 +28,7 @@ namespace AISI.MuiLint.Tests
             Assert.Contains("SO301000_Broken.html(4,3): error AISI0001: ", output, StringComparison.Ordinal);
             Assert.Contains("warning AISI0009", output, StringComparison.Ordinal);
             Assert.Contains("info AISI0010", output, StringComparison.Ordinal);
-            Assert.Contains("1 file scanned, 6 errors, 2 warnings, 2 suggestions", summary, StringComparison.Ordinal);
+            Assert.Contains("1 file scanned, 5 errors, 2 warnings, 2 suggestions", summary, StringComparison.Ordinal);
         }
 
         [Fact]
