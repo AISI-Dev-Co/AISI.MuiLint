@@ -27,8 +27,8 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(1, exit);
             Assert.Contains("SO301000_Broken.html(4,3): error AISI0001: ", output, StringComparison.Ordinal);
             Assert.Contains("warning AISI0009", output, StringComparison.Ordinal);
-            Assert.Contains("info AISI0010", output, StringComparison.Ordinal);
-            Assert.Contains("1 file scanned, 5 errors, 2 warnings, 2 suggestions", summary, StringComparison.Ordinal);
+            Assert.Contains("info AISI0012", output, StringComparison.Ordinal);
+            Assert.Contains("1 file scanned, 4 errors, 3 warnings, 2 suggestions", summary, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -37,13 +37,11 @@ namespace AISI.MuiLint.Tests
             (_, string output, _) = Run("--format", "json", Extensions);
             using JsonDocument json = JsonDocument.Parse(output);
             string[] ids = json.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            // The broken example has no .ts on purpose (AISI0007), so there is nothing to bind against, and an
-            // example inside extensions/ can't be outside it.
+            // The rules about where a file lives can't fire on files that live in the right place.
             string[] skipped =
             {
                 DiagnosticIds.StockScreensPath,
                 DiagnosticIds.ExtensionBasename,
-                DiagnosticIds.BindingNotInTypeScript,
                 DiagnosticIds.ExtensionOutsideExtensions,
             };
             Assert.Equal(Rules.All.Select(r => r.Id).Where(id => !skipped.Contains(id)), ids);

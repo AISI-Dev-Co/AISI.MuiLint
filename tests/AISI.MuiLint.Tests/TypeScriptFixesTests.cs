@@ -102,16 +102,17 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void NewExtensionTypeScript_ImportsTheStockScreen()
+        public void DeclareField_StartsTheTsOfAnHtmlOnlyExtension()
         {
-            Assert.Equal(
-                "import { SO301000 } from \"src/screens/SO/SO301000/SO301000\";\n" +
-                "\n" +
-                "export interface SO301000_AISI extends SO301000 {}\n" +
-                "export class SO301000_AISI {}\n",
-                TypeScriptFixes.NewExtensionTypeScript("/site/src/development/screens/SO/SO301000/extensions/SO301000_AISI.html"));
+            // Acumatica ships extensions that are only HTML; the VSIX creates the empty .ts before applying this.
+            Dictionary<string, string> files = BindingTests.Files();
+            files.Remove(BindingTests.ExtensionTs);
 
-            Assert.Null(TypeScriptFixes.NewExtensionTypeScript("/site/src/development/screens/SO/SO301000/SO301000.html"));
+            string fixedTs = Fix("<template><field name=\"UsrNote\" after=\"[name='OrderQty']\"></field></template>", files);
+
+            Assert.Contains("import { SOLine } from \"src/screens/SO/SO301000/views\";", fixedTs, StringComparison.Ordinal);
+            Assert.Contains("export interface SOLine_Custom extends SOLine {}", fixedTs, StringComparison.Ordinal);
+            Assert.Contains("    UsrNote: PXFieldState;", fixedTs, StringComparison.Ordinal);
         }
 
         /// <summary>Applies the fix, then checks the HTML is clean against the fixed .ts.</summary>
@@ -121,7 +122,7 @@ namespace AISI.MuiLint.Tests
             FieldDeclaration? plan = TypeScriptFixes.PlanFieldDeclaration(htmlPath, html, d, Reader(files));
             Assert.NotNull(plan);
 
-            string ts = files[plan!.TsPath];
+            string ts = files.TryGetValue(plan!.TsPath, out string? existing) ? existing : string.Empty;
             foreach (TextEdit edit in TypeScriptFixes.DeclareField(ts, plan))
             {
                 ts = TestFiles.Apply(ts, edit);

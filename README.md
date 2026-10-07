@@ -5,35 +5,41 @@
 
 A linter for Acumatica Modern UI HTML and TypeScript, for Visual Studio, the command line and GitHub Actions.
 
-**Acuminator lints your C#. MuiLint lints the HTML merge.** Modern UI customisations are HTML extension files that
-get merged into the stock screen at build time, and when the merge can't place something it doesn't complain. The
-field just isn't there. MuiLint catches those mistakes while you're typing, and again in CI.
+**Acuminator lints your C#. MuiLint lints the HTML merge.** Modern UI customisations are HTML and TypeScript
+extension files that get merged into the stock screen when the site builds. Point a selector at nothing and the build
+fails, minutes later and on the server; bind a field the TypeScript doesn't declare and it doesn't show. MuiLint
+catches those mistakes while you're typing, and again in CI.
+
+Every rule is checked against Acumatica's developer guide, and each rule's page quotes the part it rests on. The rules
+were also run over Acumatica's own 24R1 screens and extensions, treating them as if they were yours, to weed out
+false alarms.
 
 
 ## What it catches
 
 | Id | Severity | Catches |
 | --- | --- | --- |
-| [AISI0001](docs/rules/AISI0001.md) | error | Self-closing `<field/>` or `<qp-*/>` tags. The merge doesn't treat them as a start/end pair. |
-| [AISI0003](docs/rules/AISI0003.md) | error | A customisation saved under the stock `src/screens` tree instead of `development/screens` or `customizationScreens`. |
-| [AISI0004](docs/rules/AISI0004.md) | error | `SO301000/extensions/SO301000.html`: an extension named like the screen it extends. |
-| [AISI0005](docs/rules/AISI0005.md) | error | An empty `qp-fieldset` (fieldsets that `modify`/`remove`/`replace` are exempt). |
-| [AISI0006](docs/rules/AISI0006.md) | error | A merge selector with an unclosed `[`, `(` or quote. |
-| [AISI0007](docs/rules/AISI0007.md) | error | Extension HTML with no `.ts` of the same name beside it, so it is never loaded. |
-| [AISI0008](docs/rules/AISI0008.md) | warning | The same id twice in a file, or the same field twice in the same view. |
-| [AISI0009](docs/rules/AISI0009.md) | warning | A selector naming a `[name]` or `#id` the stock screen doesn't have. Usually a typo. |
-| [AISI0010](docs/rules/AISI0010.md) | suggestion | A field the extension adds without the `Usr` prefix. |
-| [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field, `state.bind` or `qp-panel` id that the screen's `.ts` doesn't declare. |
-| [AISI0012](docs/rules/AISI0012.md) | suggestion | A `qp-*` control without an `id`, so nothing else can target it. |
+| [AISI0001](docs/rules/AISI0001.md) | error | Self-closing `<field/>` or `<qp-*/>` tags, which Acumatica's docs rule out. |
+| [AISI0003](docs/rules/AISI0003.md) | error | A customisation saved under the stock `src/screens` tree instead of `src/development/screens`. |
+| [AISI0004](docs/rules/AISI0004.md) | warning | `SO301000/extensions/SO301000.html`: an extension not named `<ScreenID>_<postfix>`. |
+| [AISI0005](docs/rules/AISI0005.md) | suggestion | An empty `qp-fieldset` that nothing adds to. |
+| [AISI0006](docs/rules/AISI0006.md) | error | A merge selector that isn't valid CSS: an unclosed `[`, `(` or quote. |
+| [AISI0008](docs/rules/AISI0008.md) | warning | The same id, or the same field, twice in one container, so a selector matches both. |
+| [AISI0009](docs/rules/AISI0009.md) | warning | A selector naming a `[name]` or `#id` the stock screen, its extensions and the lines above don't have. |
+| [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field or button `state.bind` that the screen's TypeScript doesn't declare. |
+| [AISI0012](docs/rules/AISI0012.md) | suggestion | A `qp-*` control without an `id`, so customisations can't target it. |
 | [AISI0013](docs/rules/AISI0013.md) | error | A `config.bind` with an unclosed `{`, `[`, `(` or quote. |
-| [AISI0014](docs/rules/AISI0014.md) | warning | Half a TypeScript extension: an `interface X extends Y` without its `class X`, or the other way round. |
+| [AISI0014](docs/rules/AISI0014.md) | warning | Half a TypeScript extension: the empty interface without its class, or the other way round. |
 | [AISI0015](docs/rules/AISI0015.md) | warning | `primaryView` in `@graphInfo`, or `view` in `@handleEvent`, naming a view the screen doesn't have. |
-| [AISI0016](docs/rules/AISI0016.md) | error | `createSingle`/`createCollection` given a class that isn't a `PXView`, usually an extension class. |
-| [AISI0017](docs/rules/AISI0017.md) | error | An extension `.html` or `.ts` saved outside the screen's `extensions` folder, so it is never merged. |
+| [AISI0016](docs/rules/AISI0016.md) | warning | `createSingle`/`createCollection` given a class that isn't a `PXView`, usually an extension class. |
+| [AISI0017](docs/rules/AISI0017.md) | warning | A `<ScreenID>_<postfix>` file saved outside the screen's `extensions` folder. |
+| [AISI0018](docs/rules/AISI0018.md) | error | A customising tag (`after`, `modify`, …) that isn't directly in the top-level `<template>`. |
+
+AISI0002, AISI0007 and AISI0010 are retired: Acumatica's own screens and docs showed they were wrong. Their pages say
+why.
 
 AISI0014–AISI0016 check `.ts` files, and AISI0017 checks both. The `.ts` rules, and the rules that look at
-neighbouring files (AISI0007, AISI0009, AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn
-analyser.
+neighbouring files (AISI0009, AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn analyser.
 
 Want to see them all at once? `examples/` has a made-up stock screen, a clean extension, and a broken `.html` and
 `.ts` that between them trip nearly every rule (the ones about where a file lives can't fire on a file that lives in
@@ -55,14 +61,14 @@ You get:
 - **Lightbulb fixes** (Ctrl+.) in the HTML:
   - add the missing closing tag (AISI0001), or remove an empty fieldset (AISI0005);
   - declare a field the HTML uses but the TypeScript doesn't (AISI0011). It opens the `.ts` and adds the field to your
-    extension of the view's class, writing that extension and its imports if there isn't one yet;
-  - create the missing extension `.ts` (AISI0007);
+    extension of the view's class, writing that extension and its imports if there isn't one yet, and creating the
+    `.ts` if the extension is only HTML so far;
   - suppress any finding on its line or in the file.
 - **Completions:**
   - Modern UI tags and attributes, plus any attribute the stock screen uses on that tag, and the values it gives it
     (`slot`, a template's layout name).
-  - In any merge selector (`after`, `before`, `append`, `prepend`, `modify`, `remove`, `replace`), the stock screen's
-    `#ids` and `[name='…']` values. Once you've named a container (`#fsColumnA-Order [name='`), you only get the
+  - In any merge selector (`after`, `before`, `append`, `prepend`, `modify`, `remove`, `replace`), the fields and ids
+    this file adds above the caret, then the stock screen's `#ids` and `[name='…']` values. Once you've named a container (`#fsColumnA-Order [name='`), you only get the
     fields inside it.
   - Inside `view.bind`, `state.bind`, a field's `name` and a `qp-panel` id, the views, actions and fields the
     screen's TypeScript declares; fields come from the view you're in.
@@ -97,14 +103,14 @@ dotnet run --project src/AISI.MuiLint.Cli -c Release -- path/to/FrontendSources/
 ```
 
 Give it files or directories. Directories are searched for `*.html` and `*.ts`, skipping `node_modules` and
-dot-folders. Point it at `development/screens` or `customizationScreens`; if you point it at the whole `src` folder,
+dot-folders. Point it at `development/screens`; if you point it at the whole `src` folder,
 every stock screen's HTML is reported under AISI0003.
 
 ```
-examples/…/SO301000_Broken.html(4,3): error AISI0001: Self-closing <field> is not valid for Acumatica Modern UI merge. Use <field ...></field>.
-examples/…/SO301000_Broken.html(10,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, so the merge has nothing to attach to. …
-examples/…/SO301000_BrokenTs.ts(8,5): error AISI0016: View 'ExtraLines' is created from SOLine_BrokenTs, which does not extend PXView, so it has no fields. …
-muilint: 4 files scanned, 6 errors, 4 warnings, 2 suggestions.
+examples/…/SO301000_Broken.html(4,3): error AISI0001: <field/> can't be self-closing: HTML only allows that on a few standard tags, so whatever follows ends up inside it. …
+examples/…/SO301000_Broken.html(10,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, any extension of it, or above in this file. The Modern UI build fails on a selector that matches nothing.
+examples/…/SO301000_Broken.html(23,5): error AISI0018: <field after=...> is inside <qp-fieldset>. Tags that customize the original HTML have to be directly in the top-level <template>.
+muilint: 4 files scanned, 4 errors, 6 warnings, 2 suggestions.
 ```
 
 | Option | |
@@ -169,8 +175,8 @@ VSIX:
 [*.html]
 # Fail CI on duplicates
 dotnet_diagnostic.AISI0008.severity = error
-# We move stock fields about a lot
-dotnet_diagnostic.AISI0010.severity = none
+# We like our containers tidy
+dotnet_diagnostic.AISI0012.severity = warning
 
 [**/legacy/**.html]
 dotnet_diagnostic.AISI0009.severity = suggestion
@@ -195,13 +201,13 @@ In a `.ts` file the same comments are line comments: `// muilint-disable-next-li
 ## How the stock screen is found
 
 For an extension at `…/src/development/screens/SO/SO301000/extensions/SO301000_AISI.html` (or the same under
-`src/customizationScreens/<Project>/`), the stock screen is `…/src/screens/SO/SO301000/SO301000.html`. MuiLint reads
+`src/customizationScreens/<Tenant>/screens/`, which the site writes when it publishes), the stock screen is `…/src/screens/SO/SO301000/SO301000.html`. MuiLint reads
 the names and ids in it and follows its `qp-include url="…"` files. If any include can't be read, AISI0009 skips that
 screen rather than guessing.
 
 Every extension of the screen counts as well, wherever it lives: `…/src/screens/SO/SO301000/extensions/`,
-`…/src/development/screens/SO/SO301000/extensions/`, and `extensions` under each project in
-`…/src/customizationScreens/`. Whatever their HTML adds can be targeted, and whatever their `.ts` declares can be
+`…/src/development/screens/SO/SO301000/extensions/`, and `extensions` under each tenant in
+`…/src/customizationScreens/`, which holds what the site's published customization projects add. Whatever their HTML adds can be targeted, and whatever their `.ts` declares can be
 bound to.
 
 ## How the TypeScript is read

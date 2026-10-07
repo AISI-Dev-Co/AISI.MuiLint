@@ -13,7 +13,7 @@ namespace AISI.MuiLint
     /// files. The scanner itself does not need a compilation; this wrapper is how Visual Studio
     /// and `dotnet` surface the HTML merge diagnostics on C# projects that list HTML as
     /// additional files. Analyzers may not touch the disk, so the rules that read neighbouring
-    /// files (AISI0007, AISI0009, AISI0011) only run in the CLI and the VSIX; Roslyn applies
+    /// files (AISI0009, AISI0011) only run in the CLI and the VSIX; Roslyn applies
     /// .editorconfig severities itself.
     /// </summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]

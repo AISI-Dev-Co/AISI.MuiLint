@@ -147,25 +147,6 @@ namespace AISI.MuiLint
             return edits;
         }
 
-        /// <summary>A new extension .ts for an extension HTML that has none (AISI0007), or null for a non-extension.</summary>
-        public static string? NewExtensionTypeScript(string htmlPath)
-        {
-            string? stock = HtmlMergeScanner.StockHtmlPath(htmlPath);
-            string? specifier = stock == null ? null : SrcSpecifier(stock);
-            if (specifier == null)
-            {
-                return null;
-            }
-
-            string screen = Path.GetFileNameWithoutExtension(stock);
-            string name = Path.GetFileNameWithoutExtension(htmlPath);
-            return
-                "import { " + screen + " } from \"" + specifier + "\";\n" +
-                "\n" +
-                "export interface " + name + " extends " + screen + " {}\n" +
-                "export class " + name + " {}\n";
-        }
-
         private static FieldDeclaration? Plan(string htmlPath, string field, string view, ScreenModel screen)
         {
             string? viewClass = view.Length == 0 ? null : screen.ClassOf(view);

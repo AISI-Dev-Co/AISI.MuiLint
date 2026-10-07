@@ -26,8 +26,9 @@ namespace AISI.MuiLint
 
                 foreach (HtmlAttribute attr in tag.Attributes)
                 {
-                    // Anything but a plain name is an expression, and not ours to judge.
-                    if (!IsIdentifier(attr.Value))
+                    // Anything but a plain name is an expression, and not ours to judge. Names with a leading
+                    // underscore (_PayBillsFilter_CurrencyInfo_) are views the backend makes up.
+                    if (!IsIdentifier(attr.Value) || attr.Value[0] == '_')
                     {
                         continue;
                     }
@@ -37,13 +38,10 @@ namespace AISI.MuiLint
                     {
                         message = "{0} has no view called '{1}'. Declare it in the .ts (createSingle/createCollection) or fix the spelling.";
                     }
-                    else if (Is(attr.Name, "state.bind") && !screen.TryGetMember(attr.Value, out _))
+                    else if (Is(attr.Name, "state.bind") && Is(tag.Name, "qp-button") && !HasAction(screen, attr.Value, NearestView(tags, parents, i)))
                     {
+                        // On anything but a button, state.bind is a field (<qp-mail-editor state.bind="Email">).
                         message = "{0} has no action called '{1}'. Declare '{1}: PXActionState' in the .ts or fix the spelling.";
-                    }
-                    else if (Is(attr.Name, "id") && Is(tag.Name, "qp-panel") && !screen.TryGetMember(attr.Value, out _))
-                    {
-                        message = "qp-panel id '{1}' is not a view on {0}. A dialog's id has to be the name of the view behind it.";
                     }
 
                     if (message != null)
@@ -60,6 +58,24 @@ namespace AISI.MuiLint
                     CheckField(path, tag, name, NearestView(tags, parents, i), screen, lineMap, results);
                 }
             }
+        }
+
+        /// <summary>An action on the screen, or on the class of the view the button sits in.</summary>
+        private static bool HasAction(ScreenModel screen, string action, string view)
+        {
+            if (screen.TryGetMember(action, out _))
+            {
+                return true;
+            }
+
+            if (view.Length == 0)
+            {
+                return false;
+            }
+
+            // A view we can't follow stays quiet, as fields do.
+            ICollection<string>? members = screen.FieldsOf(view);
+            return members == null || members.Contains(action);
         }
 
         private static void CheckField(

@@ -114,47 +114,39 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void ExtensionOutsideExtensions_SpotsMergeAttributesInAnyFolder()
+        public void ExtensionOutsideExtensions_GoesByTheNameNotTheMergeAttributes()
         {
-            const string html = "<template><qp-fieldset modify=\"#fsColumnA-Order\" caption=\"Order\"></qp-fieldset></template>";
-            Diagnostic d = Assert.Single(
-                HtmlMergeScanner.Analyze("/site/src/development/screens/SO/SO301000/ext/Mine.html", html),
+            // A screen that reuses another through qp-include merges into it too (Acumatica's IN202520).
+            const string html = "<template><qp-include url=\"../IN202500/IN202500.html\"></qp-include><field append=\"#fsColumnA-Header\" name=\"RefNbr\"></field></template>";
+            Assert.DoesNotContain(
+                HtmlMergeScanner.Analyze("/site/src/development/screens/IN/IN202599/IN202599.html", html),
                 x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
-            Assert.Contains("uses modify=", d.Message, StringComparison.Ordinal);
+
+            Diagnostic d = Assert.Single(
+                HtmlMergeScanner.Analyze("/site/src/development/screens/SO/SO301000/SO301000_AISI.html", html),
+                x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
             Assert.Equal((0, 0), (d.Start, d.Length));
 
             // Outside the custom trees it's not ours to judge.
-            Assert.DoesNotContain(HtmlMergeScanner.Analyze("/elsewhere/Mine.html", html), x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+            Assert.DoesNotContain(HtmlMergeScanner.Analyze("/elsewhere/SO301000/SO301000_AISI.html", html), x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
         }
 
         [Fact]
-        public void ExtensionWithoutTypeScript_NeedsTheTsSibling()
+        public void EmptyFieldset_LeavesStocksDeliberatelyEmptyOnesAlone()
         {
-            const string html = "<template></template>";
-            Assert.Contains(Scan(html, new Dictionary<string, string>()), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
-            Assert.DoesNotContain(Scan(html, WithStock()), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
-
-            // Without a way to read files there is nothing to check.
-            Assert.DoesNotContain(HtmlMergeScanner.Analyze(Extension, html), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
-        }
-
-        [Fact]
-        public void UsrHint_SkipsAStockFieldBeingMoved()
-        {
-            const string html = "<template><field name=\"Status\" after=\"[name='OrderNbr']\"></field></template>";
-            Assert.DoesNotContain(Scan(html, WithStock()), x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
-
-            Diagnostic d = Assert.Single(HtmlMergeScanner.Analyze(Extension, html), x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
-            Assert.Equal(Severity.Suggestion, d.Severity);
-        }
-
-        [Fact]
-        public void UsrHint_OnlyAppliesToExtensions()
-        {
-            const string html = "<template><field name=\"Priority\" after=\"[name='OrderNbr']\"></field></template>";
             Assert.DoesNotContain(
-                HtmlMergeScanner.Analyze("/site/src/development/screens/XX/XX301000/XX301000.html", html),
-                x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
+                Scan("<template><qp-fieldset id=\"fsNew\" after=\"#fsColumnA-Order\"></qp-fieldset><field append=\"#fsNew\" name=\"UsrA\"></field>"
+                    + "<qp-fieldset id=\"h\" class=\"hidden\" view.bind=\"Document\"></qp-fieldset><qp-fieldset id=\"w\" wg-container view.bind=\"Document\"></qp-fieldset></template>", WithStock()),
+                x => x.Id == DiagnosticIds.EmptyFieldset);
+        }
+
+        [Fact]
+        public void ControlWithoutId_AcceptsAnIdInConfigBind()
+        {
+            // Acumatica's docs: id is a shortcut for the id property of config.
+            Assert.DoesNotContain(
+                HtmlMergeScanner.Analyze(Extension, "<template><qp-grid view.bind=\"Transactions\" config.bind=\"{id: 'gridX'}\"></qp-grid><qp-address-lookup></qp-address-lookup></template>"),
+                x => x.Id == DiagnosticIds.QpControlWithoutId);
         }
 
         [Fact]

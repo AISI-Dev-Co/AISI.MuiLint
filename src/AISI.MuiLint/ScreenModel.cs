@@ -63,7 +63,17 @@ namespace AISI.MuiLint
         public static ScreenModel? Read(string path, Func<string, string?> readFile, string? tsText = null, Func<string, IEnumerable<string>>? listFolder = null)
         {
             string tsPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(path, ".ts"));
+            string rootPath = tsPath;
             string? text = tsText ?? readFile(tsPath);
+
+            // Acumatica ships extensions that are only HTML; they bind against the screen as the other files make it.
+            string? stock = text == null && HtmlMergeScanner.IsExtensionFile(path) ? HtmlMergeScanner.StockHtmlPath(path) : null;
+            if (stock != null)
+            {
+                rootPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(stock, ".ts"));
+                text = readFile(rootPath);
+            }
+
             if (text == null)
             {
                 return null;
@@ -71,8 +81,8 @@ namespace AISI.MuiLint
 
             var model = new ScreenModel();
             var modules = new Queue<TsModule>();
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath };
-            modules.Enqueue(new TsModule(tsPath, text));
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath, rootPath };
+            modules.Enqueue(new TsModule(rootPath, text));
             foreach (string extension in HtmlMergeScanner.ScreenExtensions(tsPath, ".ts", listFolder))
             {
                 string? extensionText = seen.Count < MaxModules && seen.Add(extension) ? readFile(extension) : null;
@@ -119,6 +129,20 @@ namespace AISI.MuiLint
 
             location = member.Location;
             return true;
+        }
+
+        /// <summary>Gets a value indicating whether the screen has a member of this name in any case.</summary>
+        public bool HasMemberIgnoringCase(string name)
+        {
+            foreach (string member in _screen.Keys)
+            {
+                if (string.Equals(member, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

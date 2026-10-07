@@ -89,7 +89,7 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void ActionsAndPanels_AreScreenMembers()
+        public void ButtonActions_AreScreenMembers()
         {
             IReadOnlyList<Diagnostic> results = Scan(
                 "<template>" +
@@ -98,10 +98,27 @@ namespace AISI.MuiLint.Tests
                 "<qp-panel id=\"Transactions\"></qp-panel>" +
                 "<qp-panel id=\"TransactionsDialog\"></qp-panel>" +
                 "</template>");
+            // A qp-panel id needn't be a view: the docs call it a generic placeholder, and stock has PanelRef.
             Assert.Collection(
                 results,
-                d => Assert.Contains("no action called 'AddInvBySight'", d.Message, StringComparison.Ordinal),
-                d => Assert.Contains("qp-panel id 'TransactionsDialog'", d.Message, StringComparison.Ordinal));
+                d => Assert.Contains("no action called 'AddInvBySight'", d.Message, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void UsingAndPanels_SetTheViewForTheFieldsInside()
+        {
+            // AR303000 does this: <using view="CurrentCustomer"> inside a fieldset bound to DefContact.
+            Assert.DoesNotContain(
+                Scan("<template><qp-fieldset id=\"f\" view.bind=\"Document\"><using view=\"Transactions\"><field name=\"OrderQty\"></field></using></qp-fieldset>"
+                    + "<qp-panel id=\"Transactions\"><field name=\"OrderQty\"></field></qp-panel></template>"),
+                x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+        }
+
+        [Fact]
+        public void StateBind_IsOnlyAnActionOnAButton()
+        {
+            // As documented for qp-mail-editor: there, state.bind names a field.
+            Assert.DoesNotContain(Scan("<template><qp-mail-editor id=\"m\" state.bind=\"Email\"></qp-mail-editor></template>"), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
         }
 
         [Fact]

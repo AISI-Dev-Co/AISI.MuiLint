@@ -108,15 +108,6 @@ namespace AISI.MuiLint.Vsix
                         fixes.Add(new DeclareFieldAction(title, plan, _services, _adapters));
                     }
                 }
-                else if (diagnostic.Id == DiagnosticIds.ExtensionWithoutTypeScript && Path.IsPathRooted(diagnostic.Path))
-                {
-                    string tsPath = Path.ChangeExtension(diagnostic.Path, ".ts");
-                    string content = TypeScriptFixes.NewExtensionTypeScript(diagnostic.Path);
-                    if (content != null)
-                    {
-                        fixes.Add(new CreateFileAction("Create " + Path.GetFileName(tsPath), tsPath, content, _services));
-                    }
-                }
 
                 bool fileLevel = MuiLintFixes.IsFileLevel(diagnostic);
                 if (offered.Add(diagnostic.Id + ":" + diagnostic.Line))
@@ -238,6 +229,13 @@ namespace AISI.MuiLint.Vsix
             public override void Invoke(CancellationToken cancellationToken)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
+
+                // An HTML-only extension has no .ts yet; DeclareField writes the imports and the extension into an empty one.
+                if (!File.Exists(_plan.TsPath))
+                {
+                    File.WriteAllText(_plan.TsPath, string.Empty);
+                }
+
                 IVsTextView view = VsDocuments.Open(_services, _plan.TsPath);
                 if (view == null || view.GetBuffer(out IVsTextLines lines) != 0)
                 {
@@ -260,32 +258,6 @@ namespace AISI.MuiLint.Vsix
 
                     edit.Apply();
                 }
-            }
-        }
-
-        private sealed class CreateFileAction : SuggestedAction
-        {
-            private readonly string _path;
-            private readonly string _content;
-            private readonly System.IServiceProvider _services;
-
-            public CreateFileAction(string displayText, string path, string content, System.IServiceProvider services)
-                : base(displayText, null)
-            {
-                _path = path;
-                _content = content;
-                _services = services;
-            }
-
-            public override void Invoke(CancellationToken cancellationToken)
-            {
-                ThreadHelper.ThrowIfNotOnUIThread();
-                if (!File.Exists(_path))
-                {
-                    File.WriteAllText(_path, _content);
-                }
-
-                VsDocuments.Open(_services, _path);
             }
         }
     }

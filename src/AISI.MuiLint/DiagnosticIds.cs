@@ -24,8 +24,7 @@ namespace AISI.MuiLint
         /// <summary>Unbalanced brackets or quotes in a merge selector.</summary>
         public const string MalformedSelector = "AISI0006";
 
-        /// <summary>Extension HTML with no TypeScript file of the same name beside it.</summary>
-        public const string ExtensionWithoutTypeScript = "AISI0007";
+        // AISI0007 is retired: Acumatica ships extension HTML with no .ts of its own. Don't reuse the id.
 
         /// <summary>The same field name (per view) or id appears twice in one file.</summary>
         public const string DuplicateNameOrId = "AISI0008";
@@ -33,8 +32,7 @@ namespace AISI.MuiLint
         /// <summary>A merge selector points at a name or id the stock screen does not have.</summary>
         public const string SelectorNotInStock = "AISI0009";
 
-        /// <summary>A field added by an extension is not Usr-prefixed.</summary>
-        public const string FieldWithoutUsrPrefix = "AISI0010";
+        // AISI0010 is retired: Usr is a database column convention, not a binding rule. Don't reuse the id.
 
         /// <summary>A view, field, action or panel the screen's TypeScript does not declare.</summary>
         public const string BindingNotInTypeScript = "AISI0011";
@@ -56,5 +54,8 @@ namespace AISI.MuiLint
 
         /// <summary>An extension .html or .ts outside an extensions folder.</summary>
         public const string ExtensionOutsideExtensions = "AISI0017";
+
+        /// <summary>A tag with a merge attribute that isn't a direct child of the top-level template.</summary>
+        public const string MergeTagNotAtTopLevel = "AISI0018";
     }
 }

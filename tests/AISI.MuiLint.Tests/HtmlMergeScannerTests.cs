@@ -98,7 +98,7 @@ namespace AISI.MuiLint.Tests
             var analyzer = new Analyzer();
             Assert.Equal(DiagnosticSeverity.Error, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.SelfClosing).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Warning, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.DuplicateNameOrId).DefaultSeverity);
-            Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.FieldWithoutUsrPrefix).DefaultSeverity);
+            Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.QpControlWithoutId).DefaultSeverity);
         }
 
         [Fact]

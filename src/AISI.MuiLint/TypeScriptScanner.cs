@@ -69,7 +69,7 @@ namespace AISI.MuiLint
                 Scan0014(path, module, lineMap, results);
             }
 
-            HtmlMergeScanner.TryPath0017(path, ExtensionPairIn(module), lineMap, results);
+            HtmlMergeScanner.TryPath0017(path, lineMap, results);
 
             ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text, listFolder);
             if (screen != null)
@@ -94,7 +94,9 @@ namespace AISI.MuiLint
             foreach (TsInterface i in module.Interfaces)
             {
                 interfaces.Add(i.Name);
-                if (module.FindClass(i.Name) == null)
+
+                // An interface with a body is a type of its own (a control config, say), not half an extension.
+                if (i.Empty && module.FindClass(i.Name) == null)
                 {
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
@@ -120,20 +122,6 @@ namespace AISI.MuiLint
                     c.Name);
                 results.Add(HtmlMergeScanner.Create(DiagnosticIds.HalfAnExtension, message, path, c.NameStart, c.Name.Length, lineMap));
             }
-        }
-
-        private static string? ExtensionPairIn(TsModule module)
-        {
-            foreach (TsInterface i in module.Interfaces)
-            {
-                TsClass? c = module.FindClass(i.Name);
-                if (c != null && c.Base.Length == 0)
-                {
-                    return "declares the extension " + i.Name + " of " + string.Join(", ", i.Bases);
-                }
-            }
-
-            return null;
         }
 
         private static bool DeclaresModernUiMembers(TsClass c)
@@ -175,7 +163,8 @@ namespace AISI.MuiLint
 
         private static void CheckView(string path, Group value, string where, ScreenModel screen, LineMap lineMap, List<Diagnostic> results)
         {
-            if (!HtmlMergeScanner.IsIdentifier(value.Value) || screen.TryGetMember(value.Value, out _))
+            // The backend matches view names case-insensitively: CA506500 has primaryView 'filter' for its Filter view.
+            if (!HtmlMergeScanner.IsIdentifier(value.Value) || screen.TryGetMember(value.Value, out _) || screen.HasMemberIgnoringCase(value.Value))
             {
                 return;
             }
@@ -203,7 +192,7 @@ namespace AISI.MuiLint
 
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
-                        "View '{0}' is created from {1}, which does not extend PXView, so it has no fields. createSingle and createCollection need the view class itself, not an extension of it.",
+                        "View '{0}' is created from {1}, which does not extend PXView. Acumatica's docs give createSingle and createCollection a view class that extends PXView, not an extension of one.",
                         member.Key,
                         viewClass);
                     results.Add(HtmlMergeScanner.Create(DiagnosticIds.ViewFromNonView, message, path, member.Value.Offset, member.Key.Length, lineMap));

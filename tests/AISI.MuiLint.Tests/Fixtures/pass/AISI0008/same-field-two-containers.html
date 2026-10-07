@@ -1,0 +1,9 @@
+<!-- Stock does this on purpose: AP301000 shows CuryTaxTotal in the summary and again in groupTaxTotals. -->
+<template>
+  <qp-fieldset id="fsPriority" after="#fsColumnA-Order" view.bind="Document">
+    <field name="UsrPriority"></field>
+  </qp-fieldset>
+  <qp-fieldset id="fsRush" after="#fsColumnB-Order" view.bind="Document">
+    <field name="UsrPriority"></field>
+  </qp-fieldset>
+</template>

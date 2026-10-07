@@ -121,21 +121,6 @@ namespace AISI.MuiLint
             return string.Equals(directory, "extensions", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void TryPath0007(string path, Func<string, string?> readFile, LineMap lineMap, List<Diagnostic> results)
-        {
-            string tsPath = Path.ChangeExtension(path, ".ts");
-            if (readFile(tsPath) != null)
-            {
-                return;
-            }
-
-            string message = string.Format(
-                CultureInfo.InvariantCulture,
-                "There is no {0} next to this file. Modern UI loads extension HTML through the TypeScript extension of the same name, so this HTML is never merged.",
-                Path.GetFileName(tsPath));
-            results.Add(Create(DiagnosticIds.ExtensionWithoutTypeScript, message, path, 0, 0, lineMap));
-        }
-
         private static void Scan0009(
             string path,
             IReadOnlyList<HtmlTag> tags,
@@ -143,15 +128,9 @@ namespace AISI.MuiLint
             LineMap lineMap,
             List<Diagnostic> results)
         {
-            // Anchoring on something this file adds earlier is fine: the merge applies elements in order.
+            // Anchoring on something this file adds above is fine: the merge applies elements in order.
             var localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (HtmlTag tag in tags)
-            {
-                localNames.Add(tag.GetAttribute("name"));
-                localIds.Add(tag.GetAttribute("id"));
-            }
-
             for (int i = 0; i < tags.Count; i++)
             {
                 HtmlTag tag = tags[i];
@@ -198,6 +177,9 @@ namespace AISI.MuiLint
                         }
                     }
                 }
+
+                localNames.Add(tag.GetAttribute("name"));
+                localIds.Add(tag.GetAttribute("id"));
             }
         }
 
@@ -205,58 +187,9 @@ namespace AISI.MuiLint
         {
             return string.Format(
                 CultureInfo.InvariantCulture,
-                "{0} is not in the stock {1}, so the merge has nothing to attach to. Check the spelling; if another extension adds it, suppress this.",
+                "{0} is not in the stock {1}, any extension of it, or above in this file. The Modern UI build fails on a selector that matches nothing.",
                 target,
                 stock.FileName);
-        }
-
-        private static void Scan0010(
-            string path,
-            IReadOnlyList<HtmlTag> tags,
-            int[] parents,
-            StockScreen? stock,
-            LineMap lineMap,
-            List<Diagnostic> results)
-        {
-            for (int i = 0; i < tags.Count; i++)
-            {
-                HtmlTag tag = tags[i];
-                string name = tag.GetAttribute("name");
-                if (tag.IsEndTag || !IsFieldTag(tag.Name) || name.Length == 0 || !IsAddedByExtension(tags, parents, i))
-                {
-                    continue;
-                }
-
-                string field = name.Substring(name.LastIndexOf('.') + 1);
-                if (field.StartsWith("Usr", StringComparison.Ordinal) || (stock != null && stock.Names.ContainsKey(name)))
-                {
-                    continue;
-                }
-
-                string message = string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Field '{0}' is added by this extension but is not Usr-prefixed. Fine if you are moving a stock field; a custom DAC field needs the Usr prefix.",
-                    name);
-                results.Add(Create(DiagnosticIds.FieldWithoutUsrPrefix, message, path, tag.Start, tag.End - tag.Start, lineMap));
-            }
-        }
-
-        private static bool IsAddedByExtension(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
-        {
-            for (int t = index; t >= 0; t = parents[t])
-            {
-                HtmlTag tag = tags[t];
-                if (tag.HasAttribute("after")
-                    || tag.HasAttribute("before")
-                    || tag.HasAttribute("append")
-                    || tag.HasAttribute("prepend")
-                    || tag.HasAttribute("replace"))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         internal static string BlankBracketsAndQuotes(string selector)

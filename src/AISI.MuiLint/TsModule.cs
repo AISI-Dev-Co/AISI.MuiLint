@@ -75,7 +75,10 @@ namespace AISI.MuiLint
                 }
 
                 Group name = header.Groups["name"];
-                interfaces.Add(new TsInterface(name.Value, bases, name.Index));
+                int open = header.Index + header.Length - 1;
+                int close = MatchingBrace(Code, open);
+                bool empty = close > open && Code.Substring(open + 1, close - open - 1).Trim().Length == 0;
+                interfaces.Add(new TsInterface(name.Value, bases, name.Index, empty));
             }
 
             Interfaces = interfaces;
@@ -305,11 +308,12 @@ namespace AISI.MuiLint
 
     internal sealed class TsInterface
     {
-        public TsInterface(string name, IReadOnlyList<string> bases, int nameStart)
+        public TsInterface(string name, IReadOnlyList<string> bases, int nameStart, bool empty)
         {
             Name = name;
             Bases = bases;
             NameStart = nameStart;
+            Empty = empty;
         }
 
         public string Name { get; }
@@ -317,6 +321,9 @@ namespace AISI.MuiLint
         public IReadOnlyList<string> Bases { get; }
 
         public int NameStart { get; }
+
+        /// <summary>Gets a value indicating whether the body is <c>{}</c>, as an extension's interface is.</summary>
+        public bool Empty { get; }
     }
 
     internal readonly struct TsMember

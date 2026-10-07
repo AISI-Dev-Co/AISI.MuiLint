@@ -22,10 +22,17 @@ namespace AISI.MuiLint
 
         private static readonly char[] IdSeparators = { ' ', '\t', '\r', '\n', ',' };
 
-        // AcuMate's list: these are fine without an id.
+        // AcuMate's list, plus controls Acumatica's own screens never give an id.
         private static readonly HashSet<string> IdOptional = new HashSet<string>(
-            new[] { "qp-field", "qp-label", "qp-include" },
+            new[]
+            {
+                "qp-field", "qp-data-component", "qp-data-components", "qp-label", "qp-include", "qp-informer-rack",
+                "qp-longrun-indicator", "qp-nested-screen", "qp-screen-configuration-menu", "qp-translation-validation",
+                "qp-wait-cursor", "qp-wiki-tooltip", "qp-address-lookup", "qp-hyper-icon", "qp-caption",
+            },
             StringComparer.OrdinalIgnoreCase);
+
+        private static readonly Regex ConfigId = new Regex("[{,]\\s*['\"]?id['\"]?\\s*:", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex SuppressionComment = new Regex(
             "<!--\\s*muilint-disable(?<next>-next-line)?(?<ids>(?:\\s[^>]*?)?)\\s*-->",
@@ -85,7 +92,7 @@ namespace AISI.MuiLint
             string masked = MaskComments(text);
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(masked);
             int[] parents = HtmlTagReader.Parents(tags);
-            TryPath0017(path, MergeAttributeIn(tags), lineMap, results);
+            TryPath0017(path, lineMap, results);
 
             Scan0001(path, tags, lineMap, results);
             Scan0005(path, masked, tags, lineMap, results);
@@ -93,6 +100,7 @@ namespace AISI.MuiLint
             Scan0008(path, tags, parents, lineMap, results);
             Scan0012(path, tags, lineMap, results);
             Scan0013(path, tags, lineMap, results);
+            Scan0018(path, tags, parents, lineMap, results);
 
             // Stock screens are what they are; checking them against their own .ts is just noise.
             ScreenModel? screen = readFile == null || IsStockScreensPath(path) ? null : ScreenModel.Read(path, readFile, listFolder: listFolder);
@@ -101,20 +109,10 @@ namespace AISI.MuiLint
                 Scan0011(path, tags, parents, screen, lineMap, results);
             }
 
-            if (IsExtensionFile(path))
+            StockScreen? stock = readFile != null && IsExtensionFile(path) ? StockScreen.Read(path, readFile, listFolder: listFolder) : null;
+            if (stock != null)
             {
-                StockScreen? stock = null;
-                if (readFile != null)
-                {
-                    TryPath0007(path, readFile, lineMap, results);
-                    stock = StockScreen.Read(path, readFile, listFolder: listFolder);
-                    if (stock != null)
-                    {
-                        Scan0009(path, tags, stock, lineMap, results);
-                    }
-                }
-
-                Scan0010(path, tags, parents, stock, lineMap, results);
+                Scan0009(path, tags, stock, lineMap, results);
             }
 
             RemoveSuppressed(text, SuppressionComment, lineMap, results);
@@ -205,7 +203,7 @@ namespace AISI.MuiLint
 
             results.Add(Create(
                 DiagnosticIds.StockScreensPath,
-                "This file is under stock src/screens. Put Modern UI customizations in development/screens (or customizationScreens), not the stock tree.",
+                "This file is under src/screens, which holds Acumatica's own screen sources. Put customizations in src/development/screens: that's where a customization project picks them up, and publishing leaves them alone.",
                 path,
                 0,
                 0,
@@ -221,7 +219,7 @@ namespace AISI.MuiLint
 
             string message = string.Format(
                 CultureInfo.InvariantCulture,
-                "Extension file '{0}' uses the parent screen folder name '{1}'. Name extensions with a postfix (for example {1}_Custom.html), not {1}.html.",
+                "Extension file '{0}' is named after the screen itself. Acumatica names extensions <ScreenID>_<postfix>, for example {1}_Custom.html.",
                 fileName,
                 parentFolder);
 
@@ -230,10 +228,11 @@ namespace AISI.MuiLint
 
         /// <summary>
         /// AISI0017, for HTML and TypeScript alike: a file under development/screens or
-        /// customizationScreens, outside an extensions folder, that is an extension anyway.
-        /// <paramref name="evidence"/> says what gave it away in the file itself, or is null.
+        /// customizationScreens, outside an extensions folder, named <c>ScreenID_postfix</c> like an
+        /// extension. Merge attributes alone prove nothing: a screen that reuses another through
+        /// qp-include uses them too.
         /// </summary>
-        internal static void TryPath0017(string path, string? evidence, LineMap lineMap, List<Diagnostic> results)
+        internal static void TryPath0017(string path, LineMap lineMap, List<Diagnostic> results)
         {
             string normalized = NormalizePath(path);
             bool customTree = normalized.IndexOf("/development/screens/", StringComparison.OrdinalIgnoreCase) >= 0
@@ -245,39 +244,17 @@ namespace AISI.MuiLint
 
             string fileName = Path.GetFileName(normalized);
             string folder = Path.GetFileName(Path.GetDirectoryName(normalized) ?? string.Empty);
-            if (fileName.StartsWith(folder + "_", StringComparison.OrdinalIgnoreCase))
-            {
-                evidence = "is named like an extension of " + folder;
-            }
-
-            if (evidence == null)
+            if (!fileName.StartsWith(folder + "_", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
             string message = string.Format(
                 CultureInfo.InvariantCulture,
-                "{0} {1}, but it isn't in an extensions folder, so it is never merged. Move it to the screen's extensions folder ({2}/extensions/).",
+                "{0} is named like an extension of {1}, but it isn't in an extensions folder. Acumatica keeps a screen's extensions in {1}/extensions/.",
                 fileName,
-                evidence,
                 folder);
             results.Add(Create(DiagnosticIds.ExtensionOutsideExtensions, message, path, 0, 0, lineMap));
-        }
-
-        private static string? MergeAttributeIn(IReadOnlyList<HtmlTag> tags)
-        {
-            foreach (HtmlTag tag in tags)
-            {
-                foreach (HtmlAttribute attr in tag.Attributes)
-                {
-                    if (!tag.IsEndTag && IsMergeOperator(attr.Name))
-                    {
-                        return "uses " + attr.Name + "=, which only an extension can";
-                    }
-                }
-            }
-
-            return null;
         }
 
         private static void Scan0001(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
@@ -297,7 +274,7 @@ namespace AISI.MuiLint
 
                 string message = string.Format(
                     CultureInfo.InvariantCulture,
-                    "Self-closing <{0}> is not valid for Acumatica Modern UI merge. Use <{0} ...></{0}>.",
+                    "<{0}/> can't be self-closing: HTML only allows that on a few standard tags, so whatever follows ends up inside it. Use <{0} ...></{0}>.",
                     tag.Name);
 
                 results.Add(Create(DiagnosticIds.SelfClosing, message, path, tag.Start, tag.End - tag.Start, lineMap));
@@ -319,7 +296,12 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                if (HasMergeOperation(tag))
+                // Stock leaves fieldsets empty on purpose: hidden ones, wg-containers filled at run time,
+                // and ones later elements append to.
+                if (HasMergeOperation(tag)
+                    || tag.HasAttribute("wg-container")
+                    || (" " + tag.GetAttribute("class") + " ").IndexOf(" hidden ", StringComparison.OrdinalIgnoreCase) >= 0
+                    || IsTargeted(tags, tag.GetAttribute("id")))
                 {
                     continue;
                 }
@@ -368,7 +350,7 @@ namespace AISI.MuiLint
 
                 results.Add(Create(
                     DiagnosticIds.EmptyFieldset,
-                    "qp-fieldset is empty (whitespace or comments only).",
+                    "qp-fieldset has nothing in it, and nothing in this file adds to it.",
                     path,
                     tag.Start,
                     tag.End - tag.Start,
@@ -402,7 +384,7 @@ namespace AISI.MuiLint
 
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
-                        "{0}=\"{1}\" is not a valid selector: {2}. The merge will not match anything.",
+                        "{0}=\"{1}\" is not a valid CSS selector: {2}. The Modern UI build fails on a selector that doesn't match exactly one element.",
                         attr.Name,
                         attr.Value,
                         problem);
@@ -486,21 +468,23 @@ namespace AISI.MuiLint
                     continue;
                 }
 
+                // Stock repeats ids like btnOK in every dialog; only twice in one container is a slip.
+                string scope = parents[i].ToString(CultureInfo.InvariantCulture);
                 string id = tag.GetAttribute("id");
                 if (id.Length > 0)
                 {
-                    if (ids.TryGetValue(id, out HtmlTag first))
+                    if (ids.TryGetValue(scope + "\n" + id, out HtmlTag first))
                     {
                         string message = string.Format(
                             CultureInfo.InvariantCulture,
-                            "id '{0}' is already used on line {1}. Selectors will only ever find the first one.",
+                            "id '{0}' is already used in this container on line {1}. #{0} matches both, and the build fails on a selector that matches more than one element.",
                             id,
                             LineOf(first, lineMap));
                         results.Add(Create(DiagnosticIds.DuplicateNameOrId, message, path, tag.Start, tag.End - tag.Start, lineMap));
                     }
                     else
                     {
-                        ids.Add(id, tag);
+                        ids.Add(scope + "\n" + id, tag);
                     }
                 }
 
@@ -510,15 +494,14 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                // The same field can legitimately show up once per view, so key on the view.
-                string scope = FieldScope(tags, parents, i, out string scopeLabel);
+                // Stock shows the same field twice in a view on purpose (AP301000's CuryTaxTotal), but
+                // never twice in one container.
                 if (names.TryGetValue(scope + "\n" + name, out HtmlTag firstField))
                 {
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
-                        "Field '{0}' already appears {1} on line {2}.",
+                        "Field '{0}' already appears in this container on line {1}.",
                         name,
-                        scopeLabel,
                         LineOf(firstField, lineMap));
                     results.Add(Create(DiagnosticIds.DuplicateNameOrId, message, path, tag.Start, tag.End - tag.Start, lineMap));
                 }
@@ -536,6 +519,7 @@ namespace AISI.MuiLint
                 if (tag.IsEndTag
                     || !IsQpTag(tag.Name)
                     || tag.HasAttribute("id")
+                    || HasConfigId(tag.GetAttribute("config.bind"))
                     || tag.HasAttribute("modify")
                     || tag.HasAttribute("remove")
                     || IdOptional.Contains(tag.Name))
@@ -545,7 +529,7 @@ namespace AISI.MuiLint
 
                 string message = string.Format(
                     CultureInfo.InvariantCulture,
-                    "<{0}> has no id, so other customizations cannot target it with #id and tests cannot find it.",
+                    "<{0}> has no id, so customizations can't target it with #id.",
                     tag.Name);
                 results.Add(Create(DiagnosticIds.QpControlWithoutId, message, path, tag.Start, tag.End - tag.Start, lineMap));
             }
@@ -568,7 +552,7 @@ namespace AISI.MuiLint
 
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
-                        "config.bind does not parse: {0}. The binding expression is broken, so the control cannot get its settings.",
+                        "config.bind is not a valid expression: {0}.",
                         problem);
                     results.Add(Create(DiagnosticIds.MalformedConfig, message, path, attr.ValueStart, attr.Value.Length, lineMap));
                 }
@@ -576,11 +560,23 @@ namespace AISI.MuiLint
         }
 
         /// <summary>The view.bind of the nearest enclosing element, or empty.</summary>
+        /// <summary>The view around a tag: a view.bind, a qp-panel's id, or a &lt;using view&gt;, as AcuMate reads them.</summary>
         internal static string NearestView(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
         {
             for (int p = parents[index]; p >= 0; p = parents[p])
             {
-                string view = tags[p].GetAttribute("view.bind");
+                HtmlTag tag = tags[p];
+                string view = tag.GetAttribute("view.bind");
+                if (view.Length == 0 && string.Equals(tag.Name, "qp-panel", StringComparison.OrdinalIgnoreCase))
+                {
+                    view = tag.GetAttribute("id");
+                }
+
+                if (view.Length == 0 && string.Equals(tag.Name, "using", StringComparison.OrdinalIgnoreCase))
+                {
+                    view = tag.GetAttribute("view");
+                }
+
                 if (view.Length > 0)
                 {
                     return view;
@@ -590,30 +586,82 @@ namespace AISI.MuiLint
             return string.Empty;
         }
 
-        private static string FieldScope(IReadOnlyList<HtmlTag> tags, int[] parents, int index, out string label)
+        private static void Scan0018(string path, IReadOnlyList<HtmlTag> tags, int[] parents, LineMap lineMap, List<Diagnostic> results)
         {
-            for (int p = parents[index]; p >= 0; p = parents[p])
+            for (int i = 0; i < tags.Count; i++)
             {
-                string view = tags[p].GetAttribute("view.bind");
-                if (view.Length > 0)
+                HtmlTag tag = tags[i];
+                string? attribute = tag.IsEndTag ? null : FirstMergeAttribute(tag);
+                int parent = parents[i];
+                if (attribute == null || parent < 0 || (IsTemplate(tags[parent]) && parents[parent] < 0))
                 {
-                    label = "in view '" + view + "'";
-                    return "view:" + view;
+                    continue;
                 }
 
-                for (int a = 0; a < tags[p].Attributes.Count; a++)
+                bool inInclude = false;
+                for (int p = parent; p >= 0 && !inInclude; p = parents[p])
                 {
-                    HtmlAttribute attr = tags[p].Attributes[a];
-                    if (IsMergeOperator(attr.Name))
+                    inInclude = string.Equals(tags[p].Name, "qp-include", StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (inInclude)
+                {
+                    continue;
+                }
+
+                string message = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "<{0} {1}=...> is inside <{2}>. Tags that customize the original HTML have to be directly in the top-level <template>.",
+                    tag.Name,
+                    attribute,
+                    tags[parent].Name);
+                results.Add(Create(DiagnosticIds.MergeTagNotAtTopLevel, message, path, tag.Start, tag.End - tag.Start, lineMap));
+            }
+        }
+
+        private static string? FirstMergeAttribute(HtmlTag tag)
+        {
+            foreach (HtmlAttribute attr in tag.Attributes)
+            {
+                if (IsMergeOperator(attr.Name))
+                {
+                    return attr.Name;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsTemplate(HtmlTag tag)
+        {
+            return string.Equals(tag.Name, "template", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasConfigId(string config)
+        {
+            // Not an object literal (a property or a call) can carry an id we can't see, as AcuMate allows.
+            return config.Length > 0 && (!config.TrimStart().StartsWith("{", StringComparison.Ordinal) || ConfigId.IsMatch(config));
+        }
+
+        private static bool IsTargeted(IReadOnlyList<HtmlTag> tags, string id)
+        {
+            if (id.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (HtmlTag tag in tags)
+            {
+                foreach (HtmlAttribute attr in tag.Attributes)
+                {
+                    if (IsMergeOperator(attr.Name) && Regex.IsMatch(attr.Value, "#" + Regex.Escape(id) + "(?![\\w-])"))
                     {
-                        label = "under " + attr.Name + "=\"" + attr.Value + "\"";
-                        return "merge:" + attr.Name + "=" + attr.Value;
+                        return true;
                     }
                 }
             }
 
-            label = "in this file";
-            return string.Empty;
+            return false;
         }
 
         private static int LineOf(HtmlTag tag, LineMap lineMap)
