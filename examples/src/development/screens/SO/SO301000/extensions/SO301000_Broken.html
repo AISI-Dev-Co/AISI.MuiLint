@@ -1,19 +1,13 @@
-<!-- Every in-file mistake MuiLint knows about. There is deliberately no SO301000_Broken.ts (AISI0007). -->
+<!-- Every in-file mistake MuiLint knows about. It has no .ts, which is fine for an extension that only moves things about. -->
 <template>
   <!-- AISI0001: self-closing field -->
   <field name="UsrPriority" after="#fsColumnA-Order [name='OrderDate']"/>
-
-  <!-- AISI0002: anchored on a field this same file adds -->
-  <field name="UsrRush" after="[name='UsrPriority']"></field>
 
   <!-- AISI0006: missing ] -->
   <field name="UsrCarrier" after="[name='CustomerID'"></field>
 
   <!-- AISI0009: the stock field is OrderDate -->
   <field name="UsrWeight" before="[name='OrderDat']"></field>
-
-  <!-- AISI0010: added without the Usr prefix -->
-  <field name="DeliveryNote" after="[name='LocationID']"></field>
 
   <!-- AISI0005: nothing inside -->
   <qp-fieldset id="fsColumnC-AISI" after="#fsColumnB-Order" view.bind="Document"></qp-fieldset>
@@ -24,7 +18,12 @@
   <!-- AISI0013: config.bind is missing its closing brace -->
   <qp-grid id="grid-Extra" after="#fsColumnB-Order" view.bind="Transactions" config.bind="{ allowInsert: false"></qp-grid>
 
-  <!-- AISI0008: same id again -->
+  <!-- AISI0018: a customizing tag inside another one; it has to be directly in <template>. AISI0011: no .ts declares UsrHandling -->
+  <qp-fieldset id="fsColumnD-AISI" after="#fsColumnB-Order" view.bind="Document">
+    <field name="UsrHandling" after="[name='OrderDate']"></field>
+  </qp-fieldset>
+
+  <!-- AISI0008: same id twice in one container -->
   <qp-fieldset id="fsColumnC-AISI" after="#fsColumnA-Order" view.bind="Document">
     <field name="UsrDeliveryWindow"></field>
   </qp-fieldset>

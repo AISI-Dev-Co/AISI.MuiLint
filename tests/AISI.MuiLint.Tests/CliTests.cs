@@ -27,8 +27,8 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(1, exit);
             Assert.Contains("SO301000_Broken.html(4,3): error AISI0001: ", output, StringComparison.Ordinal);
             Assert.Contains("warning AISI0009", output, StringComparison.Ordinal);
-            Assert.Contains("info AISI0010", output, StringComparison.Ordinal);
-            Assert.Contains("1 file scanned, 6 errors, 2 warnings, 2 suggestions", summary, StringComparison.Ordinal);
+            Assert.Contains("info AISI0012", output, StringComparison.Ordinal);
+            Assert.Contains("1 file scanned, 4 errors, 3 warnings, 2 suggestions", summary, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -37,8 +37,13 @@ namespace AISI.MuiLint.Tests
             (_, string output, _) = Run("--format", "json", Extensions);
             using JsonDocument json = JsonDocument.Parse(output);
             string[] ids = json.RootElement.EnumerateArray().Select(e => e.GetProperty("id").GetString()!).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            // The broken example has no .ts on purpose (AISI0007), so there is nothing to bind against.
-            string[] skipped = { DiagnosticIds.StockScreensPath, DiagnosticIds.ExtensionBasename, DiagnosticIds.BindingNotInTypeScript };
+            // The rules about where a file lives can't fire on files that live in the right place.
+            string[] skipped =
+            {
+                DiagnosticIds.StockScreensPath,
+                DiagnosticIds.ExtensionBasename,
+                DiagnosticIds.ExtensionOutsideExtensions,
+            };
             Assert.Equal(Rules.All.Select(r => r.Id).Where(id => !skipped.Contains(id)), ids);
         }
 
@@ -106,6 +111,35 @@ namespace AISI.MuiLint.Tests
                 (int exit, _, string summary) = Run(root);
                 Assert.Equal(0, exit);
                 Assert.Equal(string.Empty, summary);
+            }
+            finally
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void FieldsFromAnyExtensionOfTheScreen_Count()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "muilint-" + Guid.NewGuid().ToString("N"));
+            string src = Path.Combine(root, "src");
+            void Write(string relative, string text)
+            {
+                string path = Path.Combine(src, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, text);
+            }
+
+            Write("screens/SO/SO301000/SO301000.ts", "export class SO301000 extends PXScreen {\n    Document = createSingle(SOOrderHeader);\n}\nexport class SOOrderHeader extends PXView {\n    OrderNbr: PXFieldState;\n}\n");
+            Write("screens/SO/SO301000/extensions/SO301000_Payments.ts", "import { SOOrderHeader } from \"../SO301000\";\nexport interface SOOrderHeader_Payments extends SOOrderHeader {}\nexport class SOOrderHeader_Payments {\n    PaymentTotal: PXFieldState;\n}\n");
+            Write("customizationScreens/Shipping/SO/SO301000/extensions/SO301000_Shipping.ts", "import { SOOrderHeader } from \"src/screens/SO/SO301000/SO301000\";\nexport interface SOOrderHeader_Shipping extends SOOrderHeader {}\nexport class SOOrderHeader_Shipping {\n    UsrCarrier: PXFieldState;\n}\n");
+            Write("development/screens/SO/SO301000/extensions/SO301000_AISI.ts", "import { SO301000 } from \"src/screens/SO/SO301000/SO301000\";\nexport interface SO301000_AISI extends SO301000 {}\nexport class SO301000_AISI {}\n");
+            Write("development/screens/SO/SO301000/extensions/SO301000_AISI.html", "<template><qp-fieldset id=\"f\" after=\"#x\" view.bind=\"Document\"><field name=\"PaymentTotal\"></field><field name=\"UsrCarrier\"></field><field name=\"UsrMissing\"></field></qp-fieldset></template>");
+            try
+            {
+                (_, string output, _) = Run(Path.Combine(src, "development"));
+                string finding = Assert.Single(output.Split('\n', StringSplitOptions.RemoveEmptyEntries), line => line.Contains("AISI0011", StringComparison.Ordinal));
+                Assert.Contains("UsrMissing", finding, StringComparison.Ordinal);
             }
             finally
             {

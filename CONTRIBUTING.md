@@ -28,9 +28,10 @@ Warnings are errors throughout.
 
 1. Add the id to `src/AISI.MuiLint/DiagnosticIds.cs` and a `Rule` to `Rules.All` in `Rules.cs`: title, default
    severity and a one-paragraph description. The Roslyn analyser, SARIF output and Error List all pick it up from there.
-2. Write the check in `HtmlMergeScanner`. Rules that only need the file's text go in `HtmlMergeScanner.cs`; rules
-   that read the stock screen or neighbouring files go in `HtmlMergeScanner.Extensions.cs`, and only run when the
-   host passes `readFile`.
+2. Write the check. HTML rules go in `HtmlMergeScanner`: ones that only need the file's text in
+   `HtmlMergeScanner.cs`, ones that read the stock screen or neighbouring files in `HtmlMergeScanner.Extensions.cs`
+   (they only run when the host passes `readFile`). TypeScript rules go in `TypeScriptScanner`, and need adding to
+   `TypeScriptRules` in `HtmlMergeScannerTests` so their fixtures are `.ts` files.
 3. Add at least one fixture to `tests/AISI.MuiLint.Tests/Fixtures/fail/<id>/` and one to `pass/<id>/`. The fixture
    test fails until both exist.
 4. Write `docs/rules/<id>.md`: why it breaks, a wrong and a right snippet, and how to turn it off. Tests check the page

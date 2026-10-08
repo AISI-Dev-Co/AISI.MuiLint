@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace AISI.MuiLint.Tests
@@ -88,7 +89,7 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void ActionsAndPanels_AreScreenMembers()
+        public void ButtonActions_AreScreenMembers()
         {
             IReadOnlyList<Diagnostic> results = Scan(
                 "<template>" +
@@ -97,10 +98,69 @@ namespace AISI.MuiLint.Tests
                 "<qp-panel id=\"Transactions\"></qp-panel>" +
                 "<qp-panel id=\"TransactionsDialog\"></qp-panel>" +
                 "</template>");
+            // A qp-panel id needn't be a view: the docs call it a generic placeholder, and stock has PanelRef.
             Assert.Collection(
                 results,
-                d => Assert.Contains("no action called 'AddInvBySight'", d.Message, StringComparison.Ordinal),
-                d => Assert.Contains("qp-panel id 'TransactionsDialog'", d.Message, StringComparison.Ordinal));
+                d => Assert.Contains("no action called 'AddInvBySight'", d.Message, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void UsingAndPanels_SetTheViewForTheFieldsInside()
+        {
+            // AR303000 does this: <using view="CurrentCustomer"> inside a fieldset bound to DefContact.
+            Assert.DoesNotContain(
+                Scan("<template><qp-fieldset id=\"f\" view.bind=\"Document\"><using view=\"Transactions\"><field name=\"OrderQty\"></field></using></qp-fieldset>"
+                    + "<qp-panel id=\"Transactions\"><field name=\"OrderQty\"></field></qp-panel></template>"),
+                x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+        }
+
+        [Fact]
+        public void StateBind_IsOnlyAnActionOnAButton()
+        {
+            // As documented for qp-mail-editor: there, state.bind names a field.
+            Assert.DoesNotContain(Scan("<template><qp-mail-editor id=\"m\" state.bind=\"Email\"></qp-mail-editor></template>"), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+        }
+
+        [Fact]
+        public void FieldsAndViewsFromOtherExtensions_Count()
+        {
+            Dictionary<string, string> files = Files();
+
+            // A stock feature extension that SO301000.ts never imports: the build stitches it in.
+            files["/site/src/screens/SO/SO301000/extensions/SO301000_Payments.ts"] =
+                "import { SO301000, SOOrderHeader } from \"../SO301000\";\n" +
+                "export interface SO301000_Payments extends SO301000 {}\n" +
+                "export class SO301000_Payments {\n    Payments = createCollection(SOPayment);\n}\n" +
+                "export class SOPayment extends PXView {\n    CuryAmt: PXFieldState;\n}\n" +
+                "export interface SOOrderHeader_Payments extends SOOrderHeader {}\n" +
+                "export class SOOrderHeader_Payments {\n    PaymentTotal: PXFieldState;\n}\n";
+
+            // Another extension of ours, beside this one.
+            files["/site/src/development/screens/SO/SO301000/extensions/SO301000_Other.ts"] =
+                "import { SOOrderHeader } from \"src/screens/SO/SO301000/SO301000\";\n" +
+                "export interface SOOrderHeader_Other extends SOOrderHeader {}\n" +
+                "export class SOOrderHeader_Other {\n    UsrOther: PXFieldState;\n}\n";
+
+            // One from another customization project.
+            files["/site/src/customizationScreens/Shipping/SO/SO301000/extensions/SO301000_Shipping.ts"] =
+                "import { SOOrderHeader } from \"src/screens/SO/SO301000/SO301000\";\n" +
+                "export interface SOOrderHeader_Shipping extends SOOrderHeader {}\n" +
+                "export class SOOrderHeader_Shipping {\n    UsrCarrier: PXFieldState;\n}\n";
+
+            const string html =
+                "<template>" +
+                "<qp-grid id=\"g\" after=\"#x\" view.bind=\"Payments\"><field name=\"CuryAmt\"></field></qp-grid>" +
+                "<qp-fieldset id=\"f\" after=\"#x\" view.bind=\"Document\">" +
+                "<field name=\"PaymentTotal\"></field><field name=\"UsrOther\"></field><field name=\"UsrCarrier\"></field>" +
+                "</qp-fieldset>" +
+                "</template>";
+
+            Assert.DoesNotContain(
+                HtmlMergeScanner.Analyze(Extension, html, Reader(files), Lister(files)),
+                x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+
+            // Without a way to list folders those files can't be found, and all four are reported.
+            Assert.Equal(4, Scan(html, files).Count(x => x.Id == DiagnosticIds.BindingNotInTypeScript));
         }
 
         [Fact]
@@ -258,6 +318,21 @@ namespace AISI.MuiLint.Tests
                 [ViewsTs] = Views,
                 [ExtensionTs] = Custom,
             };
+        }
+
+        internal static Func<string, string?> Reader(Dictionary<string, string> files)
+        {
+            return path => files.TryGetValue(path, out string? text) ? text : null;
+        }
+
+        /// <summary>What's directly inside a folder, files and subfolders, like Directory.GetFileSystemEntries.</summary>
+        internal static Func<string, IEnumerable<string>> Lister(Dictionary<string, string> files)
+        {
+            return folder => files.Keys
+                .Where(p => p.StartsWith(folder + "/", StringComparison.Ordinal))
+                .Select(p => p.IndexOf('/', folder.Length + 1) < 0 ? p : p.Substring(0, p.IndexOf('/', folder.Length + 1)))
+                .Distinct()
+                .ToList();
         }
 
         private static IReadOnlyList<Diagnostic> Scan(string html, Dictionary<string, string>? files = null)

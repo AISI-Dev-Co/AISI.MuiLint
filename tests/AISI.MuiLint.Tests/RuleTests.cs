@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace AISI.MuiLint.Tests
@@ -58,12 +59,16 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void SelectorNotInStock_LeavesSameFileTargetsToAisi0002()
+        public void SelectorNotInStock_AcceptsFieldsThisFileAdds()
         {
-            const string html = "<template><field name=\"UsrA\" after=\"[name='Status']\"></field><field name=\"UsrB\" after=\"[name='UsrA']\"></field></template>";
+            // The shape of Acumatica's own IN202500_PhoneRepairShop example: the second field chains off the first.
+            const string html = "<template>"
+                + "<field after=\"#fsColumnA-Order [name='Status']\" name=\"UsrRepairItem\"></field>"
+                + "<field after=\"#fsColumnA-Order [name='UsrRepairItem']\" name=\"UsrRepairItemType\"></field>"
+                + "</template>";
             IReadOnlyList<Diagnostic> results = Scan(html, WithStock());
+            Assert.DoesNotContain(results, x => x.Severity == Severity.Error);
             Assert.DoesNotContain(results, x => x.Id == DiagnosticIds.SelectorNotInStock);
-            Assert.Contains(results, x => x.Id == DiagnosticIds.AfterBeforeSameFile);
         }
 
         [Fact]
@@ -96,33 +101,52 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void ExtensionWithoutTypeScript_NeedsTheTsSibling()
+        public void SelectorNotInStock_CountsWhatOtherExtensionsAdd()
         {
-            const string html = "<template></template>";
-            Assert.Contains(Scan(html, new Dictionary<string, string>()), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
-            Assert.DoesNotContain(Scan(html, WithStock()), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
+            Dictionary<string, string> files = WithStock();
+            files["/site/src/screens/SO/SO301000/extensions/SO301000_Payments.html"] = "<template><qp-fieldset id=\"fsPayments\"><field name=\"PaymentTotal\"></field></qp-fieldset></template>";
+            files["/site/src/customizationScreens/Shipping/SO/SO301000/extensions/SO301000_Shipping.html"] = "<template><field name=\"UsrCarrier\" after=\"[name='Status']\"></field></template>";
 
-            // Without a way to read files there is nothing to check.
-            Assert.DoesNotContain(HtmlMergeScanner.Analyze(Extension, html), x => x.Id == DiagnosticIds.ExtensionWithoutTypeScript);
+            const string html = "<template><field name=\"UsrA\" after=\"#fsPayments [name='PaymentTotal']\"></field><field name=\"UsrB\" after=\"[name='UsrCarrier']\"></field></template>";
+            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(Extension, html, path => files.TryGetValue(path, out string? text) ? text : null, BindingTests.Lister(files));
+            Assert.DoesNotContain(results, x => x.Id == DiagnosticIds.SelectorNotInStock);
+            Assert.Equal(3, Scan(html, files).Count(x => x.Id == DiagnosticIds.SelectorNotInStock));
         }
 
         [Fact]
-        public void UsrHint_SkipsAStockFieldBeingMoved()
+        public void ExtensionOutsideExtensions_GoesByTheNameNotTheMergeAttributes()
         {
-            const string html = "<template><field name=\"Status\" after=\"[name='OrderNbr']\"></field></template>";
-            Assert.DoesNotContain(Scan(html, WithStock()), x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
-
-            Diagnostic d = Assert.Single(HtmlMergeScanner.Analyze(Extension, html), x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
-            Assert.Equal(Severity.Suggestion, d.Severity);
-        }
-
-        [Fact]
-        public void UsrHint_OnlyAppliesToExtensions()
-        {
-            const string html = "<template><field name=\"Priority\" after=\"[name='OrderNbr']\"></field></template>";
+            // A screen that reuses another through qp-include merges into it too (Acumatica's IN202520).
+            const string html = "<template><qp-include url=\"../IN202500/IN202500.html\"></qp-include><field append=\"#fsColumnA-Header\" name=\"RefNbr\"></field></template>";
             Assert.DoesNotContain(
-                HtmlMergeScanner.Analyze("/site/src/development/screens/XX/XX301000/XX301000.html", html),
-                x => x.Id == DiagnosticIds.FieldWithoutUsrPrefix);
+                HtmlMergeScanner.Analyze("/site/src/development/screens/IN/IN202599/IN202599.html", html),
+                x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+
+            Diagnostic d = Assert.Single(
+                HtmlMergeScanner.Analyze("/site/src/development/screens/SO/SO301000/SO301000_AISI.html", html),
+                x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+            Assert.Equal((0, 0), (d.Start, d.Length));
+
+            // Outside the custom trees it's not ours to judge.
+            Assert.DoesNotContain(HtmlMergeScanner.Analyze("/elsewhere/SO301000/SO301000_AISI.html", html), x => x.Id == DiagnosticIds.ExtensionOutsideExtensions);
+        }
+
+        [Fact]
+        public void EmptyFieldset_LeavesStocksDeliberatelyEmptyOnesAlone()
+        {
+            Assert.DoesNotContain(
+                Scan("<template><qp-fieldset id=\"fsNew\" after=\"#fsColumnA-Order\"></qp-fieldset><field append=\"#fsNew\" name=\"UsrA\"></field>"
+                    + "<qp-fieldset id=\"h\" class=\"hidden\" view.bind=\"Document\"></qp-fieldset><qp-fieldset id=\"w\" wg-container view.bind=\"Document\"></qp-fieldset></template>", WithStock()),
+                x => x.Id == DiagnosticIds.EmptyFieldset);
+        }
+
+        [Fact]
+        public void ControlWithoutId_AcceptsAnIdInConfigBind()
+        {
+            // Acumatica's docs: id is a shortcut for the id property of config.
+            Assert.DoesNotContain(
+                HtmlMergeScanner.Analyze(Extension, "<template><qp-grid view.bind=\"Transactions\" config.bind=\"{id: 'gridX'}\"></qp-grid><qp-address-lookup></qp-address-lookup></template>"),
+                x => x.Id == DiagnosticIds.QpControlWithoutId);
         }
 
         [Fact]

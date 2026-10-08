@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -53,6 +54,22 @@ namespace AISI.MuiLint.Tests
             Assert.Equal(15, Go("<template><field name=\"Document.Order|Date\"></field></template>").GetValueOrDefault().Line);
         }
 
+        [Fact]
+        public void Hover_DescribesWhatIsUnderTheCaret()
+        {
+            Assert.Equal("View Transactions: SOLine, SO301000.ts line 9", Describe("<template><qp-grid id=\"g\" view.bind=\"Trans|actions\"></qp-grid></template>"));
+            Assert.Equal("UsrPriority on Document (SOOrderHeader), SO301000_Custom.ts line 4", Describe("<template><qp-fieldset id=\"f\" view.bind=\"Document\"><field name=\"Usr|Priority\"></field></qp-fieldset></template>"));
+            Assert.Equal("[name='OrderDate'] in the stock SO301000.html line 3", Describe("<template><field name=\"UsrA\" after=\"#fsColumnA-Order [name='Order|Date']\"></field></template>"));
+        }
+
+        [Fact]
+        public void Hover_SpanIsTheWordItDescribes()
+        {
+            const string html = "<template><field name=\"UsrA\" after=\"#fsColumnA-Order [name='OrderDate']\"></field></template>";
+            NavigationTarget target = Find(html.Insert(html.IndexOf("OrderDate", StringComparison.Ordinal) + 2, "|")).GetValueOrDefault();
+            Assert.Equal("[name='OrderDate']", html.Substring(target.Start, target.Length));
+        }
+
         [Theory]
         [InlineData("<template><qp-grid id=\"g|rid\"></qp-grid></template>")]
         [InlineData("<template><field name=\"Nope|\"></field></template>")]
@@ -81,12 +98,25 @@ namespace AISI.MuiLint.Tests
         [InlineData("<qp-panel id=\"|", MuiCompletionTarget.ViewValue)]
         [InlineData("<qp-button state.bind='|", MuiCompletionTarget.ActionValue)]
         [InlineData("<field name=\"|", MuiCompletionTarget.FieldValue)]
-        [InlineData("<qp-template name=\"|", MuiCompletionTarget.None)]
+        [InlineData("<qp-template name=\"|", MuiCompletionTarget.AttributeValue)]
         [InlineData("<qp-grid id=\"|", MuiCompletionTarget.None)]
         public void Classify_KnowsBindingValues(string html, MuiCompletionTarget expected)
         {
             int caret = html.IndexOf('|');
             Assert.Equal(expected, MuiHtmlCompletion.Classify(html.Remove(caret, 1), caret));
+        }
+
+        private static string? Describe(string htmlWithCaret)
+        {
+            return Find(htmlWithCaret)?.Description;
+        }
+
+        private static NavigationTarget? Find(string htmlWithCaret)
+        {
+            int caret = htmlWithCaret.IndexOf('|');
+            Dictionary<string, string> files = BindingTests.Files();
+            files["/site/src/screens/SO/SO301000/SO301000.html"] = StockHtml;
+            return MuiNavigation.Find(BindingTests.Extension, htmlWithCaret.Remove(caret, 1), caret, p => files.TryGetValue(p, out string? text) ? text : null);
         }
 
         private static SourceLocation? Go(string htmlWithCaret)
@@ -103,7 +133,7 @@ namespace AISI.MuiLint.Tests
             string html = htmlWithCaret.Remove(caret, 1);
             Dictionary<string, string> files = BindingTests.Files();
             MuiCompletionTarget target = MuiHtmlCompletion.Classify(html, caret);
-            return MuiHtmlCompletion.GetBindingValues(BindingTests.Extension, html, caret, target, p => files.TryGetValue(p, out string? text) ? text : null)
+            return MuiHtmlCompletion.GetValues(BindingTests.Extension, html, caret, target, p => files.TryGetValue(p, out string? text) ? text : null)
                 .Select(i => i.DisplayText)
                 .ToArray();
         }

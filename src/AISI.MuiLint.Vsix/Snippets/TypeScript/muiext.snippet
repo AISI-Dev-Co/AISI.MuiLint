@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Extend a view class</Title>
+      <Shortcut>muiext</Shortcut>
+      <Description>Adds fields to an existing view class: the interface says what you extend, the class what you add (AISI0014).</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>class</ID>
+          <ToolTip>The view class.</ToolTip>
+          <Default>SOLine</Default>
+        </Literal>
+        <Literal>
+          <ID>suffix</ID>
+          <ToolTip>Your extension's suffix, usually the customization project's name.</ToolTip>
+          <Default>Custom</Default>
+        </Literal>
+        <Literal>
+          <ID>field</ID>
+          <ToolTip>The field's name, exactly as the DAC spells it.</ToolTip>
+          <Default>FieldName</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[export interface $class$_$suffix$ extends $class$ {}
+export class $class$_$suffix$ {
+	$field$: PXFieldState;$end$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

@@ -13,7 +13,7 @@
     <TargetFramework>net472</TargetFramework>
     <RootNamespace>AISI.MuiLint.Vsix</RootNamespace>
     <AssemblyName>AISI.MuiLint.Vsix</AssemblyName>
-    <Description>Visual Studio 2022 VSIX for AISI.MuiLint. HTML editor squiggles and Error List via MEF tagger; AnalyzeHtml calls the HTML merge scanner.</Description>
+    <Description>Visual Studio 2022 VSIX for AISI.MuiLint. Squiggles and Error List entries for Modern UI HTML and TypeScript via a MEF tagger.</Description>
     <IsPackable>false</IsPackable>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
@@ -81,6 +81,13 @@
     <Content Include="..\..\LICENSE">
       <Link>LICENSE</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Snippets\TypeScript\*.snippet">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Snippets\AISI.MuiLint.Snippets.pkgdef">
+      <Link>AISI.MuiLint.Snippets.pkgdef</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
   </ItemGroup>

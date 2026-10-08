@@ -17,6 +17,13 @@ namespace AISI.MuiLint.Tests
     {
         private static readonly string FixturesRoot = Path.Combine(AppContext.BaseDirectory, "Fixtures");
 
+        private static readonly string[] TypeScriptRules =
+        {
+            DiagnosticIds.HalfAnExtension,
+            DiagnosticIds.DecoratorViewNotDeclared,
+            DiagnosticIds.ViewFromNonView,
+        };
+
         public static TheoryData<string, string> FailFixtures()
         {
             return Enumerate("fail");
@@ -32,7 +39,7 @@ namespace AISI.MuiLint.Tests
         public void FailFixture_ReportsExpectedId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
+            IReadOnlyList<Diagnostic> results = MuiLinter.Analyze(path, text, TestFiles.ReadDisk);
             Assert.Contains(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
@@ -41,7 +48,7 @@ namespace AISI.MuiLint.Tests
         public void PassFixture_DoesNotReportId(string id, string path)
         {
             string text = File.ReadAllText(path);
-            IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(path, text, TestFiles.ReadDisk);
+            IReadOnlyList<Diagnostic> results = MuiLinter.Analyze(path, text, TestFiles.ReadDisk);
             Assert.DoesNotContain(results, d => string.Equals(d.Id, id, StringComparison.Ordinal));
         }
 
@@ -70,14 +77,6 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void AfterBefore_DoesNotTreatSelectorAsADefinedName()
-        {
-            const string html = "<template><field name=\"UsrA\" after=\"[name='OrderNbr']\"></field></template>";
-            IReadOnlyList<Diagnostic> results = Analyzer.Scan("ext.html", html);
-            Assert.DoesNotContain(results, d => d.Id == DiagnosticIds.AfterBeforeSameFile);
-        }
-
-        [Fact]
         public void Fieldset_DoesNotMatchAsField()
         {
             const string html = "<template><fieldset name=\"x\"/></template>";
@@ -99,7 +98,7 @@ namespace AISI.MuiLint.Tests
             var analyzer = new Analyzer();
             Assert.Equal(DiagnosticSeverity.Error, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.SelfClosing).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Warning, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.DuplicateNameOrId).DefaultSeverity);
-            Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.FieldWithoutUsrPrefix).DefaultSeverity);
+            Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.QpControlWithoutId).DefaultSeverity);
         }
 
         [Fact]
@@ -129,10 +128,10 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void AnalyzeHtml_EqualsHtmlMergeScanner()
+        public void PackageAnalyze_EqualsHtmlMergeScanner()
         {
             const string html = "<template><field name=\"OrderNbr\"/></template>";
-            IReadOnlyList<Diagnostic> viaPackage = AISI.MuiLint.Vsix.MuiLintPackage.AnalyzeHtml("x.html", html);
+            IReadOnlyList<Diagnostic> viaPackage = AISI.MuiLint.Vsix.MuiLintPackage.Analyze("x.html", html);
             IReadOnlyList<Diagnostic> viaScanner = HtmlMergeScanner.Analyze("x.html", html);
             Assert.Equal(viaScanner.Count, viaPackage.Count);
             for (int i = 0; i < viaScanner.Count; i++)
@@ -171,10 +170,15 @@ namespace AISI.MuiLint.Tests
             Assert.True(Directory.Exists(root), "Missing fixtures at " + root);
             foreach (string idDir in Directory.GetDirectories(root))
             {
+                // TypeScript rules are checked on their .ts files; the stock screens beside them are context.
                 string id = Path.GetFileName(idDir);
-                foreach (string file in Directory.GetFiles(idDir, "*.html", SearchOption.AllDirectories))
+                bool typeScript = TypeScriptRules.Contains(id);
+                foreach (string file in Directory.GetFiles(idDir, typeScript ? "*.ts" : "*.html", SearchOption.AllDirectories))
                 {
-                    data.Add(id, file);
+                    if (!typeScript || !HtmlMergeScanner.IsStockScreensPath(file))
+                    {
+                        data.Add(id, file);
+                    }
                 }
             }
 

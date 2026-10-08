@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
@@ -31,34 +29,12 @@ namespace AISI.MuiLint
     /// </summary>
     internal sealed class ScreenModel
     {
-        private const int MaxModules = 64;
+        private const int MaxModules = 128;
 
-        private static readonly Regex ModuleSpecifier = new Regex(
-            "\\b(?:from|import)\\s*(['\"])(?<spec>[^'\"\\r\\n]+)\\1",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static readonly Regex ClassHeader = new Regex(
-            "\\bclass\\s+(?<name>[A-Za-z_$][\\w$]*)\\s*(?:<[^{]*?>)?\\s*(?:extends\\s+(?<base>[^{]*?))?\\s*(?:implements\\s+[^{]*)?\\{",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static readonly Regex InterfaceHeader = new Regex(
-            "\\binterface\\s+(?<name>[A-Za-z_$][\\w$]*)\\s*(?:<[^{]*?>)?\\s*extends\\s+(?<bases>[^{]+)\\{",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static readonly Regex ViewInitializer = new Regex(
-            "(?<name>[A-Za-z_$][\\w$]*)\\s*[?!]?\\s*(?::[^=;{}]*)?=\\s*create(?:Single|Collection)\\s*\\(\\s*(?<class>[A-Za-z_$][\\w$]*)",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static readonly Regex MemberStart = new Regex(
-            "^(?:@[\\w$.]+\\s*(?:\\(\\s*\\))?\\s*)*(?:(?:public|private|protected|static|readonly|declare|override|abstract|async|get|set)\\s+)*(?<name>[A-Za-z_$][\\w$]*)\\s*[?!]?\\s*(?<op>[:=(<])\\s*(?<type>[\\w$]*)",
-            RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private static readonly Regex GenericSuffix = new Regex("<.*>$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
-
-        private readonly Dictionary<string, ClassDecl> _classes = new Dictionary<string, ClassDecl>(StringComparer.Ordinal);
+        private readonly Dictionary<string, (TsClass Class, TsModule Module)> _classes = new Dictionary<string, (TsClass, TsModule)>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _mergedInto = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        private readonly Dictionary<string, Dictionary<string, Member>?> _resolved = new Dictionary<string, Dictionary<string, Member>?>(StringComparer.Ordinal);
-        private Dictionary<string, Member> _screen = new Dictionary<string, Member>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Dictionary<string, TsMember>?> _resolved = new Dictionary<string, Dictionary<string, TsMember>?>(StringComparer.Ordinal);
+        private Dictionary<string, TsMember> _screen = new Dictionary<string, TsMember>(StringComparer.Ordinal);
 
         private ScreenModel()
         {
@@ -74,25 +50,51 @@ namespace AISI.MuiLint
         public IReadOnlyList<string> Actions { get; private set; } = Array.Empty<string>();
 
         /// <summary>
-        /// Reads the screen behind <paramref name="htmlPath"/>, or returns null when there is no
-        /// .ts beside it or no single screen class can be found in what it imports.
+        /// Reads the screen behind <paramref name="path"/> (an HTML file or its .ts), or returns
+        /// null when there is no .ts or no single screen class can be found in what it reads.
         /// </summary>
-        public static ScreenModel? Read(string htmlPath, Func<string, string?> readFile)
+        /// <param name="path">The HTML or .ts being checked.</param>
+        /// <param name="readFile">Returns a file's text, or null.</param>
+        /// <param name="tsText">The .ts itself when it's already in hand, such as an editor buffer with unsaved changes.</param>
+        /// <param name="listFolder">
+        /// Lists what's directly inside a folder. With it, every extension of the screen is read too,
+        /// wherever it lives (see <see cref="HtmlMergeScanner.ScreenExtensions"/>).
+        /// </param>
+        public static ScreenModel? Read(string path, Func<string, string?> readFile, string? tsText = null, Func<string, IEnumerable<string>>? listFolder = null)
         {
-            string tsPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(htmlPath, ".ts"));
-            string? text = readFile(tsPath);
+            string tsPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(path, ".ts"));
+            string rootPath = tsPath;
+            string? text = tsText ?? readFile(tsPath);
+
+            // Acumatica ships extensions that are only HTML; they bind against the screen as the other files make it.
+            string? stock = text == null && HtmlMergeScanner.IsExtensionFile(path) ? HtmlMergeScanner.StockHtmlPath(path) : null;
+            if (stock != null)
+            {
+                rootPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(stock, ".ts"));
+                text = readFile(rootPath);
+            }
+
             if (text == null)
             {
                 return null;
             }
 
             var model = new ScreenModel();
-            var modules = new Queue<Module>();
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath };
-            modules.Enqueue(new Module(tsPath, text));
+            var modules = new Queue<TsModule>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath, rootPath };
+            modules.Enqueue(new TsModule(rootPath, text));
+            foreach (string extension in HtmlMergeScanner.ScreenExtensions(tsPath, ".ts", listFolder))
+            {
+                string? extensionText = seen.Count < MaxModules && seen.Add(extension) ? readFile(extension) : null;
+                if (extensionText != null)
+                {
+                    modules.Enqueue(new TsModule(extension, extensionText));
+                }
+            }
+
             while (modules.Count > 0)
             {
-                Module module = modules.Dequeue();
+                TsModule module = modules.Dequeue();
                 model.Collect(module);
                 foreach (string import in module.Imports)
                 {
@@ -106,27 +108,41 @@ namespace AISI.MuiLint
                         string? imported = readFile(candidate);
                         if (imported != null)
                         {
-                            modules.Enqueue(new Module(candidate, imported));
+                            modules.Enqueue(new TsModule(candidate, imported));
                             break;
                         }
                     }
                 }
             }
 
-            return model.FindScreen(ScreenIdFor(htmlPath)) ? model : null;
+            return model.FindScreen(ScreenIdFor(path)) ? model : null;
         }
 
         /// <summary>Gets a member of the screen class (a view, an action, anything declared).</summary>
         public bool TryGetMember(string name, out SourceLocation location)
         {
             location = default;
-            if (!_screen.TryGetValue(name, out Member member))
+            if (!_screen.TryGetValue(name, out TsMember member))
             {
                 return false;
             }
 
             location = member.Location;
             return true;
+        }
+
+        /// <summary>Gets a value indicating whether the screen has a member of this name in any case.</summary>
+        public bool HasMemberIgnoringCase(string name)
+        {
+            foreach (string member in _screen.Keys)
+            {
+                if (string.Equals(member, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -141,15 +157,21 @@ namespace AISI.MuiLint
         /// <summary>The class a view is created from, or null for an unknown view.</summary>
         public string? ClassOf(string view)
         {
-            return _screen.TryGetValue(view, out Member member) ? member.ViewClass : null;
+            return _screen.TryGetValue(view, out TsMember member) ? member.ViewClass : null;
+        }
+
+        /// <summary>The file that declares <paramref name="className"/>, or null when we never saw it.</summary>
+        public string? FileOf(string className)
+        {
+            return _classes.TryGetValue(className, out (TsClass Class, TsModule Module) found) ? found.Module.Path : null;
         }
 
         /// <summary>Finds where a field is declared in <paramref name="view"/>'s class.</summary>
         public bool TryGetField(string view, string field, out SourceLocation location)
         {
             location = default;
-            Dictionary<string, Member>? fields = FieldMembers(view);
-            if (fields == null || !fields.TryGetValue(field, out Member member))
+            Dictionary<string, TsMember>? fields = FieldMembers(view);
+            if (fields == null || !fields.TryGetValue(field, out TsMember member))
             {
                 return false;
             }
@@ -193,22 +215,52 @@ namespace AISI.MuiLint
             return null;
         }
 
-        private Dictionary<string, Member>? FieldMembers(string view)
+        /// <summary>
+        /// Whether <paramref name="className"/> ends up at <c>PXView</c>: false when its chain ends at
+        /// a class with no base (or at <c>PXScreen</c>), null when it runs into something we can't see.
+        /// </summary>
+        public bool? IsView(string className)
         {
-            return _screen.TryGetValue(view, out Member member) && member.ViewClass != null
+            string name = className;
+            for (int depth = 0; depth < 16; depth++)
+            {
+                if (name == "PXView")
+                {
+                    return true;
+                }
+
+                if (name == "PXScreen" || name.Length == 0)
+                {
+                    return false;
+                }
+
+                if (!_classes.TryGetValue(name, out (TsClass Class, TsModule Module) found))
+                {
+                    return null;
+                }
+
+                name = found.Class.Base;
+            }
+
+            return null;
+        }
+
+        private Dictionary<string, TsMember>? FieldMembers(string view)
+        {
+            return _screen.TryGetValue(view, out TsMember member) && member.ViewClass != null
                 ? Resolve(member.ViewClass)
                 : null;
         }
 
-        private static string ScreenIdFor(string htmlPath)
+        private static string ScreenIdFor(string path)
         {
-            string[] parts = HtmlMergeScanner.NormalizePath(htmlPath).Split('/');
+            string[] parts = HtmlMergeScanner.NormalizePath(path).Split('/');
             if (parts.Length >= 3 && string.Equals(parts[parts.Length - 2], "extensions", StringComparison.OrdinalIgnoreCase))
             {
                 return parts[parts.Length - 3];
             }
 
-            return Path.GetFileNameWithoutExtension(htmlPath);
+            return Path.GetFileNameWithoutExtension(path);
         }
 
         private static IEnumerable<string> Candidates(string fromPath, string specifier)
@@ -267,97 +319,51 @@ namespace AISI.MuiLint
             return string.Join("/", parts);
         }
 
-        private void Collect(Module module)
+        private void Collect(TsModule module)
         {
-            foreach (Match header in ClassHeader.Matches(module.Code))
+            foreach (TsClass c in module.Classes)
             {
-                string name = header.Groups["name"].Value;
-                int open = header.Index + header.Length - 1;
-                int close = MatchingBrace(module.Code, open);
-                if (close < 0 || _classes.ContainsKey(name))
+                if (!_classes.ContainsKey(c.Name))
                 {
-                    continue;
+                    _classes.Add(c.Name, (c, module));
                 }
-
-                var decl = new ClassDecl(BaseName(header.Groups["base"].Value));
-                ReadMembers(module, open + 1, close, decl.Members);
-                _classes.Add(name, decl);
             }
 
-            foreach (Match header in InterfaceHeader.Matches(module.Code))
+            foreach (TsInterface i in module.Interfaces)
             {
-                foreach (string raw in header.Groups["bases"].Value.Split(','))
+                foreach (string target in i.Bases)
                 {
-                    string target = BaseName(raw);
                     if (!_mergedInto.TryGetValue(target, out List<string>? sources))
                     {
                         sources = new List<string>();
                         _mergedInto.Add(target, sources);
                     }
 
-                    sources.Add(header.Groups["name"].Value);
+                    sources.Add(i.Name);
                 }
-            }
-        }
-
-        private static void ReadMembers(Module module, int start, int end, Dictionary<string, Member> members)
-        {
-            var views = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (Match m in ViewInitializer.Matches(module.Code.Substring(start, end - start)))
-            {
-                views[m.Groups["name"].Value] = m.Groups["class"].Value;
-            }
-
-            // Look only at the class body's own level; decorator arguments, method bodies and
-            // object literals are blanked so their contents never look like members.
-            string flat = FlattenNested(module.Code, start, end);
-            int segment = 0;
-            for (int i = 0; i <= flat.Length; i++)
-            {
-                if (i < flat.Length && flat[i] != ';' && flat[i] != '\n')
-                {
-                    continue;
-                }
-
-                string text = flat.Substring(segment, i - segment);
-                int lead = text.Length - text.TrimStart().Length;
-                Match m = MemberStart.Match(text.Substring(lead));
-                if (m.Success)
-                {
-                    string name = m.Groups["name"].Value;
-                    if (!members.ContainsKey(name))
-                    {
-                        string type = m.Groups["op"].Value == ":" ? m.Groups["type"].Value : string.Empty;
-                        views.TryGetValue(name, out string? viewClass);
-                        int offset = start + segment + lead + m.Groups["name"].Index;
-                        members.Add(name, new Member(type, viewClass, module.Locate(offset)));
-                    }
-                }
-
-                segment = i + 1;
             }
         }
 
         private bool FindScreen(string screenId)
         {
             string? found = null;
-            foreach (KeyValuePair<string, ClassDecl> c in _classes)
+            foreach (string name in _classes.Keys)
             {
-                if (!ExtendsScreen(c.Key, 0))
+                if (!ExtendsScreen(name, 0))
                 {
                     continue;
                 }
 
-                if (string.Equals(c.Key, screenId, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(name, screenId, StringComparison.OrdinalIgnoreCase))
                 {
-                    found = c.Key;
+                    found = name;
                     break;
                 }
 
-                found = found == null ? c.Key : string.Empty;
+                found = found == null ? name : string.Empty;
             }
 
-            Dictionary<string, Member>? screen = string.IsNullOrEmpty(found) ? null : Resolve(found!);
+            Dictionary<string, TsMember>? screen = string.IsNullOrEmpty(found) ? null : Resolve(found!);
             if (screen == null)
             {
                 return false;
@@ -367,7 +373,7 @@ namespace AISI.MuiLint
             ScreenClass = found!;
             var views = new List<string>();
             var actions = new List<string>();
-            foreach (KeyValuePair<string, Member> member in screen)
+            foreach (KeyValuePair<string, TsMember> member in screen)
             {
                 if (member.Value.ViewClass != null)
                 {
@@ -391,40 +397,41 @@ namespace AISI.MuiLint
                 return true;
             }
 
-            return depth < 16 && _classes.TryGetValue(name, out ClassDecl? decl) && ExtendsScreen(decl.Base, depth + 1);
+            return depth < 16 && _classes.TryGetValue(name, out (TsClass Class, TsModule Module) found) && ExtendsScreen(found.Class.Base, depth + 1);
         }
 
         /// <summary>Members of a class, its bases and its extensions; null if the chain breaks.</summary>
-        private Dictionary<string, Member>? Resolve(string name)
+        private Dictionary<string, TsMember>? Resolve(string name)
         {
-            if (_resolved.TryGetValue(name, out Dictionary<string, Member>? done))
+            if (_resolved.TryGetValue(name, out Dictionary<string, TsMember>? done))
             {
                 return done;
             }
 
             // Guards against a class that (indirectly) extends itself.
             _resolved[name] = null;
-            if (!_classes.TryGetValue(name, out ClassDecl? decl))
+            if (!_classes.TryGetValue(name, out (TsClass Class, TsModule Module) found))
             {
                 return null;
             }
 
-            var members = new Dictionary<string, Member>(StringComparer.Ordinal);
+            var members = new Dictionary<string, TsMember>(StringComparer.Ordinal);
             if (_mergedInto.TryGetValue(name, out List<string>? extensions))
             {
                 foreach (string extension in extensions)
                 {
-                    if (_classes.TryGetValue(extension, out ClassDecl? ext))
+                    if (_classes.TryGetValue(extension, out (TsClass Class, TsModule Module) ext))
                     {
-                        AddMissing(members, ext.Members);
+                        AddMissing(members, ext.Class.Members);
                     }
                 }
             }
 
-            AddMissing(members, decl.Members);
-            if (decl.Base != "PXView" && decl.Base != "PXScreen")
+            AddMissing(members, found.Class.Members);
+            string baseName = found.Class.Base;
+            if (baseName != "PXView" && baseName != "PXScreen")
             {
-                Dictionary<string, Member>? inherited = Resolve(decl.Base);
+                Dictionary<string, TsMember>? inherited = Resolve(baseName);
                 if (inherited == null)
                 {
                     return null;
@@ -437,196 +444,15 @@ namespace AISI.MuiLint
             return members;
         }
 
-        private static void AddMissing(Dictionary<string, Member> into, Dictionary<string, Member> from)
+        private static void AddMissing(Dictionary<string, TsMember> into, Dictionary<string, TsMember> from)
         {
-            foreach (KeyValuePair<string, Member> member in from)
+            foreach (KeyValuePair<string, TsMember> member in from)
             {
                 if (!into.ContainsKey(member.Key))
                 {
                     into.Add(member.Key, member.Value);
                 }
             }
-        }
-
-        private static string BaseName(string raw)
-        {
-            string name = GenericSuffix.Replace(raw.Trim(), string.Empty).Trim();
-            for (int i = 0; i < name.Length; i++)
-            {
-                if (!char.IsLetterOrDigit(name[i]) && name[i] != '_' && name[i] != '$')
-                {
-                    // mixin(...) or anything else we cannot follow.
-                    return "?";
-                }
-            }
-
-            return name.Length == 0 ? "?" : name;
-        }
-
-        private static int MatchingBrace(string code, int open)
-        {
-            int depth = 0;
-            for (int i = open; i < code.Length; i++)
-            {
-                if (code[i] == '{')
-                {
-                    depth++;
-                }
-                else if (code[i] == '}' && --depth == 0)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        private static string FlattenNested(string code, int start, int end)
-        {
-            var sb = new StringBuilder(end - start);
-            int depth = 0;
-            for (int i = start; i < end; i++)
-            {
-                char c = code[i];
-                bool opens = c == '{' || c == '(' || c == '[';
-                bool closes = c == '}' || c == ')' || c == ']';
-                if (closes && depth > 0)
-                {
-                    depth--;
-                }
-
-                sb.Append(depth > 0 && c != '\n' ? ' ' : c);
-                if (opens)
-                {
-                    depth++;
-                }
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>Blanks comments and, unless <paramref name="keepStrings"/>, string contents.</summary>
-        private static string Mask(string text, bool keepStrings)
-        {
-            char[] chars = text.ToCharArray();
-            int i = 0;
-            while (i < chars.Length)
-            {
-                char c = chars[i];
-                int end;
-                if (c == '/' && i + 1 < chars.Length && chars[i + 1] == '/')
-                {
-                    end = text.IndexOf('\n', i);
-                    end = end < 0 ? chars.Length : end;
-                }
-                else if (c == '/' && i + 1 < chars.Length && chars[i + 1] == '*')
-                {
-                    end = text.IndexOf("*/", i + 2, StringComparison.Ordinal);
-                    end = end < 0 ? chars.Length : end + 2;
-                }
-                else if (c == '"' || c == '\'' || c == '`')
-                {
-                    end = i + 1;
-                    while (end < chars.Length && chars[end] != c && (c == '`' || chars[end] != '\n'))
-                    {
-                        end += chars[end] == '\\' ? 2 : 1;
-                    }
-
-                    if (!keepStrings)
-                    {
-                        // Keep the quotes so the shape of the code survives.
-                        Blank(chars, i + 1, Math.Min(end, chars.Length));
-                    }
-
-                    i = end + 1;
-                    continue;
-                }
-                else
-                {
-                    i++;
-                    continue;
-                }
-
-                Blank(chars, i, end);
-                i = end;
-            }
-
-            return new string(chars);
-        }
-
-        private static void Blank(char[] chars, int start, int end)
-        {
-            for (int i = start; i < end; i++)
-            {
-                if (chars[i] != '\n')
-                {
-                    chars[i] = ' ';
-                }
-            }
-        }
-
-        private sealed class Module
-        {
-            private LineMap? _lines;
-
-            public Module(string path, string text)
-            {
-                Path = path;
-                Text = text;
-                Code = Mask(text, keepStrings: false);
-
-                var imports = new List<string>();
-                foreach (Match m in ModuleSpecifier.Matches(Mask(text, keepStrings: true)))
-                {
-                    imports.Add(m.Groups["spec"].Value);
-                }
-
-                Imports = imports;
-            }
-
-            public string Path { get; }
-
-            public string Text { get; }
-
-            /// <summary>The text with comments and string contents blanked, offsets unchanged.</summary>
-            public string Code { get; }
-
-            public IReadOnlyList<string> Imports { get; }
-
-            public SourceLocation Locate(int offset)
-            {
-                _lines ??= new LineMap(Text);
-                _lines.ToLineCol(offset, out int line, out int column);
-                return new SourceLocation(Path, line, column);
-            }
-        }
-
-        private sealed class ClassDecl
-        {
-            public ClassDecl(string baseName)
-            {
-                Base = baseName;
-            }
-
-            public string Base { get; }
-
-            public Dictionary<string, Member> Members { get; } = new Dictionary<string, Member>(StringComparer.Ordinal);
-        }
-
-        private readonly struct Member
-        {
-            public Member(string type, string? viewClass, SourceLocation location)
-            {
-                Type = type;
-                ViewClass = viewClass;
-                Location = location;
-            }
-
-            public string Type { get; }
-
-            public string? ViewClass { get; }
-
-            public SourceLocation Location { get; }
         }
     }
 }

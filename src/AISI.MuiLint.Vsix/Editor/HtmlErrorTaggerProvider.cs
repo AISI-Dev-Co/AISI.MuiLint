@@ -11,8 +11,8 @@ using Microsoft.VisualStudio.Utilities;
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// MEF tagger provider for the VS 2022 Web Tools HTML editor (<c>htmlx</c>) and the
-    /// classic HTML editor (<c>html</c>). One <see cref="HtmlErrorTagger"/> per buffer even
+    /// MEF tagger provider for the VS 2022 Web Tools HTML editor (<c>htmlx</c>), the classic
+    /// HTML editor (<c>html</c>) and TypeScript. One <see cref="HtmlErrorTagger"/> per buffer even
     /// when both content types match (htmlx may derive from html). Teardown is buffer close
     /// (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), not a fake <see cref="CreateTagger"/>
     /// refcount (the aggregator can call CreateTagger N times with no ReleaseView).
@@ -22,6 +22,7 @@ namespace AISI.MuiLint.Vsix
     [Export(typeof(IWpfTextViewCreationListener))]
     [ContentType("htmlx")]
     [ContentType("html")]
+    [ContentType("TypeScript")]
     [TagType(typeof(IErrorTag))]
     [TextViewRole(PredefinedTextViewRoles.Document)]
     [Name("AISI.MuiLint.HtmlErrorTagger")]

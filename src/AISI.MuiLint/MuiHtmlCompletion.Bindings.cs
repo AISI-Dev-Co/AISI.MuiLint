@@ -6,24 +6,40 @@ namespace AISI.MuiLint
     public static partial class MuiHtmlCompletion
     {
         /// <summary>
-        /// Views, actions or fields for the binding value under the caret, read from the screen's
-        /// TypeScript. Fields come from the view of the nearest enclosing <c>view.bind</c>, or from
-        /// every view when there is none.
+        /// Suggestions for the attribute value under the caret: stock targets in a selector; views,
+        /// fields and actions from the screen's TypeScript (fields from the view of the nearest
+        /// enclosing <c>view.bind</c>, or every view when there is none); otherwise the values the
+        /// stock screen uses for the same attribute.
         /// </summary>
         /// <param name="htmlPath">Path of the HTML being edited.</param>
         /// <param name="text">Its current text.</param>
         /// <param name="caret">Caret offset into <paramref name="text"/>.</param>
         /// <param name="target">What <see cref="Classify"/> said the caret is in.</param>
         /// <param name="readFile">Returns a file's text, or null when it does not exist.</param>
-        public static IReadOnlyList<MuiCompletionItem> GetBindingValues(
+        /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen counts. Optional.</param>
+        public static IReadOnlyList<MuiCompletionItem> GetValues(
             string htmlPath,
             string text,
             int caret,
             MuiCompletionTarget target,
-            Func<string, string?> readFile)
+            Func<string, string?> readFile,
+            Func<string, IEnumerable<string>>? listFolder = null)
         {
+            if (target == MuiCompletionTarget.SelectorValue)
+            {
+                return GetSelectorValues(htmlPath, text, caret, readFile, listFolder);
+            }
+
+            if (target == MuiCompletionTarget.AttributeValue)
+            {
+                int open = text.LastIndexOf('<', Math.Max(0, caret - 1));
+                string inTag = open < 0 ? string.Empty : text.Substring(open, caret - open);
+                string attribute = TryGetOpenQuotedAttribute(inTag, out _) ?? string.Empty;
+                return GetAttributeValues(ReadTagName(inTag), attribute, htmlPath, readFile, listFolder);
+            }
+
             var items = new List<MuiCompletionItem>();
-            ScreenModel? screen = ScreenModel.Read(htmlPath, readFile);
+            ScreenModel? screen = ScreenModel.Read(htmlPath, readFile, listFolder: listFolder);
             if (screen == null)
             {
                 return items;
@@ -81,6 +97,11 @@ namespace AISI.MuiLint
 
         private static string ReadTagName(string inTag)
         {
+            if (inTag.Length == 0)
+            {
+                return string.Empty;
+            }
+
             int end = 1;
             while (end < inTag.Length && (char.IsLetterOrDigit(inTag[end]) || inTag[end] == '-' || inTag[end] == '_'))
             {

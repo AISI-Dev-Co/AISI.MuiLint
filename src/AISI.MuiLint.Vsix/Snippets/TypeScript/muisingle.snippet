@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Modern UI single-record view</Title>
+      <Shortcut>muisingle</Shortcut>
+      <Description>A view of one record, such as a form header.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>view</ID>
+          <ToolTip>The view's name, exactly as the graph spells it.</ToolTip>
+          <Default>ViewName</Default>
+        </Literal>
+        <Literal>
+          <ID>class</ID>
+          <ToolTip>The view class.</ToolTip>
+          <Default>SOLine</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[$view$ = createSingle($class$);$end$]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
