@@ -1,5 +1,5 @@
 name: AISI MuiLint
-description: Lint Acumatica Modern UI HTML for merge traps and annotate the pull request.
+description: Lint Acumatica Modern UI HTML and TypeScript, and annotate the pull request.
 author: AISI Dev Co
 branding:
   icon: check-square

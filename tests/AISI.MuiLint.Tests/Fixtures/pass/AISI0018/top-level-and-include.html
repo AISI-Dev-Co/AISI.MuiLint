@@ -1,0 +1,10 @@
+<!-- Shapes from Acumatica's docs: top-level merges, fields inside <template modify>, and adjustments inside a qp-include. -->
+<template>
+  <field after="#fsColumnA-Order [name='OrderDate']" name="UsrPriority"></field>
+  <template modify="#fsColumnB-Order">
+    <field name="UsrRush"></field>
+  </template>
+  <qp-include url="../../common/address.html">
+    <field append="#fsAddress" name="UsrBuilding"></field>
+  </qp-include>
+</template>

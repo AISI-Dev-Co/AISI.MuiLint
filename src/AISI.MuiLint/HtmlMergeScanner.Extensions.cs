@@ -26,17 +26,70 @@ namespace AISI.MuiLint
                 throw new ArgumentNullException(nameof(extensionHtmlPath));
             }
 
-            string[] parts = NormalizePath(extensionHtmlPath).Split('/');
-            int extensions = parts.Length - 2;
-            int module = extensions - 2;
-            if (module < 1 || !string.Equals(parts[extensions], "extensions", StringComparison.OrdinalIgnoreCase))
+            if (!IsExtensionFile(extensionHtmlPath) || !TryLocateScreen(extensionHtmlPath, out string src, out string module, out string screen))
             {
                 return null;
             }
 
+            return src + "screens/" + module + "/" + screen + "/" + screen + ".html";
+        }
+
+        /// <summary>
+        /// Every extension of the screen <paramref name="path"/> belongs to, wherever it lives: the
+        /// stock screen's own extensions folder, development/screens, and each project under
+        /// customizationScreens. Nothing imports these; the build stitches them all in.
+        /// </summary>
+        /// <param name="path">Any file of the screen, or of one of its extensions.</param>
+        /// <param name="fileExtension">".ts" or ".html".</param>
+        /// <param name="listFolder">Lists what's directly inside a folder, files and subfolders. Null finds nothing.</param>
+        internal static IEnumerable<string> ScreenExtensions(string path, string fileExtension, Func<string, IEnumerable<string>>? listFolder)
+        {
+            if (listFolder == null || !TryLocateScreen(path, out string src, out string module, out string screen))
+            {
+                yield break;
+            }
+
+            string tail = module + "/" + screen + "/extensions";
+            var folders = new List<string> { src + "screens/" + tail, src + "development/screens/" + tail };
+            foreach (string project in listFolder(src + "customizationScreens"))
+            {
+                string projectPath = NormalizePath(project);
+                folders.Add(projectPath + "/" + tail);
+                folders.Add(projectPath + "/screens/" + tail);
+            }
+
+            foreach (string folder in folders)
+            {
+                foreach (string file in listFolder(folder))
+                {
+                    string filePath = NormalizePath(file);
+                    if (filePath.EndsWith(fileExtension, StringComparison.OrdinalIgnoreCase) && !filePath.EndsWith(".d.ts", StringComparison.OrdinalIgnoreCase))
+                    {
+                        yield return filePath;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Finds the screen a file belongs to: the folder that holds the screens trees (usually
+        /// <c>…/src/</c>, with a trailing slash), the module and the screen id. Works for the stock
+        /// screen, a development screen, a customizationScreens project, and their extensions.
+        /// </summary>
+        private static bool TryLocateScreen(string path, out string src, out string module, out string screen)
+        {
+            src = module = screen = string.Empty;
+            string[] parts = NormalizePath(path).Split('/');
+            int screenIndex = IsExtensionFile(path) ? parts.Length - 3 : parts.Length - 2;
+            int moduleIndex = screenIndex - 1;
+            if (moduleIndex < 1)
+            {
+                return false;
+            }
+
             // Walk back from the module folder to the start of the screens tree.
             int root = -1;
-            for (int i = module - 1; i >= 0 && i >= module - 3; i--)
+            for (int i = moduleIndex - 1; i >= 0 && i >= moduleIndex - 3; i--)
             {
                 if (string.Equals(parts[i], "development", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(parts[i], "customizationScreens", StringComparison.OrdinalIgnoreCase))
@@ -46,40 +99,26 @@ namespace AISI.MuiLint
                 }
             }
 
-            if (root < 0 && string.Equals(parts[module - 1], "screens", StringComparison.OrdinalIgnoreCase))
+            if (root < 0 && string.Equals(parts[moduleIndex - 1], "screens", StringComparison.OrdinalIgnoreCase))
             {
-                root = module - 1;
+                root = moduleIndex - 1;
             }
 
             if (root < 0)
             {
-                return null;
+                return false;
             }
 
-            string screen = parts[extensions - 1];
-            string prefix = root == 0 ? string.Empty : string.Join("/", parts, 0, root) + "/";
-            return prefix + "screens/" + parts[module] + "/" + screen + "/" + screen + ".html";
+            src = root == 0 ? string.Empty : string.Join("/", parts, 0, root) + "/";
+            module = parts[moduleIndex];
+            screen = parts[screenIndex];
+            return true;
         }
 
-        private static bool IsExtensionFile(string path)
+        internal static bool IsExtensionFile(string path)
         {
             string directory = Path.GetFileName(Path.GetDirectoryName(NormalizePath(path)) ?? string.Empty);
             return string.Equals(directory, "extensions", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static void TryPath0007(string path, Func<string, string?> readFile, LineMap lineMap, List<Diagnostic> results)
-        {
-            string tsPath = Path.ChangeExtension(path, ".ts");
-            if (readFile(tsPath) != null)
-            {
-                return;
-            }
-
-            string message = string.Format(
-                CultureInfo.InvariantCulture,
-                "There is no {0} next to this file. Modern UI loads extension HTML through the TypeScript extension of the same name, so this HTML is never merged.",
-                Path.GetFileName(tsPath));
-            results.Add(Create(DiagnosticIds.ExtensionWithoutTypeScript, message, path, 0, 0, lineMap));
         }
 
         private static void Scan0009(
@@ -89,15 +128,9 @@ namespace AISI.MuiLint
             LineMap lineMap,
             List<Diagnostic> results)
         {
-            // Same-file targets are AISI0002's business, not this rule's.
+            // Anchoring on something this file adds above is fine: the merge applies elements in order.
             var localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (HtmlTag tag in tags)
-            {
-                localNames.Add(tag.GetAttribute("name"));
-                localIds.Add(tag.GetAttribute("id"));
-            }
-
             for (int i = 0; i < tags.Count; i++)
             {
                 HtmlTag tag = tags[i];
@@ -144,6 +177,9 @@ namespace AISI.MuiLint
                         }
                     }
                 }
+
+                localNames.Add(tag.GetAttribute("name"));
+                localIds.Add(tag.GetAttribute("id"));
             }
         }
 
@@ -151,58 +187,9 @@ namespace AISI.MuiLint
         {
             return string.Format(
                 CultureInfo.InvariantCulture,
-                "{0} is not in the stock {1}, so the merge has nothing to attach to. Check the spelling; if another extension adds it, suppress this.",
+                "{0} is not in the stock {1}, any extension of it, or above in this file. The Modern UI build fails on a selector that matches nothing.",
                 target,
                 stock.FileName);
-        }
-
-        private static void Scan0010(
-            string path,
-            IReadOnlyList<HtmlTag> tags,
-            int[] parents,
-            StockScreen? stock,
-            LineMap lineMap,
-            List<Diagnostic> results)
-        {
-            for (int i = 0; i < tags.Count; i++)
-            {
-                HtmlTag tag = tags[i];
-                string name = tag.GetAttribute("name");
-                if (tag.IsEndTag || !IsFieldTag(tag.Name) || name.Length == 0 || !IsAddedByExtension(tags, parents, i))
-                {
-                    continue;
-                }
-
-                string field = name.Substring(name.LastIndexOf('.') + 1);
-                if (field.StartsWith("Usr", StringComparison.Ordinal) || (stock != null && stock.Names.ContainsKey(name)))
-                {
-                    continue;
-                }
-
-                string message = string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Field '{0}' is added by this extension but is not Usr-prefixed. Fine if you are moving a stock field; a custom DAC field needs the Usr prefix.",
-                    name);
-                results.Add(Create(DiagnosticIds.FieldWithoutUsrPrefix, message, path, tag.Start, tag.End - tag.Start, lineMap));
-            }
-        }
-
-        private static bool IsAddedByExtension(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
-        {
-            for (int t = index; t >= 0; t = parents[t])
-            {
-                HtmlTag tag = tags[t];
-                if (tag.HasAttribute("after")
-                    || tag.HasAttribute("before")
-                    || tag.HasAttribute("append")
-                    || tag.HasAttribute("prepend")
-                    || tag.HasAttribute("replace"))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         internal static string BlankBracketsAndQuotes(string selector)
@@ -243,6 +230,8 @@ namespace AISI.MuiLint
         /// <summary>Names and ids of a stock screen, including anything it pulls in with qp-include.</summary>
         internal sealed class StockScreen
         {
+            private bool _complete = true;
+
             private StockScreen(string fileName)
             {
                 FileName = fileName;
@@ -256,7 +245,23 @@ namespace AISI.MuiLint
             /// <summary>Each id, and where it first appears.</summary>
             public Dictionary<string, SourceLocation> Ids { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
-            public static StockScreen? Read(string extensionPath, Func<string, string?> readFile)
+            /// <summary>For each id, the names inside that element (includes followed).</summary>
+            public Dictionary<string, List<string>> NamesUnder { get; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>Tag → attribute → the values the stock screen uses for it, first seen first.</summary>
+            public Dictionary<string, Dictionary<string, List<string>>> Attributes { get; } =
+                new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
+
+            /// <summary>
+            /// Reads the stock screen. Null when there is none, or when an include can't be followed and
+            /// <paramref name="allowPartial"/> is false: a half-known screen only produces false alarms,
+            /// though it is still good enough to complete from.
+            /// </summary>
+            public static StockScreen? Read(
+                string extensionPath,
+                Func<string, string?> readFile,
+                bool allowPartial = false,
+                Func<string, IEnumerable<string>>? listFolder = null)
             {
                 string? stockPath = StockHtmlPath(extensionPath);
                 string? html = stockPath == null ? null : readFile(stockPath);
@@ -266,14 +271,26 @@ namespace AISI.MuiLint
                 }
 
                 var stock = new StockScreen(Path.GetFileName(stockPath));
-                return stock.Collect(stockPath, html, readFile, 0) ? stock : null;
+                stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>());
+
+                // Every other extension of the screen is merged in too, so what they add can be targeted.
+                string self = NormalizePath(extensionPath);
+                foreach (string path in ScreenExtensions(extensionPath, ".html", listFolder))
+                {
+                    string? extension = string.Equals(path, self, StringComparison.OrdinalIgnoreCase) ? null : readFile(path);
+                    if (extension != null)
+                    {
+                        stock.Collect(path, extension, readFile, 0, Array.Empty<string>());
+                    }
+                }
+
+                return stock._complete || allowPartial ? stock : null;
             }
 
-            // False when an include cannot be followed. Then we do not know every target, and a
-            // half-known stock screen would only produce false alarms.
-            private bool Collect(string filePath, string html, Func<string, string?> readFile, int depth)
+            private void Collect(string filePath, string html, Func<string, string?> readFile, int depth, IReadOnlyList<string> outerIds)
             {
                 IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(MaskComments(html));
+                int[] parents = HtmlTagReader.Parents(tags);
                 var lineMap = new LineMap(html);
                 for (int i = 0; i < tags.Count; i++)
                 {
@@ -297,26 +314,80 @@ namespace AISI.MuiLint
                         Ids.Add(id, location);
                     }
 
+                    List<string> ids = EnclosingIds(tags, parents, i, outerIds);
+                    if (name.Length > 0)
+                    {
+                        foreach (string container in ids)
+                        {
+                            if (!NamesUnder.TryGetValue(container, out List<string>? names))
+                            {
+                                names = new List<string>();
+                                NamesUnder.Add(container, names);
+                            }
+
+                            names.Add(name);
+                        }
+                    }
+
+                    RecordAttributes(tag);
                     if (!string.Equals(tag.Name, "qp-include", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
 
                     string url = tag.GetAttribute("url");
-                    if (url.Length == 0 || depth >= 4)
+                    string? included = url.Length == 0 || depth >= 4 ? null : readFile(ScreenModel.Combine(filePath, url));
+                    if (included == null)
                     {
-                        return false;
+                        _complete = false;
+                        continue;
                     }
 
-                    string includePath = ScreenModel.Combine(filePath, url);
-                    string? included = readFile(includePath);
-                    if (included == null || !Collect(includePath, included, readFile, depth + 1))
+                    if (id.Length > 0)
                     {
-                        return false;
+                        ids.Add(id);
+                    }
+
+                    Collect(ScreenModel.Combine(filePath, url), included, readFile, depth + 1, ids);
+                }
+            }
+
+            private static List<string> EnclosingIds(IReadOnlyList<HtmlTag> tags, int[] parents, int index, IReadOnlyList<string> outerIds)
+            {
+                var ids = new List<string>(outerIds);
+                for (int p = parents[index]; p >= 0; p = parents[p])
+                {
+                    string id = tags[p].GetAttribute("id");
+                    if (id.Length > 0)
+                    {
+                        ids.Add(id);
                     }
                 }
 
-                return true;
+                return ids;
+            }
+
+            private void RecordAttributes(HtmlTag tag)
+            {
+                if (!Attributes.TryGetValue(tag.Name, out Dictionary<string, List<string>>? attributes))
+                {
+                    attributes = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+                    Attributes.Add(tag.Name, attributes);
+                }
+
+                foreach (HtmlAttribute attr in tag.Attributes)
+                {
+                    if (!attributes.TryGetValue(attr.Name, out List<string>? values))
+                    {
+                        values = new List<string>();
+                        attributes.Add(attr.Name, values);
+                    }
+
+                    if (attr.Value.Length > 0 && !values.Contains(attr.Value))
+                    {
+                        values.Add(attr.Value);
+                    }
+                }
             }
         }
     }

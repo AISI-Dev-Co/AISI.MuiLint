@@ -1,18 +1,14 @@
 #nullable disable
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
-using System.Runtime.InteropServices;
 using AISI.MuiLint;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Projection;
 using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Utilities;
 
@@ -117,7 +113,7 @@ namespace AISI.MuiLint.Vsix
         private bool TryGoToDefinition()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            ITextDocument document = FindDocument();
+            ITextDocument document = EditorDocuments.Find(_view.TextBuffer, _documents);
             if (document == null || !Path.IsPathRooted(document.FilePath))
             {
                 return false;
@@ -138,59 +134,22 @@ namespace AISI.MuiLint.Vsix
                 document.FilePath,
                 caret.Value.Snapshot.GetText(),
                 caret.Value.Position,
-                MuiLintPackage.TryReadFile);
+                MuiLintPackage.TryReadFile,
+                MuiLintPackage.TryListFolder);
             if (target == null)
             {
                 return false;
             }
 
-            try
-            {
-                VsShellUtilities.OpenDocument(
-                    _services,
-                    Path.GetFullPath(target.Value.Path),
-                    VSConstants.LOGVIEWID.TextView_guid,
-                    out IVsUIHierarchy _,
-                    out uint _,
-                    out IVsWindowFrame _,
-                    out IVsTextView view);
-                if (view != null)
-                {
-                    view.SetCaretPos(target.Value.Line - 1, target.Value.Column - 1);
-                    view.CenterLines(target.Value.Line - 1, 1);
-                }
-
-                return true;
-            }
-            catch (COMException)
+            IVsTextView view = VsDocuments.Open(_services, target.Value.Path);
+            if (view == null)
             {
                 return false;
             }
-        }
 
-        private ITextDocument FindDocument()
-        {
-            ITextDocument document;
-            if (_documents.TryGetTextDocument(_view.TextBuffer, out document))
-            {
-                return document;
-            }
-
-            IReadOnlyList<ITextBuffer> sources = NestedSourceWalk.Flatten(_view.TextBuffer, ProjectionSources);
-            for (int i = 0; i < sources.Count; i++)
-            {
-                if (_documents.TryGetTextDocument(sources[i], out document))
-                {
-                    return document;
-                }
-            }
-
-            return null;
-        }
-
-        private static IEnumerable<ITextBuffer> ProjectionSources(ITextBuffer buffer)
-        {
-            return (buffer as IProjectionBufferBase)?.SourceBuffers;
+            view.SetCaretPos(target.Value.Line - 1, target.Value.Column - 1);
+            view.CenterLines(target.Value.Line - 1, 1);
+            return true;
         }
     }
 }

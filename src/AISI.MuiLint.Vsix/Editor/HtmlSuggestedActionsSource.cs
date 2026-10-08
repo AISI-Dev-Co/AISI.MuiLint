@@ -1,27 +1,36 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AISI.MuiLint;
+using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Language.Intellisense;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
+using Microsoft.VisualStudio.TextManager.Interop;
 
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Offers fixes for findings under the caret. Edits are computed by <see cref="MuiLintFixes"/>
-    /// against the snapshot the tagger analysed, then tracked forward to whatever the buffer is now.
+    /// Offers fixes for findings under the caret. HTML edits are computed by <see cref="MuiLintFixes"/>
+    /// against the snapshot the tagger analysed, then tracked forward to whatever the buffer is now;
+    /// TypeScript ones open the .ts and edit it there, so you see what was written.
     /// </summary>
     internal sealed class HtmlSuggestedActionsSource : ISuggestedActionsSource
     {
         private readonly ITextBuffer _buffer;
+        private readonly System.IServiceProvider _services;
+        private readonly IVsEditorAdaptersFactoryService _adapters;
 
-        public HtmlSuggestedActionsSource(ITextBuffer buffer)
+        public HtmlSuggestedActionsSource(ITextBuffer buffer, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
         {
             _buffer = buffer;
+            _services = services;
+            _adapters = adapters;
         }
 
         public event EventHandler<EventArgs> SuggestedActionsChanged
@@ -90,6 +99,15 @@ namespace AISI.MuiLint.Vsix
                 {
                     Add(fixes, "Remove the empty qp-fieldset", analyzed, MuiLintFixes.RemoveEmptyFieldset(text, diagnostic));
                 }
+                else if (diagnostic.Id == DiagnosticIds.BindingNotInTypeScript && Path.IsPathRooted(diagnostic.Path))
+                {
+                    FieldDeclaration plan = TypeScriptFixes.PlanFieldDeclaration(diagnostic.Path, text, diagnostic, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
+                    if (plan != null)
+                    {
+                        string title = "Declare " + plan.Field + " in " + plan.TargetClass + " (" + Path.GetFileName(plan.TsPath) + ")";
+                        fixes.Add(new DeclareFieldAction(title, plan, _services, _adapters));
+                    }
+                }
 
                 bool fileLevel = MuiLintFixes.IsFileLevel(diagnostic);
                 if (offered.Add(diagnostic.Id + ":" + diagnostic.Line))
@@ -105,11 +123,17 @@ namespace AISI.MuiLint.Vsix
 
         private void Add(List<ISuggestedAction> actions, string title, ITextSnapshot analyzed, TextEdit? edit)
         {
-            if (edit.HasValue)
+            if (!edit.HasValue)
             {
-                actions.Add(new MuiLintFixAction(title, _buffer, analyzed, edit.Value));
+                return;
             }
+
+            ITrackingSpan span = analyzed.CreateTrackingSpan(edit.Value.Start, edit.Value.Length, SpanTrackingMode.EdgeExclusive);
+            string newText = edit.Value.NewText;
+            actions.Add(new SuggestedAction(title, () => _buffer.Replace(span.GetSpan(_buffer.CurrentSnapshot), newText)));
         }
+
+
 
         private static bool IsUnderCaret(Diagnostic diagnostic, ITextSnapshot analyzed, SnapshotSpan range)
         {
@@ -125,18 +149,14 @@ namespace AISI.MuiLint.Vsix
                 .IntersectsWith(range);
         }
 
-        private sealed class MuiLintFixAction : ISuggestedAction
+        private class SuggestedAction : ISuggestedAction
         {
-            private readonly ITextBuffer _buffer;
-            private readonly ITrackingSpan _span;
-            private readonly string _newText;
+            private readonly Action _invoke;
 
-            public MuiLintFixAction(string displayText, ITextBuffer buffer, ITextSnapshot analyzed, TextEdit edit)
+            public SuggestedAction(string displayText, Action invoke)
             {
                 DisplayText = displayText;
-                _buffer = buffer;
-                _span = analyzed.CreateTrackingSpan(edit.Start, edit.Length, SpanTrackingMode.EdgeExclusive);
-                _newText = edit.NewText;
+                _invoke = invoke;
             }
 
             public string DisplayText { get; }
@@ -176,9 +196,9 @@ namespace AISI.MuiLint.Vsix
                 return Task.FromResult<object>(null);
             }
 
-            public void Invoke(CancellationToken cancellationToken)
+            public virtual void Invoke(CancellationToken cancellationToken)
             {
-                _buffer.Replace(_span.GetSpan(_buffer.CurrentSnapshot), _newText);
+                _invoke();
             }
 
             public bool TryGetTelemetryId(out Guid telemetryId)
@@ -189,6 +209,55 @@ namespace AISI.MuiLint.Vsix
 
             public void Dispose()
             {
+            }
+        }
+
+        private sealed class DeclareFieldAction : SuggestedAction
+        {
+            private readonly FieldDeclaration _plan;
+            private readonly System.IServiceProvider _services;
+            private readonly IVsEditorAdaptersFactoryService _adapters;
+
+            public DeclareFieldAction(string displayText, FieldDeclaration plan, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
+                : base(displayText, null)
+            {
+                _plan = plan;
+                _services = services;
+                _adapters = adapters;
+            }
+
+            public override void Invoke(CancellationToken cancellationToken)
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
+                // An HTML-only extension has no .ts yet; DeclareField writes the imports and the extension into an empty one.
+                if (!File.Exists(_plan.TsPath))
+                {
+                    File.WriteAllText(_plan.TsPath, string.Empty);
+                }
+
+                IVsTextView view = VsDocuments.Open(_services, _plan.TsPath);
+                if (view == null || view.GetBuffer(out IVsTextLines lines) != 0)
+                {
+                    return;
+                }
+
+                // Edit the open document, unsaved changes and all, and leave it for the user to save.
+                ITextBuffer buffer = _adapters.GetDocumentBuffer(lines);
+                if (buffer == null)
+                {
+                    return;
+                }
+
+                using (ITextEdit edit = buffer.CreateEdit())
+                {
+                    foreach (TextEdit change in TypeScriptFixes.DeclareField(buffer.CurrentSnapshot.GetText(), _plan))
+                    {
+                        edit.Replace(new Span(change.Start, change.Length), change.NewText);
+                    }
+
+                    edit.Apply();
+                }
             }
         }
     }

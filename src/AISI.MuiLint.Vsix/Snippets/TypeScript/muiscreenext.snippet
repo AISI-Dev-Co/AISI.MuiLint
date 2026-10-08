@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Extend a screen</Title>
+      <Shortcut>muiscreenext</Shortcut>
+      <Description>The start of a screen extension .ts: the stock screen imported and extended.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>screen</ID>
+          <ToolTip>The screen id.</ToolTip>
+          <Default>SO301000</Default>
+        </Literal>
+        <Literal>
+          <ID>module</ID>
+          <ToolTip>The screen's module folder, the first two letters of its id.</ToolTip>
+          <Default>SO</Default>
+        </Literal>
+        <Literal>
+          <ID>suffix</ID>
+          <ToolTip>Your extension's suffix, usually the customization project's name.</ToolTip>
+          <Default>Custom</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[import { $screen$ } from "src/screens/$module$/$screen$/$screen$";
+
+export interface $screen$_$suffix$ extends $screen$ {}
+export class $screen$_$suffix$ {
+	$end$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

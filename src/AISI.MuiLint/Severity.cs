@@ -3,7 +3,7 @@ namespace AISI.MuiLint
     /// <summary>How loudly a finding is reported. Only <see cref="Error"/> fails the CLI.</summary>
     public enum Severity
     {
-        /// <summary>A merge that will break or silently drop markup.</summary>
+        /// <summary>Something Acumatica's docs rule out, or that breaks the build.</summary>
         Error = 0,
 
         /// <summary>Probably wrong, but there are legitimate exceptions.</summary>

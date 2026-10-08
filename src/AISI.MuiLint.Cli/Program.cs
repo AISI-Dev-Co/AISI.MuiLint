@@ -8,15 +8,15 @@ namespace AISI.MuiLint.Cli
 {
     /// <summary>
     /// Command-line entry point for AISI.MuiLint. Walks files or directories and prints
-    /// HTML merge findings.
+    /// findings for Modern UI HTML and TypeScript.
     /// </summary>
     public static class Program
     {
         private const string Usage =
 @"Usage: muilint [options] <file-or-directory>...
 
-Scans Acumatica Modern UI HTML for merge traps. Directories are searched for *.html,
-skipping node_modules and dot-folders.
+Scans Acumatica Modern UI HTML and TypeScript. Directories are searched for *.html
+and *.ts, skipping node_modules and dot-folders.
 
 Options:
   -f, --format <text|json|sarif|github>   Output format (default: text).
@@ -32,7 +32,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
         private static readonly string[] Formats = { "text", "json", "sarif", "github" };
 
         /// <summary>
-        /// Scans each argument as an HTML file or a directory of <c>.html</c> files.
+        /// Scans each argument as a file, or a directory of <c>.html</c> and <c>.ts</c> files.
         /// </summary>
         /// <param name="args">Options and paths to scan.</param>
         /// <returns>0 if no errors, 1 if any error, 2 on usage or input problems.</returns>
@@ -107,7 +107,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
 
                 // Full path so .editorconfig lookup can walk above the current directory.
                 string fullPath = Path.GetFullPath(path);
-                scanned.Add(new ScannedFile(path, HtmlMergeScanner.Analyze(fullPath, text, p => ReadCached(p, cache))));
+                scanned.Add(new ScannedFile(path, MuiLinter.Analyze(fullPath, text, p => ReadCached(p, cache), ListFolder)));
             }
 
             switch (format)
@@ -167,7 +167,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
             {
                 if (Directory.Exists(input))
                 {
-                    AddHtmlFiles(input, files);
+                    AddFiles(input, files);
                 }
                 else if (File.Exists(input))
                 {
@@ -183,11 +183,11 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
             return files;
         }
 
-        private static void AddHtmlFiles(string directory, List<string> files)
+        private static void AddFiles(string directory, List<string> files)
         {
-            string[] html = Directory.GetFiles(directory, "*.html");
-            Array.Sort(html, StringComparer.Ordinal);
-            files.AddRange(html);
+            string[] found = Directory.GetFiles(directory).Where(MuiLinter.CanScan).ToArray();
+            Array.Sort(found, StringComparer.Ordinal);
+            files.AddRange(found);
 
             string[] subdirectories = Directory.GetDirectories(directory);
             Array.Sort(subdirectories, StringComparer.Ordinal);
@@ -196,8 +196,20 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
                 string name = Path.GetFileName(subdirectory);
                 if (name != "node_modules" && !name.StartsWith('.'))
                 {
-                    AddHtmlFiles(subdirectory, files);
+                    AddFiles(subdirectory, files);
                 }
+            }
+        }
+
+        private static IEnumerable<string> ListFolder(string folder)
+        {
+            try
+            {
+                return Directory.Exists(folder) ? Directory.GetFileSystemEntries(folder) : Array.Empty<string>();
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return Array.Empty<string>();
             }
         }
 
