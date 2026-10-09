@@ -58,6 +58,11 @@ You get:
 
 - **Squiggles and Error List entries** for every rule, in the HTML and in the screen's TypeScript, coloured by
   severity. The id in the Error List links to the rule's page.
+- **An Extensions › AISI MuiLint menu:**
+  - **Lint Modern UI Screens** checks every `.html` and `.ts` under the site's `development/screens`, open or not,
+    and lists what it finds in the Error List. It finds the site from the open solution or folder: in it, above it
+    (a solution in `App_Data/Projects`), or a few folders below it. A file you open then reports live instead.
+  - **Clear Results**, **Rule Reference** and **Report an Issue**.
 - **Lightbulb fixes** (Ctrl+.) in the HTML:
   - add the missing closing tag (AISI0001), or remove an empty fieldset (AISI0005);
   - declare a field the HTML uses but the TypeScript doesn't (AISI0011). It opens the `.ts` and adds the field to your
