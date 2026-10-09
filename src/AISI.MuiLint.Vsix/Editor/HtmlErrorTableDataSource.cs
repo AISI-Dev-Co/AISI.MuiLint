@@ -13,7 +13,8 @@ using Microsoft.VisualStudio.Utilities;
 namespace AISI.MuiLint.Vsix
 {
     /// <summary>
-    /// Error List source for MuiLint findings on currently open HTML documents.
+    /// Error List source for MuiLint findings: live ones for each open document, and the last
+    /// Lint Modern UI Screens run for everything else.
     /// </summary>
     [Export(typeof(HtmlErrorTableDataSource))]
     [Export(typeof(ITableDataSource))]
@@ -28,6 +29,9 @@ namespace AISI.MuiLint.Vsix
         private readonly List<ITableDataSink> _sinks = new List<ITableDataSink>();
         private readonly Dictionary<ITextBuffer, HtmlErrorSnapshotFactory> _factories =
             new Dictionary<ITextBuffer, HtmlErrorSnapshotFactory>();
+        private readonly Dictionary<ITextBuffer, string> _openPaths = new Dictionary<ITextBuffer, string>();
+        private readonly HtmlErrorSnapshotFactory _scan = new HtmlErrorSnapshotFactory();
+        private IReadOnlyList<Diagnostic> _scanned = Array.Empty<Diagnostic>();
 
         [ImportingConstructor]
         public HtmlErrorTableDataSource(ITableManagerProvider tableManagerProvider)
@@ -80,6 +84,7 @@ namespace AISI.MuiLint.Vsix
             lock (_gate)
             {
                 _sinks.Add(sink);
+                sink.AddFactory(_scan);
                 foreach (HtmlErrorSnapshotFactory factory in _factories.Values)
                 {
                     sink.AddFactory(factory);
@@ -110,6 +115,8 @@ namespace AISI.MuiLint.Vsix
 
             lock (_gate)
             {
+                bool opened = !_openPaths.TryGetValue(buffer, out string previous) || !SamePath(previous, path);
+                _openPaths[buffer] = path;
                 HtmlErrorSnapshotFactory factory;
                 if (!_factories.TryGetValue(buffer, out factory))
                 {
@@ -129,7 +136,55 @@ namespace AISI.MuiLint.Vsix
                         _sinks[i].FactorySnapshotChanged(factory);
                     }
                 }
+
+                if (opened)
+                {
+                    RefreshScan();
+                }
             }
+        }
+
+        /// <summary>Replaces the results of the last Lint Modern UI Screens run.</summary>
+        internal void ReplaceScan(IReadOnlyList<Diagnostic> diagnostics)
+        {
+            lock (_gate)
+            {
+                _scanned = diagnostics ?? Array.Empty<Diagnostic>();
+                RefreshScan();
+            }
+        }
+
+        // An open document reports for itself, live; the scan only speaks for the rest.
+        private void RefreshScan()
+        {
+            var shown = new List<Diagnostic>();
+            foreach (Diagnostic diagnostic in _scanned)
+            {
+                bool open = false;
+                foreach (string path in _openPaths.Values)
+                {
+                    open |= SamePath(path, diagnostic.Path);
+                }
+
+                if (!open)
+                {
+                    shown.Add(diagnostic);
+                }
+            }
+
+            _scan.Update(string.Empty, shown);
+            for (int i = 0; i < _sinks.Count; i++)
+            {
+                _sinks[i].FactorySnapshotChanged(_scan);
+            }
+        }
+
+        private static bool SamePath(string a, string b)
+        {
+            return string.Equals(
+                HtmlMergeScanner.NormalizePath(a ?? string.Empty),
+                HtmlMergeScanner.NormalizePath(b ?? string.Empty),
+                StringComparison.OrdinalIgnoreCase);
         }
 
         internal void Remove(ITextBuffer buffer)
@@ -148,12 +203,14 @@ namespace AISI.MuiLint.Vsix
                 }
 
                 _factories.Remove(buffer);
+                _openPaths.Remove(buffer);
                 for (int i = 0; i < _sinks.Count; i++)
                 {
                     _sinks[i].RemoveFactory(factory);
                 }
 
                 factory.Dispose();
+                RefreshScan();
             }
         }
 

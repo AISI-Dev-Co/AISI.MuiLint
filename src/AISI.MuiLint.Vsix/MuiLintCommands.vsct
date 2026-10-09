@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Extensions › AISI MuiLint. The ids match Editor/MuiLintCommands.cs. -->
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <Commands package="guidMuiLintPackage">
+    <Menus>
+      <Menu guid="guidMuiLintCommandSet" id="MuiLintMenu" priority="0x0100" type="Menu">
+        <Parent guid="guidMuiLintCommandSet" id="ExtensionsGroup" />
+        <Strings>
+          <ButtonText>AISI MuiLint</ButtonText>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <Groups>
+      <Group guid="guidMuiLintCommandSet" id="ExtensionsGroup" priority="0x0600">
+        <Parent guid="guidVsMainMenu" id="ExtensionsMenu" />
+      </Group>
+      <Group guid="guidMuiLintCommandSet" id="LintGroup" priority="0x0100">
+        <Parent guid="guidMuiLintCommandSet" id="MuiLintMenu" />
+      </Group>
+      <Group guid="guidMuiLintCommandSet" id="HelpGroup" priority="0x0200">
+        <Parent guid="guidMuiLintCommandSet" id="MuiLintMenu" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidMuiLintCommandSet" id="LintScreens" priority="0x0100" type="Button">
+        <Parent guid="guidMuiLintCommandSet" id="LintGroup" />
+        <Strings>
+          <ButtonText>Lint Modern UI Screens</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidMuiLintCommandSet" id="ClearResults" priority="0x0200" type="Button">
+        <Parent guid="guidMuiLintCommandSet" id="LintGroup" />
+        <Strings>
+          <ButtonText>Clear Results</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidMuiLintCommandSet" id="RuleReference" priority="0x0100" type="Button">
+        <Parent guid="guidMuiLintCommandSet" id="HelpGroup" />
+        <Strings>
+          <ButtonText>Rule Reference</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidMuiLintCommandSet" id="ReportIssue" priority="0x0200" type="Button">
+        <Parent guid="guidMuiLintCommandSet" id="HelpGroup" />
+        <Strings>
+          <ButtonText>Report an Issue</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <!-- The Extensions menu. Declared here because older SDK headers predate it; same values as VSGlobals.vsct. -->
+    <GuidSymbol name="guidVsMainMenu" value="{d309f791-903f-11d0-9efc-00a0c911004f}">
+      <IDSymbol name="ExtensionsMenu" value="0x0091" />
+    </GuidSymbol>
+    <GuidSymbol name="guidMuiLintPackage" value="{e7c4b2a1-9d38-4f6c-8a15-3b9e0c7d2468}" />
+    <GuidSymbol name="guidMuiLintCommandSet" value="{a0bc17b0-92d9-4c20-80e8-cd3444633f9c}">
+      <IDSymbol name="MuiLintMenu" value="0x1000" />
+      <IDSymbol name="ExtensionsGroup" value="0x1001" />
+      <IDSymbol name="LintGroup" value="0x1002" />
+      <IDSymbol name="HelpGroup" value="0x1003" />
+      <IDSymbol name="LintScreens" value="0x0100" />
+      <IDSymbol name="ClearResults" value="0x0101" />
+      <IDSymbol name="RuleReference" value="0x0102" />
+      <IDSymbol name="ReportIssue" value="0x0103" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>
