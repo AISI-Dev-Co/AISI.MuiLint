@@ -11,6 +11,23 @@ the rest now say what the docs say. Each rule's page quotes its source.
 
 ### Added
 
+- Checks against your site, the way AcuMate checks against a running one. They stay quiet without the site:
+  - **AISI0027–AISI0031** (warnings) read the compiled assemblies in the site's `Bin` without loading them: a
+    `graphType` no assembly defines, a view or action the graph doesn't have, a `PXFieldState` the view's DAC
+    doesn't have, a `@linkCommand` to a missing action, and a `@featureInstalled` feature `FeaturesSet` lacks. Graph
+    and cache extensions count, code in `App_RuntimeCode` counts, and anything that can't be read keeps them quiet.
+  - **AISI0020–AISI0022** (warnings) read the site's `node_modules/client-controls`: an unknown `qp-template` name, a
+    `config.bind` key the control's configuration doesn't have, and a `control-type` that isn't a control.
+- **AISI0019** (warning): a `qp-include` missing a `.required` parameter, or passing one the included file doesn't
+  declare.
+- **AISI0023** (error): a `qp-*`, `field`, `template` or `using` that's never closed, or a closing tag with nothing to
+  close. Acumatica's own 24R1 screens have five (FS300100, FS300200, FS305600, PM506000, SM200521).
+- **AISI0024** (warning): a merge selector matching more than one element of the stock screen; the docs say the build
+  fails.
+- **AISI0025** (warning): `@graphInfo` without `graphType`. **AISI0026** (suggestion): `@gridConfig` without the
+  `preset` the docs ask for.
+- **AISI0011** now also checks `state.bind` and `control-state.bind` on controls other than buttons, as fields
+  (`View.Field`, or a bare field of the view around it), and `View.Action` on buttons.
 - **AISI0018** (error): a customising tag (`after`, `before`, `append`, `prepend`, `modify`, `remove`, `replace`)
   that isn't directly in the top-level `<template>`. The docs require it; inside a `qp-include` is the exception.
 - **AISI0014** (warning): half a TypeScript extension, an empty `interface X extends Y {}` without its `class X`, or a

@@ -22,6 +22,25 @@ namespace AISI.MuiLint.Tests
             DiagnosticIds.HalfAnExtension,
             DiagnosticIds.DecoratorViewNotDeclared,
             DiagnosticIds.ViewFromNonView,
+            DiagnosticIds.GraphInfoWithoutGraphType,
+            DiagnosticIds.GridWithoutPreset,
+        };
+
+        // These need what a fixture folder can't hold: the stock screen beside an extension (AISI0009, AISI0024),
+        // the site's client-controls package (AISI0020, AISI0021, AISI0022) or its Bin (AISI0027 to AISI0031).
+        // AcuMateParityTests, RuleTests, SiteRulesTests and SiteMetadataReaderTests build those in memory or on disk.
+        private static readonly string[] NotInFixtures =
+        {
+            DiagnosticIds.SelectorNotInStock,
+            DiagnosticIds.SelectorMatchesSeveral,
+            DiagnosticIds.UnknownTemplate,
+            DiagnosticIds.UnknownConfigKey,
+            DiagnosticIds.UnknownControlType,
+            DiagnosticIds.GraphNotInSite,
+            DiagnosticIds.MemberNotInGraph,
+            DiagnosticIds.FieldNotInView,
+            DiagnosticIds.LinkCommandUnknownAction,
+            DiagnosticIds.FeatureNotInSite,
         };
 
         public static TheoryData<string, string> FailFixtures()
@@ -53,12 +72,11 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void Fixtures_CoverEveryRuleButTheStockOne()
+        public void Fixtures_CoverEveryRuleTheyCan()
         {
-            // AISI0009 needs a stock screen next to the extension; RuleTests builds one in memory.
             string[] expected = Rules.All
                 .Select(r => r.Id)
-                .Where(id => id != DiagnosticIds.SelectorNotInStock)
+                .Where(id => !NotInFixtures.Contains(id))
                 .ToArray();
             Assert.Equal(expected, FailFixtures().Select(row => (string)row[0]!).Distinct().OrderBy(x => x, StringComparer.Ordinal));
             Assert.Equal(expected, PassFixtures().Select(row => (string)row[0]!).Distinct().OrderBy(x => x, StringComparer.Ordinal));
@@ -175,7 +193,8 @@ namespace AISI.MuiLint.Tests
                 bool typeScript = TypeScriptRules.Contains(id);
                 foreach (string file in Directory.GetFiles(idDir, typeScript ? "*.ts" : "*.html", SearchOption.AllDirectories))
                 {
-                    if (!typeScript || !HtmlMergeScanner.IsStockScreensPath(file))
+                    // _name.html is a file the fixtures include, not a fixture.
+                    if ((!typeScript || !HtmlMergeScanner.IsStockScreensPath(file)) && !Path.GetFileName(file).StartsWith("_", StringComparison.Ordinal))
                     {
                         data.Add(id, file);
                     }

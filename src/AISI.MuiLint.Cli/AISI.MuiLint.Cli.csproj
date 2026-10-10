@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AISI.MuiLint\AISI.MuiLint.csproj" />
+    <ProjectReference Include="..\AISI.MuiLint.Site\AISI.MuiLint.Site.csproj" />
   </ItemGroup>
 
 </Project>

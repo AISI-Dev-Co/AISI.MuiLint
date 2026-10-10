@@ -26,7 +26,7 @@ false alarms.
 | [AISI0006](docs/rules/AISI0006.md) | error | A merge selector that isn't valid CSS: an unclosed `[`, `(` or quote. |
 | [AISI0008](docs/rules/AISI0008.md) | warning | The same id, or the same field, twice in one container, so a selector matches both. |
 | [AISI0009](docs/rules/AISI0009.md) | warning | A selector naming a `[name]` or `#id` the stock screen, its extensions and the lines above don't have. |
-| [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field or button `state.bind` that the screen's TypeScript doesn't declare. |
+| [AISI0011](docs/rules/AISI0011.md) | warning | A `view.bind`, field, `state.bind` or `control-state.bind` that the screen's TypeScript doesn't declare. |
 | [AISI0012](docs/rules/AISI0012.md) | suggestion | A `qp-*` control without an `id`, so customisations can't target it. |
 | [AISI0013](docs/rules/AISI0013.md) | error | A `config.bind` with an unclosed `{`, `[`, `(` or quote. |
 | [AISI0014](docs/rules/AISI0014.md) | warning | Half a TypeScript extension: the empty interface without its class, or the other way round. |
@@ -34,12 +34,34 @@ false alarms.
 | [AISI0016](docs/rules/AISI0016.md) | warning | `createSingle`/`createCollection` given a class that isn't a `PXView`, usually an extension class. |
 | [AISI0017](docs/rules/AISI0017.md) | warning | A `<ScreenID>_<postfix>` file saved outside the screen's `extensions` folder. |
 | [AISI0018](docs/rules/AISI0018.md) | error | A customising tag (`after`, `modify`, …) that isn't directly in the top-level `<template>`. |
+| [AISI0019](docs/rules/AISI0019.md) | warning | A `qp-include` missing a `.required` parameter, or passing one the included file doesn't declare. |
+| [AISI0020](docs/rules/AISI0020.md) | warning | A `qp-template` `name` that isn't one of the predefined layouts. |
+| [AISI0021](docs/rules/AISI0021.md) | warning | A `config.bind` key the control's configuration doesn't have. |
+| [AISI0022](docs/rules/AISI0022.md) | warning | A `control-type` naming a `qp-` control that doesn't exist. |
+| [AISI0023](docs/rules/AISI0023.md) | error | A `qp-*`, `field` or `template` that's never closed, or a closing tag with nothing to close. |
+| [AISI0024](docs/rules/AISI0024.md) | warning | A merge selector that matches more than one element of the stock screen. |
+| [AISI0025](docs/rules/AISI0025.md) | warning | `@graphInfo` without a `graphType`. |
+| [AISI0026](docs/rules/AISI0026.md) | suggestion | `@gridConfig` without a `preset`. |
+| [AISI0027](docs/rules/AISI0027.md) | warning | A `graphType` that no assembly in the site's `Bin` defines. |
+| [AISI0028](docs/rules/AISI0028.md) | warning | A view or action on the screen class that the graph doesn't have. |
+| [AISI0029](docs/rules/AISI0029.md) | warning | A `PXFieldState` that the view's DAC doesn't have. |
+| [AISI0030](docs/rules/AISI0030.md) | warning | `@linkCommand` naming an action the graph doesn't have. |
+| [AISI0031](docs/rules/AISI0031.md) | warning | `@featureInstalled` naming a feature the site's `FeaturesSet` doesn't have. |
 
 AISI0002, AISI0007 and AISI0010 are retired: Acumatica's own screens and docs showed they were wrong. Their pages say
 why.
 
-AISI0014–AISI0016 check `.ts` files, and AISI0017 checks both. The `.ts` rules, and the rules that look at
-neighbouring files (AISI0009, AISI0011), run in the CLI, the Action and the VSIX, but not in the Roslyn analyser.
+AISI0014–AISI0016 and AISI0025–AISI0031 check `.ts` files, and AISI0017 checks both. The `.ts` rules, and the rules
+that look at neighbouring files (AISI0009, AISI0011, AISI0019–AISI0024), run in the CLI, the Action and the VSIX, but
+not in the Roslyn analyser.
+
+Two groups of rules check against your site rather than against the files alone, and stay quiet without it:
+
+- **AISI0020–AISI0022** read the site's own `node_modules/client-controls`, so the templates, controls and config keys
+  they know are the ones your Acumatica version has.
+- **AISI0027–AISI0031** read the compiled assemblies in the site's `Bin` (beside `FrontendSources`), without loading
+  them, much as AcuMate asks a running site. Code published as source to `App_RuntimeCode` is taken into account.
+  Things added in code at run time (`Actions.Add`, fields added in an event handler) can't be seen; suppress those.
 
 Want to see them all at once? `examples/` has a made-up stock screen, a clean extension, and a broken `.html` and
 `.ts` that between them trip nearly every rule (the ones about where a file lives can't fire on a file that lives in

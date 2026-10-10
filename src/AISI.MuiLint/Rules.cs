@@ -116,7 +116,72 @@ namespace AISI.MuiLint
                 DiagnosticIds.MergeTagNotAtTopLevel,
                 "Customizing tag not at the top level",
                 Severity.Error,
-                "Acumatica's docs: all tags that customize the original HTML must be on the highest level of the layout, in the top-level template tag. Inside a qp-include that brings in part of a form is the one exception.")
+                "Acumatica's docs: all tags that customize the original HTML must be on the highest level of the layout, in the top-level template tag. Inside a qp-include that brings in part of a form is the one exception."),
+            new Rule(
+                DiagnosticIds.IncludeParameters,
+                "qp-include parameters",
+                Severity.Warning,
+                "The included file declares its parameters in qp-include-parameters. A required one (name.required) must be given; an attribute it doesn't declare goes nowhere."),
+            new Rule(
+                DiagnosticIds.UnknownTemplate,
+                "Unknown qp-template name",
+                Severity.Warning,
+                "qp-template renders the predefined template its name picks. A name the site's client-controls package doesn't define renders nothing."),
+            new Rule(
+                DiagnosticIds.UnknownConfigKey,
+                "Unknown config.bind key",
+                Severity.Warning,
+                "config.bind sets properties of the control's config interface, as the site's client-controls package declares it. A key it doesn't declare is ignored, usually a typo."),
+            new Rule(
+                DiagnosticIds.UnknownControlType,
+                "Unknown control-type",
+                Severity.Warning,
+                "control-type picks the qp-* control a field is shown with. A value the site's client-controls package doesn't define falls back to the default control."),
+            new Rule(
+                DiagnosticIds.UnbalancedTag,
+                "Unclosed or stray Modern UI tag",
+                Severity.Error,
+                "A qp-*, field, template or using element without its end tag swallows everything after it; an end tag with no start tag closes the wrong element."),
+            new Rule(
+                DiagnosticIds.SelectorMatchesSeveral,
+                "Selector matches more than one element",
+                Severity.Warning,
+                "Acumatica's docs: if more than one item satisfies the CSS selector, the build process fails. Qualify the selector with the container's #id."),
+            new Rule(
+                DiagnosticIds.GraphInfoWithoutGraphType,
+                "@graphInfo without graphType",
+                Severity.Warning,
+                "Acumatica's docs: the screen class has the graphInfo decorator, in which you specify the graph. Without graphType the screen has no graph to talk to."),
+            new Rule(
+                DiagnosticIds.GridWithoutPreset,
+                "@gridConfig without a preset",
+                Severity.Suggestion,
+                "Acumatica's docs: for each table, you must specify a preset in the preset property of the gridConfig decorator. Acumatica's own older screens often don't, so this is a hint."),
+            new Rule(
+                DiagnosticIds.GraphNotInSite,
+                "graphType not in the site",
+                Severity.Warning,
+                "@graphInfo names a graph that none of the assemblies in the site's Bin folder defines. Usually a typo, or an assembly that hasn't been built into Bin."),
+            new Rule(
+                DiagnosticIds.MemberNotInGraph,
+                "View or action not on the graph",
+                Severity.Warning,
+                "The screen's views and actions bind to the graph's views and actions by name. One the graph (with its extensions, as compiled in the site's Bin) doesn't have binds to nothing."),
+            new Rule(
+                DiagnosticIds.FieldNotInView,
+                "Field not on the view's DAC",
+                Severity.Warning,
+                "A PXView class's fields bind to the fields of the DAC behind the view. One the DAC (with its cache extensions, as compiled in the site's Bin) doesn't have binds to nothing."),
+            new Rule(
+                DiagnosticIds.LinkCommandUnknownAction,
+                "@linkCommand to an unknown action",
+                Severity.Warning,
+                "@linkCommand makes a field a link that runs a graph action. One the graph (as compiled in the site's Bin) doesn't have does nothing."),
+            new Rule(
+                DiagnosticIds.FeatureNotInSite,
+                "@featureInstalled with an unknown feature",
+                Severity.Warning,
+                "@featureInstalled names a FeaturesSet field (PX.Objects.CS.FeaturesSet+Name). One the site's FeaturesSet doesn't have is never switched on.")
         };
 
         /// <summary>Looks up a rule by id.</summary>

@@ -16,5 +16,10 @@
     <qp-tab id="tab-Details" caption="Details">
       <qp-grid id="grid-Transactions" view.bind="Transactions"></qp-grid>
     </qp-tab>
+    <qp-tab id="tab-Totals" caption="Totals">
+      <qp-fieldset id="fsTotals-Order" view.bind="Document">
+        <field name="Status"></field>
+      </qp-fieldset>
+    </qp-tab>
   </qp-tabbar>
 </template>

@@ -117,8 +117,11 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void StateBind_IsOnlyAnActionOnAButton()
         {
-            // As documented for qp-mail-editor: there, state.bind names a field.
-            Assert.DoesNotContain(Scan("<template><qp-mail-editor id=\"m\" state.bind=\"Email\"></qp-mail-editor></template>"), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+            // As documented for qp-mail-editor: there, state.bind names a field, not an action.
+            Assert.DoesNotContain(Scan("<template><qp-mail-editor id=\"m\" state.bind=\"OrderDate\"></qp-mail-editor></template>"), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
+            Assert.Contains(
+                Scan("<template><qp-mail-editor id=\"m\" state.bind=\"Email\"></qp-mail-editor></template>"),
+                x => x.Id == DiagnosticIds.BindingNotInTypeScript && x.Message.Contains("Field 'Email'", StringComparison.Ordinal));
         }
 
         [Fact]
