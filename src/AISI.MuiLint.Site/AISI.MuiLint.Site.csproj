@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AISI.MuiLint.Site</RootNamespace>
+    <AssemblyName>AISI.MuiLint.Site</AssemblyName>
+    <Description>Reads an Acumatica site's Bin folder, without loading it, into the SiteMetadata the AISI.MuiLint rules check screens against.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Old on purpose: the VS 2022 extension runs inside devenv, which redirects this assembly upwards, never downwards. -->
+    <PackageReference Include="System.Reflection.Metadata" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AISI.MuiLint\AISI.MuiLint.csproj" />
+  </ItemGroup>
+
+</Project>
