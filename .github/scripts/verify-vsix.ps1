@@ -42,10 +42,8 @@ try {
   # The snippets pkgdef points VS at this folder; an empty one means the snippets fell out of the build.
   if (-not ($files | Where-Object { $_ -like 'Snippets/TypeScript/*.snippet' })) { $problems.Add('no TypeScript snippets in Snippets/TypeScript') }
 
-  # The site rules need the Bin reader and the metadata library it is built on.
-  foreach ($dll in 'AISI.MuiLint.Site.dll', 'System.Reflection.Metadata.dll') {
-    if ($files -notcontains $dll) { $problems.Add("missing $dll") }
-  }
+  # The site rules need the Bin reader. System.Reflection.Metadata under it comes from devenv, whose MEF is built on it.
+  if ($files -notcontains 'AISI.MuiLint.Site.dll') { $problems.Add('missing AISI.MuiLint.Site.dll') }
 
   foreach ($dll in 'AISI.MuiLint.dll', 'AISI.MuiLint.Site.dll', 'AISI.MuiLint.Vsix.dll') {
     $full = Join-Path $work $dll
