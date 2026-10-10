@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using AISI.MuiLint;
+using AISI.MuiLint.Site;
 
 namespace AISI.MuiLint.Vsix
 {
@@ -25,7 +26,7 @@ namespace AISI.MuiLint.Vsix
         public static IReadOnlyList<Diagnostic> Analyze(string path, string text)
         {
             // A buffer with no real file behind it has no neighbours to look at.
-            return Path.IsPathRooted(path) ? MuiLinter.Analyze(path, text, TryReadFile, TryListFolder) : MuiLinter.Analyze(path, text, null);
+            return Path.IsPathRooted(path) ? MuiLinter.Analyze(path, text, TryReadFile, TryListFolder, SiteCache.ForFile(path)) : MuiLinter.Analyze(path, text, null);
         }
 
         /// <summary>What's directly inside a folder, or nothing if it's missing or locked.</summary>

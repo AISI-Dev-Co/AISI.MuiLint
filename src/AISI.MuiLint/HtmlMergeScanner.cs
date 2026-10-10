@@ -101,11 +101,10 @@ namespace AISI.MuiLint
             Scan0012(path, tags, lineMap, results);
             Scan0013(path, tags, lineMap, results);
             Scan0018(path, tags, parents, lineMap, results);
-            Scan0021(path, tags, parents, lineMap, results);
-            Scan0024(path, tags, lineMap, results);
+            ScanUnbalancedTags(path, tags, lineMap, results);
             if (readFile != null)
             {
-                Scan0019(path, tags, readFile, lineMap, results);
+                ScanIncludes(path, tags, readFile, lineMap, results);
                 ClientControls? controls = ClientControls.For(path, readFile, listFolder);
                 if (controls != null)
                 {

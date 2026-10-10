@@ -67,6 +67,12 @@
       <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup</IncludeOutputGroupsInVSIXLocalOnly>
       <Private>true</Private>
     </ProjectReference>
+    <ProjectReference Include="..\AISI.MuiLint.Site\AISI.MuiLint.Site.csproj">
+      <Name>AISI.MuiLint.Site</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup;BuiltProjectOutputGroupDependencies;GetCopyToOutputDirectoryItems;SatelliteDllsProjectOutputGroup</IncludeOutputGroupsInVSIX>
+      <IncludeOutputGroupsInVSIXLocalOnly>DebugSymbolsProjectOutputGroup</IncludeOutputGroupsInVSIXLocalOnly>
+      <Private>true</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <!-- Editor MEF types need the Visual Studio SDK. Keep AnalyzeHtml compiling on Linux. -->

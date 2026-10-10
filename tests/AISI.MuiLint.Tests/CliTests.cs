@@ -28,7 +28,7 @@ namespace AISI.MuiLint.Tests
             Assert.Contains("SO301000_Broken.html(4,3): error AISI0001: ", output, StringComparison.Ordinal);
             Assert.Contains("warning AISI0009", output, StringComparison.Ordinal);
             Assert.Contains("info AISI0012", output, StringComparison.Ordinal);
-            Assert.Contains("1 file scanned, 4 errors, 3 warnings, 2 suggestions", summary, StringComparison.Ordinal);
+            Assert.Contains("1 file scanned, 5 errors, 7 warnings, 2 suggestions", summary, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -43,6 +43,19 @@ namespace AISI.MuiLint.Tests
                 DiagnosticIds.StockScreensPath,
                 DiagnosticIds.ExtensionBasename,
                 DiagnosticIds.ExtensionOutsideExtensions,
+
+                // @graphInfo goes on a new screen's own class, never in an extension.
+                DiagnosticIds.GraphInfoWithoutGraphType,
+
+                // These read the site's client-controls package or its Bin, and the examples have neither.
+                DiagnosticIds.UnknownTemplate,
+                DiagnosticIds.UnknownConfigKey,
+                DiagnosticIds.UnknownControlType,
+                DiagnosticIds.GraphNotInSite,
+                DiagnosticIds.MemberNotInGraph,
+                DiagnosticIds.FieldNotInView,
+                DiagnosticIds.LinkCommandUnknownAction,
+                DiagnosticIds.FeatureNotInSite,
             };
             Assert.Equal(Rules.All.Select(r => r.Id).Where(id => !skipped.Contains(id)), ids);
         }

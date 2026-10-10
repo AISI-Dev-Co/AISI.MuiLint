@@ -19,13 +19,18 @@ namespace AISI.MuiLint
             "@featureInstalled\\s*\\(\\s*(['\"`])(?<v>[^'\"`]+)\\1",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        // Added at run time, so no Bin declares them: PXProcessing's actions and PXNote's fields.
+        private static readonly HashSet<string> RuntimeNames = new HashSet<string>(
+            new[] { "Process", "ProcessAll", "NoteText", "NoteFiles", "NotePopupText" },
+            StringComparer.OrdinalIgnoreCase);
+
         // Checks against what the site's Bin says. Each one stays quiet where the Bin couldn't say.
         private static void ScanSite(string path, TsModule module, ScreenModel screen, SiteMetadata site, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (Match feature in FeatureInstalled.Matches(module.CodeWithStrings))
             {
                 Group value = feature.Groups["v"];
-                if (site.Features != null && !site.Features.Contains(value.Value))
+                if (site.Features != null && !site.Features.Contains(value.Value) && !Declared(site, Short(value.Value)))
                 {
                     string message = string.Format(
                         CultureInfo.InvariantCulture,
@@ -39,7 +44,7 @@ namespace AISI.MuiLint
             if (graph == null)
             {
                 Match declared = GraphTypeLiteral.Match(module.CodeWithStrings);
-                if (declared.Success && screen.GraphType != null && site.Graphs.Count > 0)
+                if (declared.Success && screen.GraphType != null && site.Graphs.Count > 0 && !Declared(site, Short(screen.GraphType)))
                 {
                     Group value = declared.Groups["v"];
                     string message = string.Format(
@@ -54,11 +59,11 @@ namespace AISI.MuiLint
 
             if (graph.Complete)
             {
-                ScanMembers(path, module, screen, graph, lineMap, results);
+                ScanMembers(path, module, screen, site, graph, lineMap, results);
                 foreach (Match link in LinkCommand.Matches(module.CodeWithStrings))
                 {
                     Group value = link.Groups["v"];
-                    if (!graph.Actions.Contains(value.Value))
+                    if (!graph.Actions.Contains(value.Value) && !Declared(site, value.Value))
                     {
                         string message = string.Format(
                             CultureInfo.InvariantCulture,
@@ -70,11 +75,11 @@ namespace AISI.MuiLint
                 }
             }
 
-            ScanFields(path, module, screen, graph, lineMap, results);
+            ScanFields(path, module, screen, site, graph, lineMap, results);
         }
 
         // The screen's views and actions declared in this file, against the graph's.
-        private static void ScanMembers(string path, TsModule module, ScreenModel screen, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
+        private static void ScanMembers(string path, TsModule module, ScreenModel screen, SiteMetadata site, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (TsClass c in module.Classes)
             {
@@ -88,7 +93,7 @@ namespace AISI.MuiLint
                     bool view = member.Value.ViewClass != null;
                     bool action = member.Value.Type == "PXActionState";
                     if ((!view && !action) || member.Key.StartsWith("_", StringComparison.Ordinal)
-                        || (view && graph.Views.ContainsKey(member.Key)) || (action && graph.Actions.Contains(member.Key)))
+                        || (view && graph.Views.ContainsKey(member.Key)) || (action && graph.Actions.Contains(member.Key)) || Declared(site, member.Key))
                     {
                         continue;
                     }
@@ -105,7 +110,7 @@ namespace AISI.MuiLint
         }
 
         // A view class's fields declared in this file, against the DACs of the views made from it.
-        private static void ScanFields(string path, TsModule module, ScreenModel screen, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
+        private static void ScanFields(string path, TsModule module, ScreenModel screen, SiteMetadata site, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (TsClass c in module.Classes)
             {
@@ -137,7 +142,7 @@ namespace AISI.MuiLint
                 foreach (KeyValuePair<string, TsMember> member in c.Members)
                 {
                     // Customer__AcctName: a field of a joined DAC, which the view's own DAC doesn't list.
-                    if (member.Value.Type != "PXFieldState" || member.Key.Contains("__") || dacs.Exists(d => d.Fields!.Contains(member.Key)))
+                    if (member.Value.Type != "PXFieldState" || member.Key.Contains("__") || dacs.Exists(d => d.Fields!.Contains(member.Key)) || Declared(site, member.Key))
                     {
                         continue;
                     }
@@ -150,6 +155,11 @@ namespace AISI.MuiLint
                     results.Add(HtmlMergeScanner.Create(DiagnosticIds.FieldNotInView, message, path, member.Value.Offset, member.Key.Length, lineMap));
                 }
             }
+        }
+
+        private static bool Declared(SiteMetadata site, string name)
+        {
+            return RuntimeNames.Contains(name) || site.SourceNames.Contains(name);
         }
 
         private static string Short(string fullName)

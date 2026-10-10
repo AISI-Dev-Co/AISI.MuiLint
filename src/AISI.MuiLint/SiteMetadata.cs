@@ -17,7 +17,11 @@ namespace AISI.MuiLint
         /// Feature names as <c>@featureInstalled</c> spells them
         /// (<c>PX.Objects.CS.FeaturesSet+Multicurrency</c>), or null when FeaturesSet wasn't found.
         /// </param>
-        public SiteMetadata(IEnumerable<GraphMetadata> graphs, IEnumerable<string>? features)
+        /// <param name="sourceNames">
+        /// Every identifier in the site's source code that isn't built into Bin (App_RuntimeCode):
+        /// a name found there may be declared there, so it is never reported missing.
+        /// </param>
+        public SiteMetadata(IEnumerable<GraphMetadata> graphs, IEnumerable<string>? features, IEnumerable<string>? sourceNames = null)
         {
             if (graphs is null)
             {
@@ -31,6 +35,7 @@ namespace AISI.MuiLint
             }
 
             Features = features == null ? null : new HashSet<string>(features, StringComparer.OrdinalIgnoreCase);
+            SourceNames = new HashSet<string>(sourceNames ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>Gets the graphs, keyed by full name.</summary>
@@ -41,6 +46,9 @@ namespace AISI.MuiLint
 
         /// <summary>Gets the known feature names, or null when the site's FeaturesSet wasn't found.</summary>
         public ICollection<string>? Features { get; }
+
+        /// <summary>Gets the identifiers in source code the Bin doesn't hold (case-insensitive).</summary>
+        public ICollection<string> SourceNames { get; }
 
         /// <summary>The graph a <c>graphType</c> names, accepting '.' or '+' before a nested type.</summary>
         public GraphMetadata? FindGraph(string graphType)

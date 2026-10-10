@@ -15,12 +15,12 @@ namespace AISI.MuiLint
             "(?<=^|\\s)(?<name>[\\w-]+)(?<required>\\.required)?(?=\\s|=|$)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        // Attributes any element takes, which a qp-include passes on rather than to its parameters.
+        // Attributes any element takes, which a qp-include keeps rather than passing to its parameters. after= and the like are merge operators.
         private static readonly HashSet<string> IncludeOwnAttributes = new HashSet<string>(
             new[] { "url", "id", "class", "style", "slot" },
             StringComparer.OrdinalIgnoreCase);
 
-        private static void Scan0019(string path, IReadOnlyList<HtmlTag> tags, Func<string, string?> readFile, LineMap lineMap, List<Diagnostic> results)
+        private static void ScanIncludes(string path, IReadOnlyList<HtmlTag> tags, Func<string, string?> readFile, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (HtmlTag tag in tags)
             {
@@ -59,7 +59,7 @@ namespace AISI.MuiLint
 
                 foreach (HtmlAttribute attr in tag.Attributes)
                 {
-                    bool passedOn = IncludeOwnAttributes.Contains(attr.Name) || attr.Name.IndexOf('.') >= 0
+                    bool passedOn = IncludeOwnAttributes.Contains(attr.Name) || MergeOperators.Contains(attr.Name) || attr.Name.IndexOf('.') >= 0
                         || attr.Name.StartsWith("data-", StringComparison.OrdinalIgnoreCase)
                         || attr.Name.StartsWith("aria-", StringComparison.OrdinalIgnoreCase);
                     if (!passedOn && !parameters.ContainsKey(attr.Name))
@@ -126,35 +126,7 @@ namespace AISI.MuiLint
             }
         }
 
-        private static void Scan0021(string path, IReadOnlyList<HtmlTag> tags, int[] parents, LineMap lineMap, List<Diagnostic> results)
-        {
-            for (int i = 0; i < tags.Count; i++)
-            {
-                HtmlTag tag = tags[i];
-                HtmlAttribute name = Find(tag, "name");
-                if (tag.IsEndTag || !Is(tag.Name, "qp-template") || name.Value == null || !name.Value.StartsWith("record-", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                bool inFeed = false;
-                for (int p = parents[i]; p >= 0 && !inFeed; p = parents[p])
-                {
-                    inFeed = Is(tags[p].Name, "qp-data-feed");
-                }
-
-                if (!inFeed)
-                {
-                    string message = string.Format(
-                        CultureInfo.InvariantCulture,
-                        "The {0} template lays out the records of a qp-data-feed, and this one isn't inside one.",
-                        name.Value);
-                    results.Add(Create(DiagnosticIds.RecordTemplateOutsideDataFeed, message, path, name.ValueStart, name.Value.Length, lineMap));
-                }
-            }
-        }
-
-        private static void Scan0024(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
+        private static void ScanUnbalancedTags(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
         {
             var open = new List<HtmlTag>();
             foreach (HtmlTag tag in tags)

@@ -95,6 +95,23 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
+        public void NamesMadeAtRunTimeOrInSourceCode_AreLeftAlone()
+        {
+            string ts = ScreenTs
+                .Replace("    Relase: PXActionState;\n", "    Relase: PXActionState;\n    ProcessAll: PXActionState;\n")
+                .Replace("    Stauts: PXFieldState;\n", "    Stauts: PXFieldState;\n    NoteText: PXFieldState;\n");
+            SiteMetadata plain = Site(complete: true);
+            var withSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "relase", "Stauts", "Relese" });
+            IReadOnlyList<Diagnostic> found = Scan(ts, withSource);
+
+            Assert.Equal(new[] { "Lnes" }, found.Where(d => d.Id == DiagnosticIds.MemberNotInGraph).Select(d => ts.Substring(d.Start, d.Length)));
+            Assert.DoesNotContain(found, d => d.Id == DiagnosticIds.FieldNotInView || d.Id == DiagnosticIds.LinkCommandUnknownAction);
+
+            var graphInSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "XXEntyr" });
+            Assert.DoesNotContain(Scan(ts.Replace("XXEntry", "XXEntyr"), graphInSource), d => d.Id == DiagnosticIds.GraphNotInSite);
+        }
+
+        [Fact]
         public void FindGraph_TakesNestedTypesEitherWay()
         {
             var site = new SiteMetadata(new[] { new GraphMetadata("PX.Objects.XX.Outer+Inner", Array.Empty<ViewMetadata>(), Array.Empty<string>(), true) }, null);

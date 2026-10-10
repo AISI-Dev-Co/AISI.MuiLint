@@ -128,11 +128,6 @@ namespace AISI.MuiLint
                 Severity.Warning,
                 "qp-template renders the predefined template its name picks. A name the site's client-controls package doesn't define renders nothing."),
             new Rule(
-                DiagnosticIds.RecordTemplateOutsideDataFeed,
-                "record-* template outside a data feed",
-                Severity.Warning,
-                "The record-* templates lay out the records of a qp-data-feed. Outside one, they have nothing to lay out."),
-            new Rule(
                 DiagnosticIds.UnknownConfigKey,
                 "Unknown config.bind key",
                 Severity.Warning,

@@ -53,7 +53,7 @@ namespace AISI.MuiLint.Site
             }
         }
 
-        public SiteMetadata Build()
+        public SiteMetadata Build(IEnumerable<string> sourceNames)
         {
             var graphs = new List<KeyValuePair<string, Ancestry>>();
             var unsure = new List<KeyValuePair<string, Ancestry>>();
@@ -120,7 +120,7 @@ namespace AISI.MuiLint.Site
                 }
             }
 
-            return new SiteMetadata(result, Features());
+            return new SiteMetadata(result, Features(), sourceNames);
         }
 
         private static int Marker(List<Level> levels)

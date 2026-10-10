@@ -69,17 +69,6 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
-        public void RecordTemplates_BelongInADataFeed()
-        {
-            IReadOnlyList<Diagnostic> found = HtmlMergeScanner.Analyze(
-                "/x.html",
-                "<template><qp-data-feed id=\"df\"><qp-template id=\"t1\" name=\"record-1-2\"></qp-template></qp-data-feed>"
-                + "<qp-template id=\"t2\" name=\"record-1\"></qp-template></template>");
-            Diagnostic d = Assert.Single(found, x => x.Id == DiagnosticIds.RecordTemplateOutsideDataFeed);
-            Assert.Contains("record-1 template", d.Message, StringComparison.Ordinal);
-        }
-
-        [Fact]
         public void UnbalancedTags_StrayAndUnclosed()
         {
             // Both straight out of Acumatica's 24R1 screens: FS300100's stray </field>, PM506000's "/qp-grid>".

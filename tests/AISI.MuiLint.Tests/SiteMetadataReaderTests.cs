@@ -193,6 +193,44 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
+        public void SourceCodeBesideBin_CountsAsDeclared()
+        {
+            Assert.Contains("UsrRuntimeOnly", Site.SourceNames);
+            Assert.Contains("usrruntimeonly", Site.SourceNames);
+        }
+
+        [Fact]
+        public void AScreenInTheSite_IsCheckedAgainstItsBin()
+        {
+            string folder = Path.Combine(_site.Root, "FrontendSources", "screen", "src", "development", "screens", "SO", "SO301000");
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, "SO301000.ts");
+            const string ts =
+                "@graphInfo({ graphType: \"PX.Objects.SO.SOOrderEntry\", primaryView: \"Document\" })\n"
+                + "export class SO301000 extends PXScreen {\n"
+                + "    Release: PXActionState;\n"
+                + "    Relase: PXActionState;\n"
+                + "    Document = createSingle(SOOrder);\n"
+                + "}\n"
+                + "export class SOOrder extends PXView {\n"
+                + "    OrderNbr: PXFieldState;\n"
+                + "    OrderType: PXFieldState;\n"
+                + "    UsrRuntimeOnly: PXFieldState;\n"
+                + "    OrderNmbr: PXFieldState;\n"
+                + "}\n";
+            File.WriteAllText(path, ts);
+
+            Assert.Equal(Path.GetFullPath(_site.Bin), SiteCache.BinFor(path));
+            Assert.Null(SiteCache.BinFor(Path.Combine(_site.Root, "elsewhere", "SO301000.ts")));
+            IReadOnlyList<AISI.MuiLint.Diagnostic> found = MuiLinter.Analyze(path, ts, p => File.Exists(p) ? File.ReadAllText(p) : null, d => Directory.Exists(d) ? Directory.GetFileSystemEntries(d) : Array.Empty<string>(), SiteCache.ForFile(path));
+
+            Assert.Equal(
+                new[] { DiagnosticIds.MemberNotInGraph + " Relase", DiagnosticIds.FieldNotInView + " OrderNmbr" },
+                found.Where(d => d.Id == DiagnosticIds.MemberNotInGraph || d.Id == DiagnosticIds.FieldNotInView).Select(d => d.Id + " " + ts.Substring(d.Start, d.Length)));
+            Assert.Same(SiteCache.ForFile(path), SiteCache.ForFile(path));
+        }
+
+        [Fact]
         public void JunkFilesAreSkipped()
         {
             Assert.Null(SiteMetadataReader.Read(_site.JunkBin));
@@ -558,6 +596,11 @@ namespace Orphan
                 references.Add(Compile("Custom", Custom, references, Bin));
                 references.Add(Compile("Middle", Middle, references, refs));
                 Compile("Orphan", Orphan, references, Bin);
+
+                Directory.CreateDirectory(Path.Combine(Root, "App_RuntimeCode", "Nested"));
+                File.WriteAllText(
+                    Path.Combine(Root, "App_RuntimeCode", "Nested", "SOOrderExt.cs"),
+                    "public class SOOrderExt : PXCacheExtension<SOOrder> { public string UsrRuntimeOnly { get; set; } }");
 
                 foreach (string folder in new[] { Bin, JunkBin })
                 {
