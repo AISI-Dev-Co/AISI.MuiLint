@@ -5,14 +5,17 @@ namespace AISI.MuiLint
 {
     internal readonly struct HtmlAttribute
     {
-        public HtmlAttribute(string name, string value, int valueStart)
+        public HtmlAttribute(string name, int nameStart, string value, int valueStart)
         {
             Name = name;
+            NameStart = nameStart;
             Value = value;
             ValueStart = valueStart;
         }
 
         public string Name { get; }
+
+        public int NameStart { get; }
 
         public string Value { get; }
 
@@ -205,7 +208,7 @@ namespace AISI.MuiLint
                         }
                     }
 
-                    attrs.Add(new HtmlAttribute(attrName, attrValue, valueStart));
+                    attrs.Add(new HtmlAttribute(attrName, attrNameStart, attrValue, valueStart));
                 }
 
                 tags.Add(new HtmlTag(name, tagStart, i, selfClosing, isEnd, attrs));

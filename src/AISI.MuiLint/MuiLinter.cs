@@ -23,7 +23,8 @@ namespace AISI.MuiLint
             string path,
             string text,
             Func<string, string?>? readFile,
-            Func<string, IEnumerable<string>>? listFolder = null)
+            Func<string, IEnumerable<string>>? listFolder = null,
+            SiteMetadata? site = null)
         {
             if (path is null)
             {
@@ -31,7 +32,7 @@ namespace AISI.MuiLint
             }
 
             return path.EndsWith(".ts", StringComparison.OrdinalIgnoreCase)
-                ? TypeScriptScanner.Analyze(path, text, readFile, listFolder)
+                ? TypeScriptScanner.Analyze(path, text, readFile, listFolder, site)
                 : HtmlMergeScanner.Analyze(path, text, readFile, listFolder);
         }
     }
