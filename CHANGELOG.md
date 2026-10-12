@@ -11,6 +11,9 @@ the rest now say what the docs say. Each rule's page quotes its source.
 
 ### Added
 
+- An **Extensions › AISI MuiLint** menu in Visual Studio. **Lint Modern UI Screens** checks every `.html` and `.ts`
+  under the site's `development/screens`, open or not, and lists the findings in the Error List; it finds the site
+  from the open solution or folder. Also **Clear Results**, **Rule Reference** and **Report an Issue**.
 - **AISI0018** (error): a customising tag (`after`, `before`, `append`, `prepend`, `modify`, `remove`, `replace`)
   that isn't directly in the top-level `<template>`. The docs require it; inside a `qp-include` is the exception.
 - **AISI0014** (warning): half a TypeScript extension, an empty `interface X extends Y {}` without its `class X`, or a

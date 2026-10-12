@@ -48,6 +48,10 @@
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Design" />
+    <VSCTCompile Include="MuiLintCommands.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">

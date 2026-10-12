@@ -28,6 +28,7 @@ Each id in the Error List links to a page explaining the rule, with a before and
 
 ## And also
 
+- **Extensions › AISI MuiLint › Lint Modern UI Screens** checks every file under your site's `development/screens`, not just the open ones, and lists the findings in the Error List.
 - **Lightbulb fixes** (Ctrl+.): close a self-closing tag, remove an empty fieldset, declare a missing field in your TypeScript extension (writing the extension, and the `.ts`, if there isn't one), or suppress a finding on the line or in the file.
 - **Completions** for Modern UI tags and attributes; the stock screen's `#ids` and `[name='…']` values in every merge selector, scoped to the container you've named; the views, fields and actions your TypeScript declares; and the fields of the C# DAC extensions in your solution.
 - **Go to definition** (F12) and **hover** from a selector into the stock screen HTML, and from a view, action or field into its TypeScript declaration.
