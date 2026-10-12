@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
@@ -34,6 +35,10 @@ namespace AISI.MuiLint
         private readonly Dictionary<string, (TsClass Class, TsModule Module)> _classes = new Dictionary<string, (TsClass, TsModule)>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _mergedInto = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, Dictionary<string, TsMember>?> _resolved = new Dictionary<string, Dictionary<string, TsMember>?>(StringComparer.Ordinal);
+        private static readonly Regex GraphTypeArgument = new Regex(
+            "\\bgraphType\\s*:\\s*(['\"`])(?<g>[^'\"`]+)\\1",
+            RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         private Dictionary<string, TsMember> _screen = new Dictionary<string, TsMember>(StringComparer.Ordinal);
 
         private ScreenModel()
@@ -42,6 +47,9 @@ namespace AISI.MuiLint
 
         /// <summary>Name of the screen class, for example <c>SO301000</c>.</summary>
         public string ScreenClass { get; private set; } = string.Empty;
+
+        /// <summary>The <c>graphType</c> in the screen class's <c>@graphInfo</c>, or null.</summary>
+        public string? GraphType { get; private set; }
 
         /// <summary>View names, in declaration order.</summary>
         public IReadOnlyList<string> Views { get; private set; } = Array.Empty<string>();
@@ -344,6 +352,35 @@ namespace AISI.MuiLint
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether <paramref name="className"/> is <paramref name="target"/>
+        /// or an extension of it (<c>interface X extends Target {}</c> plus <c>class X</c>).
+        /// </summary>
+        public bool IsPartOf(string className, string target)
+        {
+            if (string.Equals(className, target, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            return _mergedInto.TryGetValue(target, out List<string>? sources) && sources.Contains(className);
+        }
+
+        // The graphType of the @graphInfo just before the class.
+        private static string? GraphTypeOf(TsModule module, TsClass c)
+        {
+            int from = Math.Max(0, c.NameStart - 800);
+            string before = module.CodeWithStrings.Substring(from, c.NameStart - from);
+            int decorator = before.LastIndexOf("@graphInfo", StringComparison.Ordinal);
+            if (decorator < 0 || before.IndexOf("class ", decorator, StringComparison.Ordinal) != before.LastIndexOf("class ", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            Match m = GraphTypeArgument.Match(before, decorator);
+            return m.Success ? m.Groups["g"].Value : null;
+        }
+
         private bool FindScreen(string screenId)
         {
             string? found = null;
@@ -371,6 +408,8 @@ namespace AISI.MuiLint
 
             _screen = screen;
             ScreenClass = found!;
+            (TsClass screenClass, TsModule screenModule) = _classes[found!];
+            GraphType = GraphTypeOf(screenModule, screenClass);
             var views = new List<string>();
             var actions = new List<string>();
             foreach (KeyValuePair<string, TsMember> member in screen)

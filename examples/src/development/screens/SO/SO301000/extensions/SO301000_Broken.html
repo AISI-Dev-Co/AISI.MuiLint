@@ -23,6 +23,17 @@
     <field name="UsrHandling" after="[name='OrderDate']"></field>
   </qp-fieldset>
 
+  <!-- AISI0019: view-name is required, and the include has no colour parameter -->
+  <qp-include id="inc-AISI" after="#fsColumnB-Order" url="../../../common/address.html" colour="red"></qp-include>
+
+  <!-- AISI0024: Status is in two fieldsets of the stock screen, so this matches both -->
+  <field name="UsrStage" after="[name='Status']"></field>
+
+  <!-- AISI0023: one </field> too many -->
+  <qp-fieldset id="fsColumnE-AISI" after="#fsColumnB-Order" view.bind="Document">
+    <field name="UsrRoute"></field></field>
+  </qp-fieldset>
+
   <!-- AISI0008: same id twice in one container -->
   <qp-fieldset id="fsColumnC-AISI" after="#fsColumnA-Order" view.bind="Document">
     <field name="UsrDeliveryWindow"></field>

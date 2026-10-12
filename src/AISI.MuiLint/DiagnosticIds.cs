@@ -57,5 +57,44 @@ namespace AISI.MuiLint
 
         /// <summary>A tag with a merge attribute that isn't a direct child of the top-level template.</summary>
         public const string MergeTagNotAtTopLevel = "AISI0018";
+
+        /// <summary>A qp-include missing a required parameter, or passing one the included file doesn't declare.</summary>
+        public const string IncludeParameters = "AISI0019";
+
+        /// <summary>A qp-template name that isn't one of the screen templates in the site's client-controls.</summary>
+        public const string UnknownTemplate = "AISI0020";
+
+        /// <summary>A config.bind key the control's config doesn't define.</summary>
+        public const string UnknownConfigKey = "AISI0021";
+
+        /// <summary>A control-type that isn't a qp-* control in the site's client-controls.</summary>
+        public const string UnknownControlType = "AISI0022";
+
+        /// <summary>A Modern UI element that is never closed, or an end tag with nothing to close.</summary>
+        public const string UnbalancedTag = "AISI0023";
+
+        /// <summary>A merge selector that matches more than one element of the stock screen.</summary>
+        public const string SelectorMatchesSeveral = "AISI0024";
+
+        /// <summary>@graphInfo without a graphType.</summary>
+        public const string GraphInfoWithoutGraphType = "AISI0025";
+
+        /// <summary>@gridConfig without a preset.</summary>
+        public const string GridWithoutPreset = "AISI0026";
+
+        /// <summary>A graphType the site's Bin doesn't contain.</summary>
+        public const string GraphNotInSite = "AISI0027";
+
+        /// <summary>A view or action on the screen that the graph doesn't have.</summary>
+        public const string MemberNotInGraph = "AISI0028";
+
+        /// <summary>A view class field that the view's DAC doesn't have.</summary>
+        public const string FieldNotInView = "AISI0029";
+
+        /// <summary>@linkCommand naming an action the graph doesn't have.</summary>
+        public const string LinkCommandUnknownAction = "AISI0030";
+
+        /// <summary>@featureInstalled naming a feature the site doesn't have.</summary>
+        public const string FeatureNotInSite = "AISI0031";
     }
 }

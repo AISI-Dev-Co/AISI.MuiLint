@@ -8,6 +8,11 @@ namespace AISI.MuiLint
 {
     public static partial class HtmlMergeScanner
     {
+        // The selector shapes extensions actually use: [name='X'], #id, #id [name='X'].
+        private static readonly Regex SimpleSelector = new Regex(
+            "^\\s*(?:#(?<id>[A-Za-z_][\\w-]*))?\\s*(?:\\[name\\s*=\\s*(['\"]?)(?<n>[^'\"\\]]+)\\1\\s*\\])?\\s*$",
+            RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         internal static readonly Regex IdSelector = new Regex(
             "#(?<id>[A-Za-z_][A-Za-z0-9_-]*)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -76,7 +81,7 @@ namespace AISI.MuiLint
         /// <c>…/src/</c>, with a trailing slash), the module and the screen id. Works for the stock
         /// screen, a development screen, a customizationScreens project, and their extensions.
         /// </summary>
-        private static bool TryLocateScreen(string path, out string src, out string module, out string screen)
+        internal static bool TryLocateScreen(string path, out string src, out string module, out string screen)
         {
             src = module = screen = string.Empty;
             string[] parts = NormalizePath(path).Split('/');
@@ -176,10 +181,50 @@ namespace AISI.MuiLint
                                 lineMap));
                         }
                     }
+
+                    CountMatches(path, attr, stock, localNames, lineMap, results);
                 }
 
                 localNames.Add(tag.GetAttribute("name"));
                 localIds.Add(tag.GetAttribute("id"));
+            }
+        }
+
+        // A selector of a shape we can count: more than one stock match fails the build, and so does
+        // #id [name='X'] when X is in the stock screen but not inside #id.
+        private static void CountMatches(string path, HtmlAttribute attr, StockScreen stock, HashSet<string> localNames, LineMap lineMap, List<Diagnostic> results)
+        {
+            Match m = SimpleSelector.Match(attr.Value);
+            string id = m.Groups["id"].Value;
+            string name = m.Groups["n"].Value;
+            if (!m.Success || (id.Length == 0 && name.Length == 0))
+            {
+                return;
+            }
+
+            string selector = (id.Length > 0 ? "#" + id : string.Empty) + (id.Length > 0 && name.Length > 0 ? " " : string.Empty) + (name.Length > 0 ? "[name='" + name + "']" : string.Empty);
+            stock.StockMatches.TryGetValue(selector, out int count);
+            if (count > 1)
+            {
+                string message = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0} matches {1} elements in the stock {2}, and the Modern UI build fails on a selector that matches more than one.{3}",
+                    selector,
+                    count,
+                    stock.FileName,
+                    id.Length == 0 ? " Qualify it with the #id of the container you mean." : string.Empty);
+                results.Add(Create(DiagnosticIds.SelectorMatchesSeveral, message, path, attr.ValueStart, attr.Value.Length, lineMap));
+            }
+            else if (count == 0 && id.Length > 0 && name.Length > 0 && stock.Ids.ContainsKey(id) && stock.StockMatches.ContainsKey("[name='" + name + "']")
+                && !stock.ExtensionNames.Contains(name) && !localNames.Contains(name))
+            {
+                string message = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "[name='{0}'] is in the stock {1}, but not inside #{2}, so the selector matches nothing. The Modern UI build fails on a selector that matches nothing.",
+                    name,
+                    stock.FileName,
+                    id);
+                results.Add(Create(DiagnosticIds.SelectorNotInStock, message, path, attr.ValueStart, attr.Value.Length, lineMap));
             }
         }
 
@@ -248,6 +293,12 @@ namespace AISI.MuiLint
             /// <summary>For each id, the names inside that element (includes followed).</summary>
             public Dictionary<string, List<string>> NamesUnder { get; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
+            /// <summary>How many elements of the stock screen itself (not its extensions) match each simple selector.</summary>
+            public Dictionary<string, int> StockMatches { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
+
+            /// <summary>Names the other extensions add, wherever they put them.</summary>
+            public HashSet<string> ExtensionNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             /// <summary>Tag → attribute → the values the stock screen uses for it, first seen first.</summary>
             public Dictionary<string, Dictionary<string, List<string>>> Attributes { get; } =
                 new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
@@ -271,7 +322,7 @@ namespace AISI.MuiLint
                 }
 
                 var stock = new StockScreen(Path.GetFileName(stockPath));
-                stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>());
+                stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>(), isStock: true);
 
                 // Every other extension of the screen is merged in too, so what they add can be targeted.
                 string self = NormalizePath(extensionPath);
@@ -280,14 +331,22 @@ namespace AISI.MuiLint
                     string? extension = string.Equals(path, self, StringComparison.OrdinalIgnoreCase) ? null : readFile(path);
                     if (extension != null)
                     {
-                        stock.Collect(path, extension, readFile, 0, Array.Empty<string>());
+                        stock.Collect(path, extension, readFile, 0, Array.Empty<string>(), isStock: false);
                     }
                 }
 
                 return stock._complete || allowPartial ? stock : null;
             }
 
-            private void Collect(string filePath, string html, Func<string, string?> readFile, int depth, IReadOnlyList<string> outerIds)
+            private void Count(string? selector)
+            {
+                if (selector != null)
+                {
+                    StockMatches[selector] = StockMatches.TryGetValue(selector, out int n) ? n + 1 : 1;
+                }
+            }
+
+            private void Collect(string filePath, string html, Func<string, string?> readFile, int depth, IReadOnlyList<string> outerIds, bool isStock)
             {
                 IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(MaskComments(html));
                 int[] parents = HtmlTagReader.Parents(tags);
@@ -315,6 +374,20 @@ namespace AISI.MuiLint
                     }
 
                     List<string> ids = EnclosingIds(tags, parents, i, outerIds);
+                    if (isStock)
+                    {
+                        Count(name.Length > 0 ? "[name='" + name + "']" : null);
+                        Count(id.Length > 0 ? "#" + id : null);
+                        foreach (string container in ids)
+                        {
+                            Count(name.Length > 0 ? "#" + container + " [name='" + name + "']" : null);
+                        }
+                    }
+                    else if (name.Length > 0)
+                    {
+                        ExtensionNames.Add(name);
+                    }
+
                     if (name.Length > 0)
                     {
                         foreach (string container in ids)
@@ -348,7 +421,7 @@ namespace AISI.MuiLint
                         ids.Add(id);
                     }
 
-                    Collect(ScreenModel.Combine(filePath, url), included, readFile, depth + 1, ids);
+                    Collect(ScreenModel.Combine(filePath, url), included, readFile, depth + 1, ids, isStock);
                 }
             }
 
