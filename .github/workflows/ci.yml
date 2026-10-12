@@ -39,7 +39,8 @@ jobs:
         run: |
           roslynator analyze \
             src/AISI.MuiLint/AISI.MuiLint.csproj \
-            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj
+            src/AISI.MuiLint.Cli/AISI.MuiLint.Cli.csproj \
+            src/AISI.MuiLint.Site/AISI.MuiLint.Site.csproj
 
   action:
     runs-on: ubuntu-latest

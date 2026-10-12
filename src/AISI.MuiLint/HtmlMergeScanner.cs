@@ -101,6 +101,16 @@ namespace AISI.MuiLint
             Scan0012(path, tags, lineMap, results);
             Scan0013(path, tags, lineMap, results);
             Scan0018(path, tags, parents, lineMap, results);
+            ScanUnbalancedTags(path, tags, lineMap, results);
+            if (readFile != null)
+            {
+                ScanIncludes(path, tags, readFile, lineMap, results);
+                ClientControls? controls = ClientControls.For(path, readFile, listFolder);
+                if (controls != null)
+                {
+                    ScanClientControls(path, tags, controls, lineMap, results);
+                }
+            }
 
             // Stock screens are what they are; checking them against their own .ts is just noise.
             ScreenModel? screen = readFile == null || IsStockScreensPath(path) ? null : ScreenModel.Read(path, readFile, listFolder: listFolder);

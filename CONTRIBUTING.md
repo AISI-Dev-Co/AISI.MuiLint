@@ -21,7 +21,7 @@ dotnet test tests/AISI.MuiLint.Tests/AISI.MuiLint.Tests.csproj -c Release
 dotnet run --project src/AISI.MuiLint.Cli -- examples/src/development/screens
 ```
 
-CI also runs Roslynator 1.0.0 over `src/AISI.MuiLint` and `src/AISI.MuiLint.Cli`, and packs the VSIX on Windows.
+CI also runs Roslynator 1.0.0 over `src/AISI.MuiLint`, `src/AISI.MuiLint.Cli` and `src/AISI.MuiLint.Site`, and packs the VSIX on Windows.
 Warnings are errors throughout.
 
 ## Adding a rule

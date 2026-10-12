@@ -15,7 +15,7 @@ Acuminator lints your C#. MuiLint lints the front end of your customisation: the
 | AISI0006 | Malformed selectors: unclosed `[`, `(` or quotes |
 | AISI0008 | The same id, or the same field, twice in one container |
 | AISI0009 | Selectors naming a `[name]` or `#id` the stock screen and its extensions don't have |
-| AISI0011 | `view.bind`, fields or a button's `state.bind` that the screen's TypeScript doesn't declare |
+| AISI0011 | `view.bind`, fields, `state.bind` or `control-state.bind` that the screen's TypeScript doesn't declare |
 | AISI0012 | `qp-*` controls without an `id` (a hint) |
 | AISI0013 | A `config.bind` with an unclosed brace, bracket or quote |
 | AISI0014 | Half a TypeScript extension: the interface without its class, or the other way round |
@@ -23,6 +23,19 @@ Acuminator lints your C#. MuiLint lints the front end of your customisation: the
 | AISI0016 | A view created from a class that isn't a `PXView` |
 | AISI0017 | An extension saved outside the screen's `extensions` folder |
 | AISI0018 | A customising tag that isn't directly in the top-level `<template>` |
+| AISI0019 | A `qp-include` missing a required parameter, or passing an undeclared one |
+| AISI0020 | A `qp-template` name that isn't a predefined layout (from your site's client-controls) |
+| AISI0021 | A `config.bind` key the control doesn't have (from your site's client-controls) |
+| AISI0022 | A `control-type` that isn't a control (from your site's client-controls) |
+| AISI0023 | A Modern UI tag that's never closed, or a stray closing tag |
+| AISI0024 | A selector matching more than one element of the stock screen |
+| AISI0025 | `@graphInfo` without a `graphType` |
+| AISI0026 | `@gridConfig` without a `preset` (a hint) |
+| AISI0027 | A `graphType` your site's `Bin` doesn't define |
+| AISI0028 | A view or action the graph doesn't have (from your site's `Bin`) |
+| AISI0029 | A field the view's DAC doesn't have (from your site's `Bin`) |
+| AISI0030 | `@linkCommand` naming an action the graph doesn't have |
+| AISI0031 | `@featureInstalled` naming a feature your site doesn't have |
 
 Each id in the Error List links to a page explaining the rule, with a before and after.
 

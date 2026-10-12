@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using AISI.MuiLint.Site;
 
 namespace AISI.MuiLint.Cli
 {
@@ -107,7 +108,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
 
                 // Full path so .editorconfig lookup can walk above the current directory.
                 string fullPath = Path.GetFullPath(path);
-                scanned.Add(new ScannedFile(path, MuiLinter.Analyze(fullPath, text, p => ReadCached(p, cache), ListFolder)));
+                scanned.Add(new ScannedFile(path, MuiLinter.Analyze(fullPath, text, p => ReadCached(p, cache), ListFolder, SiteCache.ForFile(fullPath))));
             }
 
             switch (format)

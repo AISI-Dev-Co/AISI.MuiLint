@@ -26,15 +26,16 @@ namespace AISI.MuiLint
 
                 foreach (HtmlAttribute attr in tag.Attributes)
                 {
-                    // Anything but a plain name is an expression, and not ours to judge. Names with a leading
-                    // underscore (_PayBillsFilter_CurrencyInfo_) are views the backend makes up.
-                    if (!IsIdentifier(attr.Value) || attr.Value[0] == '_')
+                    // Anything but a name (or View.Field) is an expression, and not ours to judge. Names with a
+                    // leading underscore (_PayBillsFilter_CurrencyInfo_) are views the backend makes up.
+                    if (!IsIdentifier(attr.Value.Replace(".", string.Empty)) || attr.Value[0] == '_')
                     {
                         continue;
                     }
 
                     string? message = null;
-                    if (Is(attr.Name, "view.bind") && !screen.TryGetMember(attr.Value, out _))
+                    bool plain = IsIdentifier(attr.Value);
+                    if (Is(attr.Name, "view.bind") && plain && !screen.TryGetMember(attr.Value, out _))
                     {
                         message = "{0} has no view called '{1}'. Declare it in the .ts (createSingle/createCollection) or fix the spelling.";
                     }
@@ -49,21 +50,34 @@ namespace AISI.MuiLint
                         string text = string.Format(CultureInfo.InvariantCulture, message, screen.ScreenClass, attr.Value);
                         results.Add(Create(DiagnosticIds.BindingNotInTypeScript, text, path, attr.ValueStart, attr.Value.Length, lineMap));
                     }
+
+                    // Elsewhere state.bind, like control-state.bind, binds a field: View.Field, or a field
+                    // of the view around it (<qp-mail-editor state.bind="Email"> in Acumatica's docs).
+                    if ((Is(attr.Name, "state.bind") && !Is(tag.Name, "qp-button")) || Is(attr.Name, "control-state.bind"))
+                    {
+                        CheckField(path, attr, NearestView(tags, parents, i), screen, lineMap, results);
+                    }
                 }
 
                 // unbound fields are placeholders for custom content and live on no view.
-                string name = tag.GetAttribute("name");
-                if (IsFieldTag(tag.Name) && name.Length > 0 && !tag.HasAttribute("unbound"))
+                HtmlAttribute name = Find(tag, "name");
+                if (IsFieldTag(tag.Name) && name.Value?.Length > 0 && !tag.HasAttribute("unbound"))
                 {
-                    CheckField(path, tag, name, NearestView(tags, parents, i), screen, lineMap, results);
+                    CheckField(path, name, NearestView(tags, parents, i), screen, lineMap, results);
                 }
             }
         }
 
-        /// <summary>An action on the screen, or on the class of the view the button sits in.</summary>
+        /// <summary>An action on the screen, or on the class of the view the button sits in (or names: View.Action).</summary>
         private static bool HasAction(ScreenModel screen, string action, string view)
         {
-            if (screen.TryGetMember(action, out _))
+            int dot = action.IndexOf('.');
+            if (dot > 0)
+            {
+                view = action.Substring(0, dot);
+                action = action.Substring(dot + 1);
+            }
+            else if (screen.TryGetMember(action, out _))
             {
                 return true;
             }
@@ -80,14 +94,14 @@ namespace AISI.MuiLint
 
         private static void CheckField(
             string path,
-            HtmlTag tag,
-            string name,
+            HtmlAttribute attr,
             string view,
             ScreenModel screen,
             LineMap lineMap,
             List<Diagnostic> results)
         {
             // name="Document.OrderNbr" names its own view.
+            string name = attr.Value;
             int dot = name.IndexOf('.');
             string field = name;
             if (dot > 0)
@@ -134,7 +148,6 @@ namespace AISI.MuiLint
                     screen.ClassOf(view));
             }
 
-            HtmlAttribute attr = Find(tag, "name");
             results.Add(Create(DiagnosticIds.BindingNotInTypeScript, message, path, attr.ValueStart, attr.Value.Length, lineMap));
         }
 

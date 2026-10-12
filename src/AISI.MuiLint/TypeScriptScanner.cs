@@ -9,7 +9,7 @@ namespace AISI.MuiLint
     /// Checks a Modern UI .ts file: one under a <c>screens</c> or <c>customizationScreens</c> folder
     /// that isn't a stock screen.
     /// </summary>
-    public static class TypeScriptScanner
+    public static partial class TypeScriptScanner
     {
         private static readonly Regex SuppressionComment = new Regex(
             "//[ \\t]*muilint-disable(?<next>-next-line)?(?<ids>[^\\r\\n]*)",
@@ -21,6 +21,10 @@ namespace AISI.MuiLint
 
         private static readonly Regex HandleEvent = new Regex(
             "@handleEvent\\s*\\(",
+            RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex ConfigDecorator = new Regex(
+            "@(?<name>graphInfo|gridConfig)\\s*\\(",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex ViewArgument = new Regex(
@@ -35,12 +39,14 @@ namespace AISI.MuiLint
         /// and to read .editorconfig; null limits the scan to this file.
         /// </param>
         /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen is read too. Optional.</param>
+        /// <param name="site">What the site's Bin says about its graphs and features, for the checks against the backend. Optional.</param>
         /// <returns>Zero or more findings, in source order.</returns>
         public static IReadOnlyList<Diagnostic> Analyze(
             string path,
             string text,
             Func<string, string?>? readFile,
-            Func<string, IEnumerable<string>>? listFolder = null)
+            Func<string, IEnumerable<string>>? listFolder = null,
+            SiteMetadata? site = null)
         {
             if (path is null)
             {
@@ -71,11 +77,17 @@ namespace AISI.MuiLint
 
             HtmlMergeScanner.TryPath0017(path, lineMap, results);
 
+            ScanDecoratorConfigs(path, module, lineMap, results);
+
             ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text, listFolder);
             if (screen != null)
             {
                 Scan0015(path, module, screen, lineMap, results);
                 Scan0016(path, module, screen, lineMap, results);
+                if (site != null)
+                {
+                    ScanSite(path, module, screen, site, lineMap, results);
+                }
             }
 
             HtmlMergeScanner.RemoveSuppressed(text, SuppressionComment, lineMap, results);
@@ -157,6 +169,43 @@ namespace AISI.MuiLint
                 if (view.Success)
                 {
                     CheckView(path, view.Groups["v"], "@handleEvent", screen, lineMap, results);
+                }
+            }
+        }
+
+        // @graphInfo without graphType, and @gridConfig without preset.
+        private static void ScanDecoratorConfigs(string path, TsModule module, LineMap lineMap, List<Diagnostic> results)
+        {
+            foreach (Match decorator in ConfigDecorator.Matches(module.Code))
+            {
+                int open = decorator.Index + decorator.Length - 1;
+                int close = MatchingParen(module.Code, open);
+                if (close < 0)
+                {
+                    continue;
+                }
+
+                string args = module.Code.Substring(open + 1, close - open - 1).Trim();
+                Group name = decorator.Groups["name"];
+                if (name.Value == "graphInfo" && args.StartsWith("{", StringComparison.Ordinal) && !Regex.IsMatch(args, "\\bgraphType\\s*:"))
+                {
+                    results.Add(HtmlMergeScanner.Create(
+                        DiagnosticIds.GraphInfoWithoutGraphType,
+                        "@graphInfo has no graphType, so the screen has no graph to talk to.",
+                        path,
+                        name.Index - 1,
+                        name.Length + 1,
+                        lineMap));
+                }
+                else if (name.Value == "gridConfig" && (args.Length == 0 || args.StartsWith("{", StringComparison.Ordinal)) && !Regex.IsMatch(args, "\\bpreset\\s*:"))
+                {
+                    results.Add(HtmlMergeScanner.Create(
+                        DiagnosticIds.GridWithoutPreset,
+                        "@gridConfig has no preset. Acumatica's docs ask for one on every grid: GridPreset.Primary, Inquiry, Processing, Details and so on.",
+                        path,
+                        name.Index - 1,
+                        name.Length + 1,
+                        lineMap));
                 }
             }
         }
