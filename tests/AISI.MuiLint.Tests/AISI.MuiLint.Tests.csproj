@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\src\AISI.MuiLint.Vsix\MuiLintPackage.cs" Link="MuiLintPackage.cs" />
+    <Compile Include="..\..\src\AISI.MuiLint.Vsix\ScreenFolders.cs" Link="ScreenFolders.cs" />
   </ItemGroup>
 
   <ItemGroup>

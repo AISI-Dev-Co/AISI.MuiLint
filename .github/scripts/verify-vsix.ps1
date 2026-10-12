@@ -55,6 +55,8 @@ try {
     $text = Get-Content $pkgdef -Raw
     if ($text -notmatch [regex]::Escape("""PID""=""$Version""")) { $problems.Add("pkgdef doesn't register product version $Version") }
     if ($text -notmatch 'CodeBase') { $problems.Add("pkgdef has no CodeBase, so VS can't find the package") }
+    # Without this the Extensions › AISI MuiLint menu never appears.
+    if ($text -notmatch '(?m)^\[\$RootKey\$\\Menus\]') { $problems.Add("pkgdef doesn't register the menu (Menus.ctmenu)") }
   }
 }
 finally {
