@@ -11,6 +11,9 @@ the rest now say what the docs say. Each rule's page quotes its source.
 
 ### Added
 
+- An **Extensions › AISI MuiLint** menu in Visual Studio. **Lint Modern UI Screens** checks every `.html` and `.ts`
+  under the site's `development/screens`, open or not, and lists the findings in the Error List; it finds the site
+  from the open solution or folder. Also **Clear Results**, **Rule Reference** and **Report an Issue**.
 - Checks against your site, the way AcuMate checks against a running one. They stay quiet without the site:
   - **AISI0027–AISI0031** (warnings) read the compiled assemblies in the site's `Bin` without loading them: a
     `graphType` no assembly defines, a view or action the graph doesn't have, a `PXFieldState` the view's DAC

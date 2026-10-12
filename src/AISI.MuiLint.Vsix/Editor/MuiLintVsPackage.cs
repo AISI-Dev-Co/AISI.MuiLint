@@ -19,6 +19,7 @@ namespace AISI.MuiLint.Vsix
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [InstalledProductRegistration("AISI MuiLint", "HTML merge linter for Acumatica Modern UI.", "0.2.0")]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string, PackageAutoLoadFlags.BackgroundLoad)]
+    [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideBindingPath]
     [Guid(MuiLintVsPackage.PackageGuidString)]
     public sealed class MuiLintVsPackage : AsyncPackage
@@ -43,6 +44,8 @@ namespace AISI.MuiLint.Vsix
         {
             _packageJoinableTaskFactory = this.JoinableTaskFactory;
             await base.InitializeAsync(cancellationToken, progress);
+            await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+            await MuiLintCommands.InitializeAsync(this);
         }
     }
 }
