@@ -14,7 +14,7 @@ the rest now say what the docs say. Each rule's page quotes its source.
 - An **Extensions › AISI MuiLint** menu in Visual Studio. **Lint Modern UI Screens** checks every `.html` and `.ts`
   under the site's `development/screens`, open or not, and lists the findings in the Error List; it finds the site
   from the open solution or folder. Also **Clear Results**, **Rule Reference** and **Report an Issue**.
-- Checks against your site, the way AcuMate checks against a running one. They stay quiet without the site:
+- Checks against your site. They stay quiet without the site:
   - **AISI0027–AISI0031** (warnings) read the compiled assemblies in the site's `Bin` without loading them: a
     `graphType` no assembly defines, a view or action the graph doesn't have, a `PXFieldState` the view's DAC
     doesn't have, a `@linkCommand` to a missing action, and a `@featureInstalled` feature `FeaturesSet` lacks. Graph
@@ -65,12 +65,12 @@ the rest now say what the docs say. Each rule's page quotes its source.
   dialogs and show a field twice in a view on purpose.
 - AISI0009 only counts names the file adds above the selector, since elements apply in order.
 - AISI0011:
-  - fields inside `<using view="...">` or a `qp-panel` are checked against that view, as AcuMate does;
+  - fields inside `<using view="...">` or a `qp-panel` are checked against that view;
   - `state.bind` is only checked as an action on `qp-button`; elsewhere it names a field;
   - a button's action may be declared on the view it sits in;
   - `qp-panel` ids are no longer required to be views: the docs call `qp-panel` a generic placeholder;
   - an extension that is only HTML is checked against the screen and its other extensions.
-- AISI0012 skips the controls Acumatica never gives ids (AcuMate's list, plus `qp-address-lookup`, `qp-hyper-icon`
+- AISI0012 skips the controls Acumatica never gives ids (now including `qp-address-lookup`, `qp-hyper-icon`
   and `qp-caption`), and accepts an id given in `config.bind`.
 - AISI0009, AISI0011 and the TypeScript rules see every extension of the screen: the stock screen's own `extensions`
   folder, `development/screens`, and every tenant under `customizationScreens`.

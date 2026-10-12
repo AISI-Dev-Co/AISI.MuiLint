@@ -22,7 +22,7 @@ namespace AISI.MuiLint
 
         private static readonly char[] IdSeparators = { ' ', '\t', '\r', '\n', ',' };
 
-        // AcuMate's list, plus controls Acumatica's own screens never give an id.
+        // Controls Acumatica's own screens never give an id.
         private static readonly HashSet<string> IdOptional = new HashSet<string>(
             new[]
             {
@@ -570,7 +570,7 @@ namespace AISI.MuiLint
         }
 
         /// <summary>The view.bind of the nearest enclosing element, or empty.</summary>
-        /// <summary>The view around a tag: a view.bind, a qp-panel's id, or a &lt;using view&gt;, as AcuMate reads them.</summary>
+        /// <summary>The view around a tag: a view.bind, a qp-panel's id, or a &lt;using view&gt;.</summary>
         internal static string NearestView(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
         {
             for (int p = parents[index]; p >= 0; p = parents[p])
@@ -649,7 +649,7 @@ namespace AISI.MuiLint
 
         private static bool HasConfigId(string config)
         {
-            // Not an object literal (a property or a call) can carry an id we can't see, as AcuMate allows.
+            // Not an object literal (a property or a call) can carry an id we can't see.
             return config.Length > 0 && (!config.TrimStart().StartsWith("{", StringComparison.Ordinal) || ConfigId.IsMatch(config));
         }
 

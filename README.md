@@ -60,7 +60,7 @@ Two groups of rules check against your site rather than against the files alone,
 - **AISI0020–AISI0022** read the site's own `node_modules/client-controls`, so the templates, controls and config keys
   they know are the ones your Acumatica version has.
 - **AISI0027–AISI0031** read the compiled assemblies in the site's `Bin` (beside `FrontendSources`), without loading
-  them, much as AcuMate asks a running site. Code published as source to `App_RuntimeCode` is taken into account.
+  them. Code published as source to `App_RuntimeCode` is taken into account.
   Things added in code at run time (`Actions.Add`, fields added in an event handler) can't be seen; suppress those.
 
 Want to see them all at once? `examples/` has a made-up stock screen, a clean extension, and a broken `.html` and

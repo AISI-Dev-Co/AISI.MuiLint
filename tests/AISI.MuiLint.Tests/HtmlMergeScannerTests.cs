@@ -28,7 +28,7 @@ namespace AISI.MuiLint.Tests
 
         // These need what a fixture folder can't hold: the stock screen beside an extension (AISI0009, AISI0024),
         // the site's client-controls package (AISI0020, AISI0021, AISI0022) or its Bin (AISI0027 to AISI0031).
-        // AcuMateParityTests, RuleTests, SiteRulesTests and SiteMetadataReaderTests build those in memory or on disk.
+        // ControlRuleTests, RuleTests, SiteRulesTests and SiteMetadataReaderTests build those in memory or on disk.
         private static readonly string[] NotInFixtures =
         {
             DiagnosticIds.SelectorNotInStock,

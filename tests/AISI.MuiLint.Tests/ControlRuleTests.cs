@@ -5,8 +5,8 @@ using Xunit;
 
 namespace AISI.MuiLint.Tests
 {
-    /// <summary>The checks AcuMate has, as MuiLint does them.</summary>
-    public sealed class AcuMateParityTests
+    /// <summary>Bindings, includes, client-controls, tag balance and selector counts.</summary>
+    public sealed class ControlRuleTests
     {
         private const string Stock = "/site/src/screens/SO/SO301000/SO301000.html";
 
