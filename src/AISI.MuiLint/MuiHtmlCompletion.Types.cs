@@ -1,10 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>What the caret is asking for. Computed from raw text, no editor types.</summary>
+    /// <summary>What the caret is asking for.</summary>
     public enum MuiCompletionTarget
     {
         /// <summary>Caret is outside a tag, or in a place this slice does not complete.</summary>
@@ -54,7 +52,7 @@ namespace AISI.MuiLint
         AttributeValue = 5,
     }
 
-    /// <summary>One completion candidate. Editor-free so it is testable on Linux.</summary>
+    /// <summary>One completion candidate.</summary>
     public sealed class MuiCompletionItem
     {
         /// <summary>Creates a candidate.</summary>
@@ -80,7 +78,7 @@ namespace AISI.MuiLint
         /// <summary>Candidate kind.</summary>
         public MuiCompletionKind Kind { get; }
 
-        /// <summary>Tooltip text. Says where a selector value came from.</summary>
+        /// <summary>Tooltip text, such as where a selector value came from.</summary>
         public string Description { get; }
     }
 }

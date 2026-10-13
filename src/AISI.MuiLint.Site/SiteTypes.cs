@@ -335,7 +335,6 @@ namespace AISI.MuiLint.Site
                 return fields;
             }
 
-            fields = null;
             Ancestry ancestry = Walk(dac);
             if (ancestry.Complete && ancestry.Levels.Count > 0)
             {

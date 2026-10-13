@@ -17,13 +17,7 @@ namespace AISI.MuiLint
             "#(?<id>[A-Za-z_][A-Za-z0-9_-]*)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        /// <summary>
-        /// Where the stock screen for an extension lives. For
-        /// <c>src/development/screens/SO/SO301000/extensions/SO301000_Custom.html</c> (or the same
-        /// under <c>customizationScreens/&lt;Project&gt;</c>) that is
-        /// <c>src/screens/SO/SO301000/SO301000.html</c>.
-        /// </summary>
-        /// <returns>The stock path with forward slashes, or null if the path is not an extension.</returns>
+        /// <summary>The stock screen HTML an extension customizes, with forward slashes, or null when the path is not an extension.</summary>
         public static string? StockHtmlPath(string extensionHtmlPath)
         {
             if (extensionHtmlPath is null)
@@ -39,14 +33,7 @@ namespace AISI.MuiLint
             return src + "screens/" + module + "/" + screen + "/" + screen + ".html";
         }
 
-        /// <summary>
-        /// Every extension of the screen <paramref name="path"/> belongs to, wherever it lives: the
-        /// stock screen's own extensions folder, development/screens, and each project under
-        /// customizationScreens. Nothing imports these; the build stitches them all in.
-        /// </summary>
-        /// <param name="path">Any file of the screen, or of one of its extensions.</param>
-        /// <param name="fileExtension">".ts" or ".html".</param>
-        /// <param name="listFolder">Lists what's directly inside a folder, files and subfolders. Null finds nothing.</param>
+        /// <summary>Every extension file of the screen <paramref name="path"/> belongs to, across the stock, development and customizationScreens trees.</summary>
         internal static IEnumerable<string> ScreenExtensions(string path, string fileExtension, Func<string, IEnumerable<string>>? listFolder)
         {
             if (listFolder == null || !TryLocateScreen(path, out string src, out string module, out string screen))
@@ -76,11 +63,7 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>
-        /// Finds the screen a file belongs to: the folder that holds the screens trees (usually
-        /// <c>…/src/</c>, with a trailing slash), the module and the screen id. Works for the stock
-        /// screen, a development screen, a customizationScreens project, and their extensions.
-        /// </summary>
+        /// <summary>Finds the folder holding the screens trees (with a trailing slash), the module and the screen id a file belongs to.</summary>
         internal static bool TryLocateScreen(string path, out string src, out string module, out string screen)
         {
             src = module = screen = string.Empty;
@@ -92,7 +75,6 @@ namespace AISI.MuiLint
                 return false;
             }
 
-            // Walk back from the module folder to the start of the screens tree.
             int root = -1;
             for (int i = moduleIndex - 1; i >= 0 && i >= moduleIndex - 3; i--)
             {
@@ -284,10 +266,8 @@ namespace AISI.MuiLint
 
             public string FileName { get; }
 
-            /// <summary>Each name, and where it first appears.</summary>
             public Dictionary<string, SourceLocation> Names { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
-            /// <summary>Each id, and where it first appears.</summary>
             public Dictionary<string, SourceLocation> Ids { get; } = new Dictionary<string, SourceLocation>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>For each id, the names inside that element (includes followed).</summary>
@@ -296,18 +276,13 @@ namespace AISI.MuiLint
             /// <summary>How many elements of the stock screen itself (not its extensions) match each simple selector.</summary>
             public Dictionary<string, int> StockMatches { get; } = new Dictionary<string, int>(StringComparer.Ordinal);
 
-            /// <summary>Names the other extensions add, wherever they put them.</summary>
             public HashSet<string> ExtensionNames { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>Tag → attribute → the values the stock screen uses for it, first seen first.</summary>
             public Dictionary<string, Dictionary<string, List<string>>> Attributes { get; } =
                 new Dictionary<string, Dictionary<string, List<string>>>(StringComparer.OrdinalIgnoreCase);
 
-            /// <summary>
-            /// Reads the stock screen. Null when there is none, or when an include can't be followed and
-            /// <paramref name="allowPartial"/> is false: a half-known screen only produces false alarms,
-            /// though it is still good enough to complete from.
-            /// </summary>
+            /// <summary>Reads the stock screen, or null when there is none or, unless <paramref name="allowPartial"/>, when an include can't be followed and the screen would only produce false alarms.</summary>
             public static StockScreen? Read(
                 string extensionPath,
                 Func<string, string?> readFile,

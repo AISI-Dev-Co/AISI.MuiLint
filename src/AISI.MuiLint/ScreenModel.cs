@@ -22,12 +22,7 @@ namespace AISI.MuiLint
         public int Column { get; }
     }
 
-    /// <summary>
-    /// What a screen's TypeScript declares: its views, the fields of each view's class, and its
-    /// other members (actions mostly). Read from the .ts next to the HTML and every module it
-    /// imports, with extension interfaces (<c>interface SOLine_Ext extends SOLine {}</c>) merged
-    /// into the class they extend. Anything we cannot follow is left unknown, never guessed.
-    /// </summary>
+    /// <summary>What a screen's TypeScript and its imports declare, with extensions merged in and anything unfollowable left unknown rather than guessed.</summary>
     internal sealed class ScreenModel
     {
         private const int MaxModules = 128;
@@ -45,7 +40,6 @@ namespace AISI.MuiLint
         {
         }
 
-        /// <summary>Name of the screen class, for example <c>SO301000</c>.</summary>
         public string ScreenClass { get; private set; } = string.Empty;
 
         /// <summary>The <c>graphType</c> in the screen class's <c>@graphInfo</c>, or null.</summary>
@@ -54,20 +48,9 @@ namespace AISI.MuiLint
         /// <summary>View names, in declaration order.</summary>
         public IReadOnlyList<string> Views { get; private set; } = Array.Empty<string>();
 
-        /// <summary>Members typed <c>PXActionState</c>.</summary>
         public IReadOnlyList<string> Actions { get; private set; } = Array.Empty<string>();
 
-        /// <summary>
-        /// Reads the screen behind <paramref name="path"/> (an HTML file or its .ts), or returns
-        /// null when there is no .ts or no single screen class can be found in what it reads.
-        /// </summary>
-        /// <param name="path">The HTML or .ts being checked.</param>
-        /// <param name="readFile">Returns a file's text, or null.</param>
-        /// <param name="tsText">The .ts itself when it's already in hand, such as an editor buffer with unsaved changes.</param>
-        /// <param name="listFolder">
-        /// Lists what's directly inside a folder. With it, every extension of the screen is read too,
-        /// wherever it lives (see <see cref="HtmlMergeScanner.ScreenExtensions"/>).
-        /// </param>
+        /// <summary>Reads the screen behind an HTML file or its .ts, or null when there is no .ts or no single screen class.</summary>
         public static ScreenModel? Read(string path, Func<string, string?> readFile, string? tsText = null, Func<string, IEnumerable<string>>? listFolder = null)
         {
             string tsPath = HtmlMergeScanner.NormalizePath(Path.ChangeExtension(path, ".ts"));
@@ -126,7 +109,6 @@ namespace AISI.MuiLint
             return model.FindScreen(ScreenIdFor(path)) ? model : null;
         }
 
-        /// <summary>Gets a member of the screen class (a view, an action, anything declared).</summary>
         public bool TryGetMember(string name, out SourceLocation location)
         {
             location = default;
@@ -139,7 +121,6 @@ namespace AISI.MuiLint
             return true;
         }
 
-        /// <summary>Gets a value indicating whether the screen has a member of this name in any case.</summary>
         public bool HasMemberIgnoringCase(string name)
         {
             foreach (string member in _screen.Keys)
@@ -153,28 +134,22 @@ namespace AISI.MuiLint
             return false;
         }
 
-        /// <summary>
-        /// Field names of a view's class, or null when the view is unknown or its class could not
-        /// be followed all the way to <c>PXView</c>.
-        /// </summary>
+        /// <summary>Field names of a view's class, or null when the view or its class chain to <c>PXView</c> is unknown.</summary>
         public ICollection<string>? FieldsOf(string view)
         {
             return FieldMembers(view)?.Keys;
         }
 
-        /// <summary>The class a view is created from, or null for an unknown view.</summary>
         public string? ClassOf(string view)
         {
             return _screen.TryGetValue(view, out TsMember member) ? member.ViewClass : null;
         }
 
-        /// <summary>The file that declares <paramref name="className"/>, or null when we never saw it.</summary>
         public string? FileOf(string className)
         {
             return _classes.TryGetValue(className, out (TsClass Class, TsModule Module) found) ? found.Module.Path : null;
         }
 
-        /// <summary>Finds where a field is declared in <paramref name="view"/>'s class.</summary>
         public bool TryGetField(string view, string field, out SourceLocation location)
         {
             location = default;
@@ -188,10 +163,7 @@ namespace AISI.MuiLint
             return true;
         }
 
-        /// <summary>
-        /// Every field of every view, or null if any view's class is unknown. Used when the HTML
-        /// does not say which view a field belongs to.
-        /// </summary>
+        /// <summary>Every field of every view, or null if any view's class is unknown.</summary>
         public ICollection<string>? AllFields()
         {
             var all = new HashSet<string>(StringComparer.Ordinal);
@@ -209,7 +181,6 @@ namespace AISI.MuiLint
             return all;
         }
 
-        /// <summary>The first view whose class declares <paramref name="field"/>.</summary>
         public string? FindViewWithField(string field)
         {
             foreach (string view in Views)
@@ -223,10 +194,7 @@ namespace AISI.MuiLint
             return null;
         }
 
-        /// <summary>
-        /// Whether <paramref name="className"/> ends up at <c>PXView</c>: false when its chain ends at
-        /// a class with no base (or at <c>PXScreen</c>), null when it runs into something we can't see.
-        /// </summary>
+        /// <summary>Whether <paramref name="className"/> ends up at <c>PXView</c>, or null when its chain runs into something we can't see.</summary>
         public bool? IsView(string className)
         {
             string name = className;
@@ -352,10 +320,7 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether <paramref name="className"/> is <paramref name="target"/>
-        /// or an extension of it (<c>interface X extends Target {}</c> plus <c>class X</c>).
-        /// </summary>
+        /// <summary>Whether <paramref name="className"/> is <paramref name="target"/> or an extension of it.</summary>
         public bool IsPartOf(string className, string target)
         {
             if (string.Equals(className, target, StringComparison.Ordinal))
@@ -366,7 +331,6 @@ namespace AISI.MuiLint
             return _mergedInto.TryGetValue(target, out List<string>? sources) && sources.Contains(className);
         }
 
-        // The graphType of the @graphInfo just before the class.
         private static string? GraphTypeOf(TsModule module, TsClass c)
         {
             int from = Math.Max(0, c.NameStart - 800);

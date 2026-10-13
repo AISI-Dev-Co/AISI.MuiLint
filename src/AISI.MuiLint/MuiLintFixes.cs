@@ -23,14 +23,10 @@ namespace AISI.MuiLint
         public string NewText { get; }
     }
 
-    /// <summary>
-    /// Quick fixes as plain text edits, computed against the same text the diagnostic came from.
-    /// The editor just applies them.
-    /// </summary>
+    /// <summary>Quick fixes as plain text edits against the same text the diagnostic came from.</summary>
     public static class MuiLintFixes
     {
-        /// <summary><c>&lt;field name="X" /&gt;</c> becomes <c>&lt;field name="X"&gt;&lt;/field&gt;</c> (AISI0001).</summary>
-        /// <returns>The edit, or null if the span no longer holds a self-closing tag.</returns>
+        /// <summary>Turns <c>&lt;field name="X" /&gt;</c> into <c>&lt;field name="X"&gt;&lt;/field&gt;</c> (AISI0001), or null if the span no longer holds a self-closing tag.</summary>
         public static TextEdit? ExpandSelfClosing(string text, Diagnostic diagnostic)
         {
             string tag = Slice(text, diagnostic);
@@ -50,8 +46,7 @@ namespace AISI.MuiLint
             return new TextEdit(diagnostic.Start, diagnostic.Length, open + "></" + name + ">");
         }
 
-        /// <summary>Deletes an empty <c>qp-fieldset</c> along with its now-blank lines (AISI0005).</summary>
-        /// <returns>The edit, or null if the closing tag cannot be found.</returns>
+        /// <summary>Deletes an empty <c>qp-fieldset</c> along with its now-blank lines (AISI0005), or null if the closing tag cannot be found.</summary>
         public static TextEdit? RemoveEmptyFieldset(string text, Diagnostic diagnostic)
         {
             int openEnd = diagnostic.Start + diagnostic.Length;
@@ -86,10 +81,7 @@ namespace AISI.MuiLint
             return new TextEdit(start, end - start, string.Empty);
         }
 
-        /// <summary>
-        /// Inserts <c>&lt;!-- muilint-disable-next-line ID --&gt;</c> above the finding, or a
-        /// file-wide <c>muilint-disable</c> at the top for rules about the file itself.
-        /// </summary>
+        /// <summary>Inserts <c>&lt;!-- muilint-disable-next-line ID --&gt;</c> above the finding, or a file-wide <c>muilint-disable</c> at the top for rules about the file itself.</summary>
         public static TextEdit Suppress(string text, Diagnostic diagnostic)
         {
             string newline = text.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";

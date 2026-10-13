@@ -8,10 +8,7 @@ using Microsoft.VisualStudio.Text;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// Sync <see cref="ICompletionSource"/> over <see cref="MuiHtmlCompletion"/>.
-    /// No fire-and-forget; AugmentCompletionSession stays on the calling thread.
-    /// </summary>
+    /// <summary>Synchronous completion source over <see cref="MuiHtmlCompletion"/> that stays on the calling thread.</summary>
     internal sealed class HtmlCompletionSource : ICompletionSource
     {
         private readonly ITextBuffer _buffer;
@@ -64,7 +61,6 @@ namespace AISI.MuiLint.Vsix
 
                     break;
                 case MuiCompletionTarget.None:
-                    // Always-available Usr field expansion when not inside a tag.
                     items.Add(MuiHtmlCompletion.UsrFieldSnippet());
                     break;
                 default:
@@ -93,8 +89,7 @@ namespace AISI.MuiLint.Vsix
             for (int i = 0; i < items.Count; i++)
             {
                 MuiCompletionItem item = items[i];
-                // Prefer displayText ctor: the 5-arg overload takes ImageSource and
-                // requires a PresentationCore reference the SDK compile assets omit.
+                // The 5-arg overload takes an ImageSource, which needs a PresentationCore reference the SDK compile assets omit.
                 completions.Add(new Completion(item.DisplayText)
                 {
                     InsertionText = item.InsertText,

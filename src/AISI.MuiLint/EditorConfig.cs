@@ -6,10 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Just enough .editorconfig to read <c>dotnet_diagnostic.&lt;id&gt;.severity</c>, the same
-    /// keys Roslyn uses, so one setting drives the analyzer, the CLI and the VSIX alike.
-    /// </summary>
+    /// <summary>Just enough .editorconfig to read Roslyn's <c>dotnet_diagnostic.&lt;id&gt;.severity</c>, so one setting drives the analyzer, the CLI and the VSIX alike.</summary>
     internal static class EditorConfig
     {
         private const string KeyPrefix = "dotnet_diagnostic.";
@@ -21,8 +18,6 @@ namespace AISI.MuiLint
         public static IReadOnlyDictionary<string, string> ReadSeverities(string path, Func<string, string?> readFile)
         {
             string file = HtmlMergeScanner.NormalizePath(path);
-
-            // Nearest first; stop at root = true.
             var configs = new List<(string Directory, string Text)>();
             string? directory = Path.GetDirectoryName(file);
             while (!string.IsNullOrEmpty(directory))

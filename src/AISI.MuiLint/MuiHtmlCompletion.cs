@@ -3,21 +3,14 @@ using System.Collections.Generic;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Completion model for Acumatica Modern UI HTML. Raw text in, candidates out:
-    /// no Visual Studio types, no PX types, no site metadata, no MuiMerge ordering.
-    /// The VS 2022 MEF source is a thin adapter over this.
-    /// </summary>
+    /// <summary>Completion model for Acumatica Modern UI HTML that takes raw text and returns candidates, with no editor types.</summary>
     public static partial class MuiHtmlCompletion
     {
         /// <summary>Insert text of the Usr field expansion.</summary>
         public const string UsrFieldSnippetText =
             "<field after=\"[name='StockField']\" name=\"UsrMyField\"></field>";
 
-        /// <summary>
-        /// Decides what the caret is asking for. <paramref name="caret"/> is a character
-        /// offset into <paramref name="text"/>.
-        /// </summary>
+        /// <summary>Decides what the caret, a character offset into <paramref name="text"/>, is asking for.</summary>
         public static MuiCompletionTarget Classify(string text, int caret)
         {
             if (text is null)
@@ -86,11 +79,7 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>
-        /// Where the text a completion replaces starts. Inside a selector that is the current part
-        /// (<c>#fs [name='Ord|</c> → <c>[name='Ord</c>), inside any other value the whole value,
-        /// elsewhere the word under the caret.
-        /// </summary>
+        /// <summary>Where the text a completion replaces starts: the current selector part, the whole value, or the word under the caret.</summary>
         public static int ApplicableStart(string text, int caret, MuiCompletionTarget target)
         {
             if (text is null)
@@ -139,7 +128,7 @@ namespace AISI.MuiLint
         /// <summary>Modern UI element names this slice completes.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetTags()
         {
-            var items = new List<MuiCompletionItem>
+            return new List<MuiCompletionItem>
             {
                 new MuiCompletionItem("field", "field", MuiCompletionKind.Tag, "Modern UI field. Never self-closing (AISI0001)."),
                 new MuiCompletionItem("qp-fieldset", "qp-fieldset", MuiCompletionKind.Tag, "Fieldset container. Empty one is AISI0005."),
@@ -154,14 +143,9 @@ namespace AISI.MuiLint
                 new MuiCompletionItem("qp-tree", "qp-tree", MuiCompletionKind.Tag, "Tree bound to a view."),
                 new MuiCompletionItem("qp-label", "qp-label", MuiCompletionKind.Tag, "Static text."),
             };
-
-            return items;
         }
 
-        /// <summary>
-        /// Attribute names for <paramref name="tagName"/>. Merge operators are offered on
-        /// every Modern UI tag; <c>view.bind</c> only where a view is bound.
-        /// </summary>
+        /// <summary>Attribute names for <paramref name="tagName"/>: merge operators everywhere, <c>view.bind</c> only where a view is bound.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetAttributes(string tagName)
         {
             var items = new List<MuiCompletionItem>

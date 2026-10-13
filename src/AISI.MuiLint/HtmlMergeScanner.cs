@@ -6,10 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Raw-text scanner for Acumatica Modern UI HTML. No Roslyn compilation and no site: given a
-    /// way to read files it also checks the HTML against the stock screen and the screen's .ts.
-    /// </summary>
+    /// <summary>Raw-text scanner for Acumatica Modern UI HTML that needs no Roslyn compilation and no site.</summary>
     public static partial class HtmlMergeScanner
     {
         internal static readonly Regex NameSelector = new Regex(
@@ -38,35 +35,13 @@ namespace AISI.MuiLint
             "<!--\\s*muilint-disable(?<next>-next-line)?(?<ids>(?:\\s[^>]*?)?)\\s*-->",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        /// <summary>
-        /// Scans <paramref name="text"/> as if it lived at <paramref name="path"/>, looking at
-        /// nothing but the text itself.
-        /// </summary>
-        /// <param name="path">File path (used for the path rules and for reporting).</param>
-        /// <param name="text">Raw HTML.</param>
-        /// <returns>Zero or more findings, in source order.</returns>
+        /// <summary>Scans <paramref name="text"/> as if it lived at <paramref name="path"/>, looking at nothing but the text itself.</summary>
         public static IReadOnlyList<Diagnostic> Analyze(string path, string text)
         {
             return Analyze(path, text, null);
         }
 
-        /// <summary>
-        /// Scans <paramref name="text"/> as if it lived at <paramref name="path"/>.
-        /// </summary>
-        /// <param name="path">File path (used for the path rules and for reporting).</param>
-        /// <param name="text">Raw HTML.</param>
-        /// <param name="readFile">
-        /// Returns the text of another file, or null when it does not exist. With it the scanner
-        /// also checks the extension's .ts sibling and the stock screen HTML, and honours
-        /// <c>dotnet_diagnostic.AISI*.severity</c> in .editorconfig. Null keeps the scan to
-        /// <paramref name="text"/> alone.
-        /// </param>
-        /// <param name="listFolder">
-        /// Lists what's directly inside a folder, files and subfolders, as full paths. With it, every
-        /// extension of the screen counts: the views and fields their .ts declare, and the names and
-        /// ids their HTML adds. Optional.
-        /// </param>
-        /// <returns>Zero or more findings, in source order.</returns>
+        /// <summary>Scans <paramref name="text"/> as if it lived at <paramref name="path"/>, also checking the screen's .ts, stock HTML, other extensions and .editorconfig through <paramref name="readFile"/> and <paramref name="listFolder"/>.</summary>
         public static IReadOnlyList<Diagnostic> Analyze(
             string path,
             string text,
@@ -236,12 +211,7 @@ namespace AISI.MuiLint
             results.Add(Create(DiagnosticIds.ExtensionBasename, message, path, 0, 0, lineMap));
         }
 
-        /// <summary>
-        /// AISI0017, for HTML and TypeScript alike: a file under development/screens or
-        /// customizationScreens, outside an extensions folder, named <c>ScreenID_postfix</c> like an
-        /// extension. Merge attributes alone prove nothing: a screen that reuses another through
-        /// qp-include uses them too.
-        /// </summary>
+        /// <summary>AISI0017 for HTML and TypeScript alike, judged by the ScreenID_postfix name since screens reusing another through qp-include carry merge attributes too.</summary>
         internal static void TryPath0017(string path, LineMap lineMap, List<Diagnostic> results)
         {
             string normalized = NormalizePath(path);
@@ -346,14 +316,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                int innerStart = tag.End;
-                int innerEnd = tags[closeIndex].Start;
-                if (innerEnd < innerStart)
-                {
-                    continue;
-                }
-
-                if (!IsWhitespaceOnly(masked, innerStart, innerEnd))
+                if (!IsWhitespaceOnly(masked, tag.End, tags[closeIndex].Start))
                 {
                     continue;
                 }
@@ -404,7 +367,7 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>Checks brackets, braces, parentheses and quotes balance. Returns null when they do.</summary>
+        /// <summary>Describes the first unbalanced bracket, brace, parenthesis or quote, or null when they all balance.</summary>
         internal static string? FindBracketProblem(string value)
         {
             var open = new Stack<char>();
@@ -569,7 +532,6 @@ namespace AISI.MuiLint
             }
         }
 
-        /// <summary>The view.bind of the nearest enclosing element, or empty.</summary>
         /// <summary>The view around a tag: a view.bind, a qp-panel's id, or a &lt;using view&gt;.</summary>
         internal static string NearestView(IReadOnlyList<HtmlTag> tags, int[] parents, int index)
         {
@@ -700,13 +662,7 @@ namespace AISI.MuiLint
         {
             fileName = Path.GetFileName(path) ?? string.Empty;
             parentFolder = string.Empty;
-            string normalized = NormalizePath(path);
-            if (normalized.Length == 0)
-            {
-                return false;
-            }
-
-            string[] parts = normalized.Split('/');
+            string[] parts = NormalizePath(path).Split('/');
             int extensionsIndex = -1;
             for (int i = 0; i < parts.Length; i++)
             {
@@ -831,14 +787,8 @@ namespace AISI.MuiLint
                 length = 0;
             }
 
-            int end = start + length;
-            if (end < start)
-            {
-                end = start;
-            }
-
             lineMap.ToLineCol(start, out int line, out int column);
-            lineMap.ToLineCol(end, out int endLine, out int endColumn);
+            lineMap.ToLineCol(start + length, out int endLine, out int endColumn);
             Rule? rule = Rules.Find(id);
             Severity severity = rule == null ? Severity.Error : rule.DefaultSeverity;
             return new Diagnostic(id, message, path, start, length, line, column, endLine, endColumn, severity);

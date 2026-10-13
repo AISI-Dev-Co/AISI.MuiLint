@@ -7,10 +7,7 @@ using AISI.MuiLint.Site;
 
 namespace AISI.MuiLint.Cli
 {
-    /// <summary>
-    /// Command-line entry point for AISI.MuiLint. Walks files or directories and prints
-    /// findings for Modern UI HTML and TypeScript.
-    /// </summary>
+    /// <summary>Command-line entry point for AISI.MuiLint.</summary>
     public static class Program
     {
         private const string Usage =
@@ -32,11 +29,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
 
         private static readonly string[] Formats = { "text", "json", "sarif", "github" };
 
-        /// <summary>
-        /// Scans each argument as a file, or a directory of <c>.html</c> and <c>.ts</c> files.
-        /// </summary>
-        /// <param name="args">Options and paths to scan.</param>
-        /// <returns>0 if no errors, 1 if any error, 2 on usage or input problems.</returns>
+        /// <summary>Scans each argument as a file or a directory and returns 0 if no errors, 1 if any error, 2 on usage or input problems.</summary>
         public static int Main(string[] args)
         {
             string format = "text";

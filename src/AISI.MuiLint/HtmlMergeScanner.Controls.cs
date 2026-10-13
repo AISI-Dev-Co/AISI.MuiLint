@@ -15,7 +15,7 @@ namespace AISI.MuiLint
             "(?<=^|\\s)(?<name>[\\w-]+)(?<required>\\.required)?(?=\\s|=|$)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        // Attributes any element takes, which a qp-include keeps rather than passing to its parameters. after= and the like are merge operators.
+        // Attributes any element takes, which a qp-include keeps rather than passing to its parameters.
         private static readonly HashSet<string> IncludeOwnAttributes = new HashSet<string>(
             new[] { "url", "id", "class", "style", "slot" },
             StringComparer.OrdinalIgnoreCase);

@@ -23,10 +23,7 @@ namespace AISI.MuiLint.Site
         /// <summary>Gets the metadata full name, for example <c>PX.Data.PXSelect`2</c>, nested types joined with '+'.</summary>
         public string Name { get; }
 
-        /// <summary>
-        /// Gets the type arguments. Metadata flattens them: a type nested in a generic type takes
-        /// the outer type's arguments first.
-        /// </summary>
+        /// <summary>Gets the type arguments, flattened so a type nested in a generic type takes the outer type's arguments first.</summary>
         public ImmutableArray<TypeSig> Args { get; }
 
         public override TypeSig Substitute(ImmutableArray<TypeSig> args)

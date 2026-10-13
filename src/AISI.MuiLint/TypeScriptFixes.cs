@@ -17,7 +17,6 @@ namespace AISI.MuiLint
             InViewClass = inViewClass;
         }
 
-        /// <summary>The .ts to edit.</summary>
         public string TsPath { get; }
 
         public string Field { get; }
@@ -51,10 +50,7 @@ namespace AISI.MuiLint
             "\\bimport\\s*\\{(?<names>[^}]*)\\}\\s*from\\s*(?<q>['\"])(?<spec>[^'\"\\r\\n]+)\\k<q>\\s*;?",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        /// <summary>
-        /// Works out where the field behind an AISI0011 "not declared on view" finding should go,
-        /// or returns null when we can't say (no view, a view class we can't find, a stock screen).
-        /// </summary>
+        /// <summary>Works out where the field behind an AISI0011 finding should be declared, or null when no view class can take it.</summary>
         public static FieldDeclaration? PlanFieldDeclaration(string htmlPath, string htmlText, Diagnostic diagnostic, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
             IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(HtmlMergeScanner.MaskComments(htmlText));
@@ -245,7 +241,7 @@ namespace AISI.MuiLint
             {
                 Group names = sameModule.Groups["names"];
                 string trimmed = names.Value.TrimEnd();
-                string separator = trimmed.TrimEnd().EndsWith(",", StringComparison.Ordinal) ? " " : ", ";
+                string separator = trimmed.EndsWith(",", StringComparison.Ordinal) ? " " : ", ";
                 edits.Add(new TextEdit(names.Index + trimmed.Length, 0, separator + name));
                 return;
             }

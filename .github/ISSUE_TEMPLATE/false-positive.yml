@@ -12,9 +12,8 @@ body:
   - type: textarea
     id: html
     attributes:
-      label: Smallest HTML that triggers it
+      label: Smallest HTML or TypeScript that triggers it
       description: Strip anything confidential. Stock field names are fine.
-      render: html
     validations:
       required: true
   - type: input

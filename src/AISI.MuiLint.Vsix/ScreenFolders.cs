@@ -10,11 +10,7 @@ namespace AISI.MuiLint.Vsix
     {
         private const string DevelopmentScreens = "FrontendSources/screen/src/development/screens";
 
-        /// <summary>
-        /// The <c>FrontendSources/screen/src/development/screens</c> folders of the sites around
-        /// <paramref name="start"/>: in it or any folder above it (a solution in a site's
-        /// App_Data/Projects), or a few levels below it (a repository with the site inside).
-        /// </summary>
+        /// <summary>Finds the development screens folders of the sites at or above <paramref name="start"/>, or a few levels below it.</summary>
         public static IReadOnlyList<string> FindDevelopmentScreens(string start)
         {
             if (start is null)
@@ -33,10 +29,7 @@ namespace AISI.MuiLint.Vsix
             return found;
         }
 
-        /// <summary>
-        /// The .html and .ts files under <paramref name="folder"/> that MuiLint checks, in a stable
-        /// order, skipping node_modules and dot-folders.
-        /// </summary>
+        /// <summary>Lists the files under <paramref name="folder"/> that MuiLint checks, in a stable order, skipping node_modules and dot-folders.</summary>
         public static List<string> Files(string folder)
         {
             var files = new List<string>();

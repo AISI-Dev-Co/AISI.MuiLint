@@ -184,8 +184,7 @@ namespace AISI.MuiLint
                 "@featureInstalled names a FeaturesSet field (PX.Objects.CS.FeaturesSet+Name). One the site's FeaturesSet doesn't have is never switched on.")
         };
 
-        /// <summary>Looks up a rule by id.</summary>
-        /// <returns>The rule, or null for an unknown id.</returns>
+        /// <summary>Looks up a rule by id, or null for an unknown id.</summary>
         public static Rule? Find(string id)
         {
             for (int i = 0; i < All.Count; i++)

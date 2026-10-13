@@ -19,12 +19,7 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// Squiggle tagger: runs <see cref="MuiLintPackage.Analyze"/> off the UI thread
-    /// and emits <see cref="ErrorTag"/> spans. Also publishes the same findings to the Error List.
-    /// Teardown is buffer-close (<c>IVsTextBufferDataEvents.OnCloseEvent</c>), content-type
-    /// drop, or <see cref="ITextDocument"/> dispose — not view-refcount.
-    /// </summary>
+    /// <summary>Squiggle and Error List tagger that tears down on buffer close, content-type drop or document dispose, never on view refcount.</summary>
     internal sealed class HtmlErrorTagger : ITagger<IErrorTag>, IDisposable
     {
         private const int DebounceMilliseconds = 300;
@@ -448,7 +443,6 @@ namespace AISI.MuiLint.Vsix
                 return document.FilePath;
             }
 
-            // No file yet: lint the text as whatever the editor thinks it is.
             return IsTypeScript(_buffer.ContentType) ? "buffer.ts" : "buffer.html";
         }
 

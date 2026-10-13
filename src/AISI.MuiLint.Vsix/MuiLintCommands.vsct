@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Extensions › AISI MuiLint. The ids match Editor/MuiLintCommands.cs. -->
+<!-- The ids must match Editor/MuiLintCommands.cs. -->
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <Commands package="guidMuiLintPackage">
     <Menus>
@@ -52,7 +52,7 @@
   </Commands>
 
   <Symbols>
-    <!-- The Extensions menu. Declared here because older SDK headers predate it; same values as VSGlobals.vsct. -->
+    <!-- Declared here because older SDK headers predate the Extensions menu. -->
     <GuidSymbol name="guidVsMainMenu" value="{d309f791-903f-11d0-9efc-00a0c911004f}">
       <IDSymbol name="ExtensionsMenu" value="0x0091" />
     </GuidSymbol>

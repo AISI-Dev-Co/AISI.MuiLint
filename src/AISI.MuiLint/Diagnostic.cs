@@ -2,25 +2,10 @@ using System;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// One HTML merge finding. Independent of Roslyn so the CLI and the VSIX stub can consume it
-    /// without a compilation.
-    /// </summary>
+    /// <summary>One finding, independent of Roslyn so the CLI and the VSIX can consume it without a compilation.</summary>
     public sealed class Diagnostic
     {
-        /// <summary>
-        /// Initializes a finding.
-        /// </summary>
-        /// <param name="id">Diagnostic identifier, one of <see cref="DiagnosticIds"/>.</param>
-        /// <param name="message">Human-readable message.</param>
-        /// <param name="path">File path the scanner was given.</param>
-        /// <param name="start">0-based UTF-16 offset of the span.</param>
-        /// <param name="length">UTF-16 length of the span.</param>
-        /// <param name="line">1-based start line.</param>
-        /// <param name="column">1-based start column.</param>
-        /// <param name="endLine">1-based end line.</param>
-        /// <param name="endColumn">1-based end column (exclusive).</param>
-        /// <param name="severity">Effective severity after .editorconfig overrides.</param>
+        /// <summary>Initializes a finding.</summary>
         public Diagnostic(
             string id,
             string message,

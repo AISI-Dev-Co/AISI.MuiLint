@@ -4,10 +4,7 @@ using Xunit;
 
 namespace AISI.MuiLint.Tests
 {
-    /// <summary>
-    /// Pins production HTML-editor glue. Toy Flatten graphs stay green if
-    /// ProjectionSources reverts to <c>as IProjectionBuffer</c>.
-    /// </summary>
+    /// <summary>Pins production editor glue by reading its source, because toy Flatten graphs stay green if it regresses.</summary>
     public sealed class HtmlErrorTaggerSourceTests
     {
         [Fact]

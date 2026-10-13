@@ -16,10 +16,7 @@ namespace AISI.MuiLint
                 "Usr field after a stock selector. Replace StockField and UsrMyField; the anchor must exist in the stock HTML.");
         }
 
-        /// <summary>
-        /// Attributes the stock screen uses on <paramref name="tagName"/> that <see cref="GetAttributes"/>
-        /// doesn't already offer. Empty when there's no stock screen to learn from.
-        /// </summary>
+        /// <summary>Attributes the stock screen uses on <paramref name="tagName"/> that <see cref="GetAttributes"/> doesn't already offer.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetStockAttributes(string tagName, string htmlPath, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
             var items = new List<MuiCompletionItem>();
@@ -46,11 +43,7 @@ namespace AISI.MuiLint
             return items;
         }
 
-        /// <summary>
-        /// Targets for a merge selector: fields and ids this file adds above the caret, then the stock
-        /// screen's <c>#ids</c> and <c>[name='…']</c> values. Once the selector names a container
-        /// (<c>#fsColumnA-Order [name='|</c>), only the stock names inside that container are offered.
-        /// </summary>
+        /// <summary>Targets for a merge selector: what this file adds above the caret, then the stock names (inside the named container, if any) and ids.</summary>
         private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
             var items = new List<MuiCompletionItem>();
@@ -129,11 +122,6 @@ namespace AISI.MuiLint
 
         private static bool IsViewBound(string tagName)
         {
-            if (string.IsNullOrEmpty(tagName))
-            {
-                return false;
-            }
-
             return string.Equals(tagName, "qp-fieldset", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(tagName, "qp-grid", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(tagName, "qp-template", StringComparison.OrdinalIgnoreCase)

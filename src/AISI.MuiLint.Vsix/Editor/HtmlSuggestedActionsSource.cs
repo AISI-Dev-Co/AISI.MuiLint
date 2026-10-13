@@ -15,11 +15,7 @@ using Microsoft.VisualStudio.TextManager.Interop;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// Offers fixes for findings under the caret. HTML edits are computed by <see cref="MuiLintFixes"/>
-    /// against the snapshot the tagger analysed, then tracked forward to whatever the buffer is now;
-    /// TypeScript ones open the .ts and edit it there, so you see what was written.
-    /// </summary>
+    /// <summary>Lightbulb fixes for findings under the caret, computed on the analysed snapshot and tracked forward to the current buffer.</summary>
     internal sealed class HtmlSuggestedActionsSource : ISuggestedActionsSource
     {
         private readonly ITextBuffer _buffer;
@@ -132,8 +128,6 @@ namespace AISI.MuiLint.Vsix
             string newText = edit.Value.NewText;
             actions.Add(new SuggestedAction(title, () => _buffer.Replace(span.GetSpan(_buffer.CurrentSnapshot), newText)));
         }
-
-
 
         private static bool IsUnderCaret(Diagnostic diagnostic, ITextSnapshot analyzed, SnapshotSpan range)
         {

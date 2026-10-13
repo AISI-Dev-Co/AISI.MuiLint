@@ -5,11 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// What the site's own <c>client-controls</c> package (FrontendSources/screen/node_modules) says:
-    /// the qp-* controls, the keys their config takes, and the screen templates. Read from its
-    /// .d.ts files, so it matches the site's version of Acumatica.
-    /// </summary>
+    /// <summary>The qp-* controls, their config keys and the screen templates, read from the site's own <c>client-controls</c> .d.ts files so they match its Acumatica version.</summary>
     internal sealed class ClientControls
     {
         private static readonly ConcurrentDictionary<string, ClientControls?> Cache =
@@ -222,7 +218,6 @@ namespace AISI.MuiLint
             }
         }
 
-        // The class's own config type, or the nearest base class's.
         private static string? ConfigType(string className, Dictionary<string, (string? Tag, string? Base, string? Config)> classes)
         {
             var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -307,7 +302,6 @@ namespace AISI.MuiLint
             return HtmlMergeScanner.IsIdentifier(t) ? t : null;
         }
 
-        // From the end of "class X" / "interface X" to its '{', skipping generics; null-safe on odd input.
         private static int BodyStart(string code, int from, out string heritage)
         {
             int angle = 0;
@@ -384,7 +378,6 @@ namespace AISI.MuiLint
             return bases;
         }
 
-        // The top-level members of the body that opens at <paramref name="open"/>.
         private static IEnumerable<string> Members(string code, int open)
         {
             int close = TsModule.MatchingBrace(code, open);

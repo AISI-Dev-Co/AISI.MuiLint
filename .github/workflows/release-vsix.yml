@@ -1,7 +1,6 @@
 name: Release VSIX
 
-# Publishing a release builds and attaches the VSIX. Run it by hand for a dry run: same build, same
-# checks, the VSIX lands in the run's artifacts and no release is touched.
+# A manual run is a dry run that builds and checks the VSIX without touching any release.
 on:
   release:
     types: [published]
