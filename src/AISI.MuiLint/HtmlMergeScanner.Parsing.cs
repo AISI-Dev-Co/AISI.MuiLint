@@ -217,10 +217,7 @@ namespace AISI.MuiLint
             return tags;
         }
 
-        /// <summary>
-        /// Index of each tag's enclosing start tag, or -1 at the top level. Forgiving: an end tag
-        /// closes the nearest open tag with its name, and unclosed tags simply stay open.
-        /// </summary>
+        /// <summary>Index of each tag's enclosing start tag, or -1 at the top level, forgiving tags that are never closed.</summary>
         public static int[] Parents(IReadOnlyList<HtmlTag> tags)
         {
             var parents = new int[tags.Count];
@@ -308,11 +305,6 @@ namespace AISI.MuiLint
             if (lineIndex < 0)
             {
                 lineIndex = ~lineIndex - 1;
-            }
-
-            if (lineIndex < 0)
-            {
-                lineIndex = 0;
             }
 
             line = lineIndex + 1;

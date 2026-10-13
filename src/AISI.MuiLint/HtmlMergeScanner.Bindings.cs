@@ -26,8 +26,7 @@ namespace AISI.MuiLint
 
                 foreach (HtmlAttribute attr in tag.Attributes)
                 {
-                    // Anything but a name (or View.Field) is an expression, and not ours to judge. Names with a
-                    // leading underscore (_PayBillsFilter_CurrencyInfo_) are views the backend makes up.
+                    // Expressions aren't ours to judge, and a leading underscore (_PayBillsFilter_CurrencyInfo_) marks a view the backend makes up.
                     if (!IsIdentifier(attr.Value.Replace(".", string.Empty)) || attr.Value[0] == '_')
                     {
                         continue;

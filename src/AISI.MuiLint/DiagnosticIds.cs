@@ -1,21 +1,17 @@
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Stable diagnostic identifiers for the HTML merge linter.
-    /// </summary>
+    /// <summary>Stable diagnostic identifiers for the linter.</summary>
     public static class DiagnosticIds
     {
         /// <summary>Self-closing <c>&lt;field&gt;</c> or <c>&lt;qp-*&gt;</c> tag.</summary>
         public const string SelfClosing = "AISI0001";
 
-        // AISI0002 is retired: anchoring on a field the same file adds works. Don't reuse the id.
+        // AISI0002 is retired and never reused, since anchoring on a field the same file adds works.
 
         /// <summary>Path is stock <c>src/screens</c> rather than <c>development/screens</c>.</summary>
         public const string StockScreensPath = "AISI0003";
 
-        /// <summary>
-        /// File under <c>/extensions/</c> whose basename equals the parent screen folder.
-        /// </summary>
+        /// <summary>File under <c>/extensions/</c> whose basename equals the parent screen folder.</summary>
         public const string ExtensionBasename = "AISI0004";
 
         /// <summary>Empty <c>qp-fieldset</c> (whitespace or comments only).</summary>
@@ -24,7 +20,7 @@ namespace AISI.MuiLint
         /// <summary>Unbalanced brackets or quotes in a merge selector.</summary>
         public const string MalformedSelector = "AISI0006";
 
-        // AISI0007 is retired: Acumatica ships extension HTML with no .ts of its own. Don't reuse the id.
+        // AISI0007 is retired and never reused, since Acumatica ships extension HTML with no .ts of its own.
 
         /// <summary>The same field name (per view) or id appears twice in one file.</summary>
         public const string DuplicateNameOrId = "AISI0008";
@@ -32,7 +28,7 @@ namespace AISI.MuiLint
         /// <summary>A merge selector points at a name or id the stock screen does not have.</summary>
         public const string SelectorNotInStock = "AISI0009";
 
-        // AISI0010 is retired: Usr is a database column convention, not a binding rule. Don't reuse the id.
+        // AISI0010 is retired and never reused, since Usr is a database column convention, not a binding rule.
 
         /// <summary>A view, field, action or panel the screen's TypeScript does not declare.</summary>
         public const string BindingNotInTypeScript = "AISI0011";
