@@ -12,10 +12,7 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// Error List source for MuiLint findings: live ones for each open document, and the last
-    /// Lint Modern UI Screens run for everything else.
-    /// </summary>
+    /// <summary>Error List source with live findings for open documents and the last Lint Modern UI Screens run for everything else.</summary>
     [Export(typeof(HtmlErrorTableDataSource))]
     [Export(typeof(ITableDataSource))]
     [Name(HtmlErrorTableDataSource.SourceIdentifier)]
@@ -98,21 +95,6 @@ namespace AISI.MuiLint.Vsix
 
         internal void Update(ITextBuffer buffer, string path, IReadOnlyList<Diagnostic> diagnostics)
         {
-            if (buffer is null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (path is null)
-            {
-                throw new ArgumentNullException(nameof(path));
-            }
-
-            if (diagnostics is null)
-            {
-                throw new ArgumentNullException(nameof(diagnostics));
-            }
-
             lock (_gate)
             {
                 bool opened = !_openPaths.TryGetValue(buffer, out string previous) || !SamePath(previous, path);
@@ -189,11 +171,6 @@ namespace AISI.MuiLint.Vsix
 
         internal void Remove(ITextBuffer buffer)
         {
-            if (buffer is null)
-            {
-                return;
-            }
-
             lock (_gate)
             {
                 HtmlErrorSnapshotFactory factory;

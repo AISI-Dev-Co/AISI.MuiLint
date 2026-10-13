@@ -5,7 +5,6 @@ using Xunit;
 
 namespace AISI.MuiLint.Tests
 {
-    /// <summary>Bindings, includes, client-controls, tag balance and selector counts.</summary>
     public sealed class ControlRuleTests
     {
         private const string Stock = "/site/src/screens/SO/SO301000/SO301000.html";
@@ -174,8 +173,7 @@ namespace AISI.MuiLint.Tests
             Diagnostic several = Assert.Single(found, d => d.Id == DiagnosticIds.SelectorMatchesSeveral);
             Assert.Contains("[name='Status'] matches 2 elements", several.Message, StringComparison.Ordinal);
 
-            // OrderDate is in the stock screen, just not in fsB. UsrAdded comes from another extension and
-            // UsrA from above, so where they end up isn't ours to know.
+            // Only OrderDate is provably misplaced, since UsrAdded and UsrA come from elsewhere and could end up anywhere.
             Diagnostic notInside = Assert.Single(found, d => d.Id == DiagnosticIds.SelectorNotInStock);
             Assert.Contains("[name='OrderDate'] is in the stock SO301000.html, but not inside #fsB", notInside.Message, StringComparison.Ordinal);
         }

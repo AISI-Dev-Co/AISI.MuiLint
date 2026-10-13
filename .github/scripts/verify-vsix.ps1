@@ -1,5 +1,4 @@
 # Opens a built VSIX and fails if it isn't the package we meant to ship.
-# Used by CI and by the release workflow; runs anywhere pwsh does.
 param(
   [Parameter(Mandatory)] [string] $Path,
   [Parameter(Mandatory)] [string] $Version
@@ -42,7 +41,7 @@ try {
   # The snippets pkgdef points VS at this folder; an empty one means the snippets fell out of the build.
   if (-not ($files | Where-Object { $_ -like 'Snippets/TypeScript/*.snippet' })) { $problems.Add('no TypeScript snippets in Snippets/TypeScript') }
 
-  # The site rules need the Bin reader. System.Reflection.Metadata under it comes from devenv, whose MEF is built on it.
+  # System.Reflection.Metadata is deliberately not bundled with the Bin reader because devenv already loads it for MEF.
   if ($files -notcontains 'AISI.MuiLint.Site.dll') { $problems.Add('missing AISI.MuiLint.Site.dll') }
 
   foreach ($dll in 'AISI.MuiLint.dll', 'AISI.MuiLint.Site.dll', 'AISI.MuiLint.Vsix.dll') {

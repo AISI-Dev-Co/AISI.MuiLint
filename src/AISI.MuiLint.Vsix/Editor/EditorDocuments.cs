@@ -8,10 +8,7 @@ namespace AISI.MuiLint.Vsix
 {
     internal static class EditorDocuments
     {
-        /// <summary>
-        /// The file behind <paramref name="buffer"/>. htmlx often has no document on the top
-        /// (projection/elision) buffer, so look through its source buffers too.
-        /// </summary>
+        /// <summary>Finds the file behind a buffer, looking through projection source buffers because htmlx rarely has a document on the top buffer.</summary>
         public static ITextDocument Find(ITextBuffer buffer, ITextDocumentFactoryService documents)
         {
             ITextDocument document;

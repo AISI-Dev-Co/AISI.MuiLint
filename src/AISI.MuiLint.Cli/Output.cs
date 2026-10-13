@@ -8,13 +8,10 @@ using System.Text.Json;
 
 namespace AISI.MuiLint.Cli
 {
-    /// <summary>The four output formats. Each one writes every finding from every scanned file.</summary>
+    /// <summary>Writes every finding from every scanned file in one of the four output formats.</summary>
     internal static class Output
     {
-        /// <summary>
-        /// MSBuild-style lines, which Visual Studio, VS Code and most CI log viewers already
-        /// know how to link: <c>path(line,col): error AISI0001: message</c>.
-        /// </summary>
+        /// <summary>Writes MSBuild-style lines because Visual Studio, VS Code and most CI log viewers already link them.</summary>
         public static void WriteText(TextWriter output, TextWriter summary, IReadOnlyList<ScannedFile> files)
         {
             int errors = 0;
@@ -87,7 +84,7 @@ namespace AISI.MuiLint.Cli
             Flush(json, buffer, output);
         }
 
-        /// <summary>SARIF 2.1.0, the format GitHub code scanning and most security dashboards import.</summary>
+        /// <summary>Writes SARIF 2.1.0, the format GitHub code scanning and most security dashboards import.</summary>
         public static void WriteSarif(TextWriter output, IReadOnlyList<ScannedFile> files, string version)
         {
             using var buffer = new MemoryStream();
@@ -168,10 +165,7 @@ namespace AISI.MuiLint.Cli
             Flush(json, buffer, output);
         }
 
-        /// <summary>
-        /// GitHub Actions workflow commands (<c>::error file=…::message</c>). The runner turns them
-        /// into annotations on the PR diff.
-        /// </summary>
+        /// <summary>Writes GitHub Actions workflow commands, which the runner turns into annotations on the PR diff.</summary>
         public static void WriteGitHub(TextWriter output, IReadOnlyList<ScannedFile> files)
         {
             foreach (ScannedFile file in files)

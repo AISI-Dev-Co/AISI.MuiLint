@@ -7,10 +7,7 @@ using AISI.MuiLint;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// Fields of the C# DAC extensions under the solution folder, for field-name completions.
-    /// Built in the background; until it's ready, completions simply don't include them.
-    /// </summary>
+    /// <summary>Background-built index of C# DAC extension fields under the solution folder, for field-name completions.</summary>
     internal static class DacFieldIndex
     {
         private static readonly object Gate = new object();
@@ -41,10 +38,7 @@ namespace AISI.MuiLint.Vsix
             }
         }
 
-        /// <summary>
-        /// Where the C# for <paramref name="path"/> lives: walking up, the first folder with a .sln, or
-        /// the site's App_Data/Projects, where Acumatica keeps extension libraries. Null if neither.
-        /// </summary>
+        /// <summary>Walks up from <paramref name="path"/> to the first folder with a .sln or a site's App_Data/Projects, or null if neither.</summary>
         public static string FindSourceFolder(string path)
         {
             try

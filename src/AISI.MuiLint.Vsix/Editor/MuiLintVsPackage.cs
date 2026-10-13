@@ -9,13 +9,7 @@ using Microsoft.VisualStudio.Threading;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// VS 2022 package: binding path for <c>AISI.MuiLint.dll</c>, and the
-    /// <see cref="AsyncPackage"/> joinable task factory used by the HTML tagger.
-    /// <c>ThreadHelper.JoinableTaskFactory</c> is not in the IDE collection (VSSDK007).
-    /// Auto-load on shell init so InitializeAsync typically runs before the first htmlx
-    /// FileAndForget; MEF context is still the fallback until then. Never pragma VSSDK007.
-    /// </summary>
+    /// <summary>Package that auto-loads on shell init so the tagger can use its joinable task factory, which is how VSSDK007 is fixed (never with a pragma).</summary>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [InstalledProductRegistration("AISI MuiLint", "HTML merge linter for Acumatica Modern UI.", "0.2.0")]
     [ProvideAutoLoad(VSConstants.UICONTEXT.ShellInitialized_string, PackageAutoLoadFlags.BackgroundLoad)]
@@ -29,9 +23,7 @@ namespace AISI.MuiLint.Vsix
 
         private static JoinableTaskFactory _packageJoinableTaskFactory;
 
-        /// <summary>
-        /// Factory captured in <see cref="InitializeAsync"/>. Null until the package loads.
-        /// </summary>
+        /// <summary>Factory captured in InitializeAsync, null until the package loads.</summary>
         internal static JoinableTaskFactory PackageJoinableTaskFactory
         {
             get { return _packageJoinableTaskFactory; }

@@ -15,7 +15,7 @@ using Task = System.Threading.Tasks.Task;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>Extensions › AISI MuiLint. The ids match MuiLintCommands.vsct.</summary>
+    /// <summary>Extensions › AISI MuiLint menu commands, whose ids must match MuiLintCommands.vsct.</summary>
     internal static class MuiLintCommands
     {
         public static readonly Guid CommandSet = new Guid("a0bc17b0-92d9-4c20-80e8-cd3444633f9c");

@@ -7,11 +7,7 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>
-    /// MEF completion source provider for Modern UI HTML (<c>htmlx</c> + <c>html</c>).
-    /// Thin adapter: completion is sync and cheap; no AsyncPackage JTF / FileAndForget.
-    /// One <see cref="HtmlCompletionSource"/> per buffer via GetOrCreateSingletonProperty.
-    /// </summary>
+    /// <summary>One synchronous completion source per Modern UI HTML buffer, with no joinable task factory because completion is cheap.</summary>
     [Export(typeof(ICompletionSourceProvider))]
     [Name("AISI.MuiLint.HtmlCompletion")]
     [ContentType("htmlx")]

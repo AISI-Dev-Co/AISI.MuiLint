@@ -55,10 +55,7 @@ namespace AISI.MuiLint.Vsix
         }
     }
 
-    /// <summary>
-    /// F12 on a merge selector, view.bind, state.bind or a field's name opens the stock HTML or
-    /// the .ts at the declaration. Anything else goes on to the HTML editor as usual.
-    /// </summary>
+    /// <summary>F12 on a merge selector, binding or field name opens its declaration, otherwise defers to the HTML editor.</summary>
     internal sealed class HtmlGoToDefinitionFilter : IOleCommandTarget
     {
         private readonly IWpfTextView _view;
