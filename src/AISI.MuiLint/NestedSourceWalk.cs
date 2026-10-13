@@ -3,17 +3,10 @@ using System.Collections.Generic;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Depth-first walk of nested source graphs. Used by the HTML editor tagger to
-    /// traverse <c>IProjectionBufferBase.SourceBuffers</c> (elision implements the base,
-    /// not <c>IProjectionBuffer</c>).
-    /// </summary>
+    /// <summary>Depth-first walk of nested source graphs, such as <c>IProjectionBufferBase.SourceBuffers</c> for the HTML editor tagger.</summary>
     internal static class NestedSourceWalk
     {
-        /// <summary>
-        /// Returns every reachable node except <paramref name="root"/>, skipping cycles.
-        /// <paramref name="sourcesOf"/> returning <c>null</c> means no children.
-        /// </summary>
+        /// <summary>Returns every node reachable through <paramref name="sourcesOf"/> except <paramref name="root"/>, skipping cycles.</summary>
         public static IReadOnlyList<T> Flatten<T>(T root, Func<T, IEnumerable<T>?> sourcesOf)
             where T : class
         {
@@ -34,7 +27,7 @@ namespace AISI.MuiLint
             while (stack.Count > 0)
             {
                 T current = stack.Pop();
-                if (current is null || !seen.Add(current))
+                if (!seen.Add(current))
                 {
                     continue;
                 }

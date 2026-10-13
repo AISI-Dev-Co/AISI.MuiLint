@@ -5,11 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// One TypeScript file, read just far enough for Modern UI: its imports, its classes with
-    /// their members, and its <c>interface X extends Y</c> declarations. Comments and strings are
-    /// blanked first so nothing inside them looks like code.
-    /// </summary>
+    /// <summary>One TypeScript file, read just far enough for Modern UI: imports, classes with members, and <c>interface X extends Y</c> declarations.</summary>
     internal sealed class TsModule
     {
         private static readonly Regex ModuleSpecifier = new Regex(
@@ -107,7 +103,6 @@ namespace AISI.MuiLint
             return new SourceLocation(Path, line, column);
         }
 
-        /// <summary>The class called <paramref name="name"/> in this file, or null.</summary>
         public TsClass? FindClass(string name)
         {
             foreach (TsClass c in Classes)
@@ -148,8 +143,7 @@ namespace AISI.MuiLint
                 views[m.Groups["name"].Value] = m.Groups["class"].Value;
             }
 
-            // Look only at the class body's own level; decorator arguments, method bodies and
-            // object literals are blanked so their contents never look like members.
+            // Decorator arguments, method bodies and object literals are blanked so their contents never look like members.
             string flat = FlattenNested(Code, start, end);
             int segment = 0;
             for (int i = 0; i <= flat.Length; i++)
@@ -219,10 +213,7 @@ namespace AISI.MuiLint
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Blanks comments and, unless <paramref name="keepStrings"/>, string contents. Close enough
-        /// for C# too, which is how <see cref="DacFields"/> uses it.
-        /// </summary>
+        /// <summary>Blanks comments and, unless <paramref name="keepStrings"/>, string contents, keeping offsets (close enough for C# too).</summary>
         internal static string Mask(string text, bool keepStrings)
         {
             char[] chars = text.ToCharArray();
@@ -322,7 +313,7 @@ namespace AISI.MuiLint
 
         public int NameStart { get; }
 
-        /// <summary>Gets a value indicating whether the body is <c>{}</c>, as an extension's interface is.</summary>
+        /// <summary>True when the body is <c>{}</c>, as an extension's interface is.</summary>
         public bool Empty { get; }
     }
 
@@ -342,7 +333,6 @@ namespace AISI.MuiLint
         /// <summary>For <c>X = createSingle(SOLine)</c>, <c>SOLine</c>.</summary>
         public string? ViewClass { get; }
 
-        /// <summary>Where the member's name starts in its file.</summary>
         public int Offset { get; }
 
         public SourceLocation Location { get; }

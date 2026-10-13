@@ -3,24 +3,12 @@ using System.Collections.Generic;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// What a site's compiled code says about its graphs, views, actions, DAC fields and features,
-    /// read from its Bin folder. The rules that use it stay quiet wherever it doesn't know.
-    /// </summary>
+    /// <summary>What a site's Bin folder says about its graphs, views, actions, DAC fields and features.</summary>
     public sealed class SiteMetadata
     {
         private readonly Dictionary<string, GraphMetadata> _graphs;
 
-        /// <summary>Initializes a new instance of the <see cref="SiteMetadata"/> class.</summary>
-        /// <param name="graphs">Every graph, keyed by full name (nested types joined with '+').</param>
-        /// <param name="features">
-        /// Feature names as <c>@featureInstalled</c> spells them
-        /// (<c>PX.Objects.CS.FeaturesSet+Multicurrency</c>), or null when FeaturesSet wasn't found.
-        /// </param>
-        /// <param name="sourceNames">
-        /// Every identifier in the site's source code that isn't built into Bin (App_RuntimeCode):
-        /// a name found there may be declared there, so it is never reported missing.
-        /// </param>
+        /// <summary>Creates the metadata from every graph, the feature names as <c>@featureInstalled</c> spells them, and the identifiers in App_RuntimeCode.</summary>
         public SiteMetadata(IEnumerable<GraphMetadata> graphs, IEnumerable<string>? features, IEnumerable<string>? sourceNames = null)
         {
             if (graphs is null)
@@ -80,14 +68,7 @@ namespace AISI.MuiLint
     /// <summary>A graph with its extensions folded in.</summary>
     public sealed class GraphMetadata
     {
-        /// <summary>Initializes a new instance of the <see cref="GraphMetadata"/> class.</summary>
-        /// <param name="fullName">Full type name, nested types joined with '+'.</param>
-        /// <param name="views">Views by name: the graph's own, inherited, and from its extensions.</param>
-        /// <param name="actions">Action names, likewise.</param>
-        /// <param name="complete">
-        /// False when part of the graph's ancestry or extensions couldn't be read, so a missing view
-        /// or action proves nothing.
-        /// </param>
+        /// <summary>Creates a graph from its own, inherited and extension views and actions.</summary>
         public GraphMetadata(string fullName, IEnumerable<ViewMetadata> views, IEnumerable<string> actions, bool complete)
         {
             FullName = fullName ?? throw new ArgumentNullException(nameof(fullName));
@@ -102,7 +83,7 @@ namespace AISI.MuiLint
             Complete = complete;
         }
 
-        /// <summary>Gets the full type name.</summary>
+        /// <summary>Gets the full type name, nested types joined with '+'.</summary>
         public string FullName { get; }
 
         /// <summary>Gets the views by name (case-insensitive, as the backend matches them).</summary>
@@ -111,20 +92,14 @@ namespace AISI.MuiLint
         /// <summary>Gets the action names (case-insensitive).</summary>
         public ICollection<string> Actions { get; }
 
-        /// <summary>Gets a value indicating whether everything the graph is made of could be read.</summary>
+        /// <summary>Gets a value indicating whether everything the graph is made of could be read, so a missing view or action proves something.</summary>
         public bool Complete { get; }
     }
 
     /// <summary>A view of a graph and the DAC behind it.</summary>
     public sealed class ViewMetadata
     {
-        /// <summary>Initializes a new instance of the <see cref="ViewMetadata"/> class.</summary>
-        /// <param name="name">The field name of the view on the graph.</param>
-        /// <param name="dac">Full name of the main DAC, or null when it couldn't be worked out.</param>
-        /// <param name="fields">
-        /// The DAC's fields with its cache extensions, or null when the DAC or part of its ancestry
-        /// couldn't be read.
-        /// </param>
+        /// <summary>Creates a view from its name on the graph, its main DAC and that DAC's fields with its cache extensions.</summary>
         public ViewMetadata(string name, string? dac, IEnumerable<string>? fields)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));

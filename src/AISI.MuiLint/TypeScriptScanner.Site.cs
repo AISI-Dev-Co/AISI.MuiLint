@@ -24,7 +24,7 @@ namespace AISI.MuiLint
             new[] { "Process", "ProcessAll", "NoteText", "NoteFiles", "NotePopupText" },
             StringComparer.OrdinalIgnoreCase);
 
-        // Checks against what the site's Bin says. Each one stays quiet where the Bin couldn't say.
+        // Each check stays quiet wherever the site's Bin couldn't say.
         private static void ScanSite(string path, TsModule module, ScreenModel screen, SiteMetadata site, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (Match feature in FeatureInstalled.Matches(module.CodeWithStrings))
@@ -78,7 +78,6 @@ namespace AISI.MuiLint
             ScanFields(path, module, screen, site, graph, lineMap, results);
         }
 
-        // The screen's views and actions declared in this file, against the graph's.
         private static void ScanMembers(string path, TsModule module, ScreenModel screen, SiteMetadata site, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (TsClass c in module.Classes)
@@ -109,7 +108,6 @@ namespace AISI.MuiLint
             }
         }
 
-        // A view class's fields declared in this file, against the DACs of the views made from it.
         private static void ScanFields(string path, TsModule module, ScreenModel screen, SiteMetadata site, GraphMetadata graph, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (TsClass c in module.Classes)

@@ -5,10 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Checks a Modern UI .ts file: one under a <c>screens</c> or <c>customizationScreens</c> folder
-    /// that isn't a stock screen.
-    /// </summary>
+    /// <summary>Checks a Modern UI .ts file under a <c>screens</c> or <c>customizationScreens</c> folder that isn't a stock screen.</summary>
     public static partial class TypeScriptScanner
     {
         private static readonly Regex SuppressionComment = new Regex(
@@ -31,16 +28,7 @@ namespace AISI.MuiLint
             "\\bview\\s*:\\s*(['\"])(?<v>[^'\"\\r\\n]*)\\1",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
-        /// <summary>Scans <paramref name="text"/> as the .ts at <paramref name="path"/>.</summary>
-        /// <param name="path">File path, for the path checks and for reporting.</param>
-        /// <param name="text">The TypeScript.</param>
-        /// <param name="readFile">
-        /// Returns another file's text, or null when it does not exist. Needed to follow imports
-        /// and to read .editorconfig; null limits the scan to this file.
-        /// </param>
-        /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen is read too. Optional.</param>
-        /// <param name="site">What the site's Bin says about its graphs and features, for the checks against the backend. Optional.</param>
-        /// <returns>Zero or more findings, in source order.</returns>
+        /// <summary>Scans <paramref name="text"/> as the .ts at <paramref name="path"/>, following imports only when <paramref name="readFile"/> is given.</summary>
         public static IReadOnlyList<Diagnostic> Analyze(
             string path,
             string text,
@@ -121,8 +109,7 @@ namespace AISI.MuiLint
 
             foreach (TsClass c in module.Classes)
             {
-                // A class with no base and no interface is fine as a helper; it's only half an
-                // extension when it declares the things an extension adds.
+                // A class with no base and no interface is fine as a helper unless it declares what an extension adds.
                 if (c.Base.Length > 0 || interfaces.Contains(c.Name) || !DeclaresModernUiMembers(c))
                 {
                     continue;
@@ -173,7 +160,6 @@ namespace AISI.MuiLint
             }
         }
 
-        // @graphInfo without graphType, and @gridConfig without preset.
         private static void ScanDecoratorConfigs(string path, TsModule module, LineMap lineMap, List<Diagnostic> results)
         {
             foreach (Match decorator in ConfigDecorator.Matches(module.Code))

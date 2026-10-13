@@ -27,11 +27,7 @@ namespace AISI.MuiLint
         public string Description { get; }
     }
 
-    /// <summary>
-    /// Go to definition and hover for Modern UI HTML: a selector's <c>[name='X']</c> or <c>#id</c>
-    /// goes to the stock screen HTML, and <c>view.bind</c>, <c>state.bind</c>, a field's name or a
-    /// qp-panel id go to their declaration in the TypeScript.
-    /// </summary>
+    /// <summary>Go to definition and hover for Modern UI HTML, into the stock screen HTML for selectors and the TypeScript for bindings.</summary>
     internal static class MuiNavigation
     {
         public static SourceLocation? FindDefinition(string path, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)

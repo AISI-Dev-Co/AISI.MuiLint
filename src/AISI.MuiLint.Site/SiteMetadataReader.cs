@@ -7,23 +7,12 @@ using System.Text.RegularExpressions;
 
 namespace AISI.MuiLint.Site
 {
-    /// <summary>
-    /// Reads an Acumatica site's Bin folder into <see cref="SiteMetadata"/> from metadata alone:
-    /// no assembly is loaded and no method body is decoded.
-    /// </summary>
+    /// <summary>Reads an Acumatica site's Bin folder into <see cref="SiteMetadata"/> from metadata alone, loading no assembly.</summary>
     public static class SiteMetadataReader
     {
         private static readonly Regex Identifier = new Regex("[A-Za-z_][A-Za-z0-9_]*", RegexOptions.CultureInvariant);
 
-        /// <summary>
-        /// Reads the graphs, views, actions, DAC fields and features of the assemblies in
-        /// <paramref name="binFolder"/>, skipping files that aren't readable .NET assemblies.
-        /// </summary>
-        /// <remarks>
-        /// Customisation code published as source lands in App_RuntimeCode beside Bin and is compiled
-        /// elsewhere, so every identifier in it goes into <see cref="SiteMetadata.SourceNames"/>.
-        /// </remarks>
-        /// <returns>The metadata, or null when the folder doesn't exist or holds no readable .NET assembly.</returns>
+        /// <summary>Reads the assemblies in <paramref name="binFolder"/>, or returns null when it holds no readable .NET assembly.</summary>
         public static SiteMetadata? Read(string binFolder)
         {
             if (string.IsNullOrEmpty(binFolder) || !Directory.Exists(binFolder))
@@ -67,6 +56,7 @@ namespace AISI.MuiLint.Site
             }
         }
 
+        // Customisation source in App_RuntimeCode is compiled elsewhere, so any identifier in it may be declared there.
         private static HashSet<string> SourceNames(string binFolder)
         {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

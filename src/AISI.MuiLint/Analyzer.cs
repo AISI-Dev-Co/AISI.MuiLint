@@ -8,14 +8,7 @@ using RoslynDiagnostic = Microsoft.CodeAnalysis.Diagnostic;
 
 namespace AISI.MuiLint
 {
-    /// <summary>
-    /// Roslyn additional-file analyzer that runs <see cref="HtmlMergeScanner"/> on <c>.html</c>
-    /// files. The scanner itself does not need a compilation; this wrapper is how Visual Studio
-    /// and `dotnet` surface the HTML merge diagnostics on C# projects that list HTML as
-    /// additional files. Analyzers may not touch the disk, so the rules that read neighbouring
-    /// files (AISI0009, AISI0011) only run in the CLI and the VSIX; Roslyn applies
-    /// .editorconfig severities itself.
-    /// </summary>
+    /// <summary>Roslyn additional-file analyzer that runs <see cref="HtmlMergeScanner"/> on <c>.html</c> files without touching the disk, so rules that read neighbouring files don't run here.</summary>
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class Analyzer : DiagnosticAnalyzer
     {
@@ -24,12 +17,7 @@ namespace AISI.MuiLint
         /// <inheritdoc/>
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Supported;
 
-        /// <summary>
-        /// Scans one HTML file's text on its own, as the analyzer does. No compilation needed.
-        /// </summary>
-        /// <param name="path">File path (for AISI0003/AISI0004 and reporting).</param>
-        /// <param name="text">Raw HTML.</param>
-        /// <returns>Findings in source order.</returns>
+        /// <summary>Scans one HTML file's text on its own, as the analyzer does.</summary>
         public static IReadOnlyList<Diagnostic> Scan(string path, string text)
         {
             return HtmlMergeScanner.Analyze(path, text);
@@ -54,7 +42,7 @@ namespace AISI.MuiLint
             for (int i = 0; i < files.Length; i++)
             {
                 AdditionalText file = files[i];
-                if (file.Path is null || !IsHtml(file.Path))
+                if (file.Path is null || !file.Path.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -78,11 +66,6 @@ namespace AISI.MuiLint
                     context.ReportDiagnostic(ToRoslyn(finding, descriptor));
                 }
             }
-        }
-
-        private static bool IsHtml(string path)
-        {
-            return path.EndsWith(".html", StringComparison.OrdinalIgnoreCase);
         }
 
         private static DiagnosticDescriptor? DescriptorFor(string id)

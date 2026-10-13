@@ -5,18 +5,7 @@ namespace AISI.MuiLint
 {
     public static partial class MuiHtmlCompletion
     {
-        /// <summary>
-        /// Suggestions for the attribute value under the caret: stock targets in a selector; views,
-        /// fields and actions from the screen's TypeScript (fields from the view of the nearest
-        /// enclosing <c>view.bind</c>, or every view when there is none); otherwise the values the
-        /// stock screen uses for the same attribute.
-        /// </summary>
-        /// <param name="htmlPath">Path of the HTML being edited.</param>
-        /// <param name="text">Its current text.</param>
-        /// <param name="caret">Caret offset into <paramref name="text"/>.</param>
-        /// <param name="target">What <see cref="Classify"/> said the caret is in.</param>
-        /// <param name="readFile">Returns a file's text, or null when it does not exist.</param>
-        /// <param name="listFolder">Lists what's directly inside a folder, so every extension of the screen counts. Optional.</param>
+        /// <summary>Suggestions for the attribute value under the caret, from the stock screen or the screen's TypeScript.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetValues(
             string htmlPath,
             string text,

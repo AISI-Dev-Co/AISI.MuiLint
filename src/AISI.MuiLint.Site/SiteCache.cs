@@ -10,10 +10,7 @@ namespace AISI.MuiLint.Site
         private static readonly TimeSpan CheckEvery = TimeSpan.FromSeconds(30);
         private static readonly Dictionary<string, Entry> Entries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// The metadata for the site holding <paramref name="path"/>: the Bin beside the FrontendSources
-        /// folder the file sits in. Null when the file isn't in a site or the Bin can't be read.
-        /// </summary>
+        /// <summary>The metadata from the Bin beside the FrontendSources folder holding <paramref name="path"/>, or null when there is none.</summary>
         public static SiteMetadata? ForFile(string path)
         {
             string? bin = BinFor(path);
