@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: AISI-Dev-Co/AISI.MuiLint@v0.3.0
+      - uses: AISI-Dev-Co/AISI.MuiLint@v0.4.0
         with:
           path: FrontendSources/screen/src/development/screens
 ```
@@ -161,7 +161,7 @@ For GitHub code scanning, add `sarif-file` and upload it (private repositories n
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: AISI-Dev-Co/AISI.MuiLint@v0.3.0
+      - uses: AISI-Dev-Co/AISI.MuiLint@v0.4.0
         with:
           path: FrontendSources/screen/src/development/screens
           sarif-file: muilint.sarif

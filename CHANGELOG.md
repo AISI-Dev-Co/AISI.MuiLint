@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-10-13
 
 Every rule was checked against Acumatica's developer guide (the Markdown edition Acumatica publishes in
 [Acumatica-AI-Resources](https://github.com/Acumatica/Acumatica-AI-Resources)) and run over Acumatica's own 24R1
