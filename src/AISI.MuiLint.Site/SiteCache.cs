@@ -69,13 +69,9 @@ namespace AISI.MuiLint.Site
                     newest = Max(newest, File.GetLastWriteTimeUtc(file));
                 }
 
-                string runtimeCode = Path.Combine(Path.GetDirectoryName(bin) ?? bin, "App_RuntimeCode");
-                if (Directory.Exists(runtimeCode))
+                foreach (string file in SourceCode.Files(SourceCode.SiteOf(bin)))
                 {
-                    foreach (string file in Directory.GetFiles(runtimeCode, "*.cs", SearchOption.AllDirectories))
-                    {
-                        newest = Max(newest, File.GetLastWriteTimeUtc(file));
-                    }
+                    newest = Max(newest, File.GetLastWriteTimeUtc(file));
                 }
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)

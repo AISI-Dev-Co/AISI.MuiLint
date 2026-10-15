@@ -56,7 +56,8 @@ Some rules need more than the file itself and stay quiet without it:
   included files.
 - **AISI0020–AISI0022** read the site's `node_modules/client-controls`, so they match your Acumatica version.
 - **AISI0027–AISI0031** read the compiled assemblies in the site's `Bin` (beside `FrontendSources`) without loading
-  them, plus source published to `App_RuntimeCode`. Members added in code at run time (`Actions.Add`, a field added in
+  them, plus source published to `App_RuntimeCode` and the cache extensions in extension libraries under
+  `App_Data/Projects`, built or not. Members added in code at run time (`Actions.Add`, a field added in
   an event handler) can't be seen; suppress those.
 
 `examples/` has a stand-in stock screen, a clean extension, and a broken `.html` and `.ts` that trip most rules:

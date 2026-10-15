@@ -30,6 +30,7 @@ namespace AISI.MuiLint.Site
 
         private readonly Dictionary<string, FieldKind> _fieldKinds = new Dictionary<string, FieldKind>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>?> _dacFields = new Dictionary<string, List<string>?>(StringComparer.Ordinal);
+        private IReadOnlyDictionary<string, List<string>> _sourceFields = new Dictionary<string, List<string>>();
 
         public SiteTypes(IEnumerable<MetadataReader> readers)
         {
@@ -53,8 +54,9 @@ namespace AISI.MuiLint.Site
             }
         }
 
-        public SiteMetadata Build(IEnumerable<string> sourceNames)
+        public SiteMetadata Build(IEnumerable<string> sourceNames, IReadOnlyDictionary<string, List<string>> sourceFields)
         {
+            _sourceFields = sourceFields;
             var graphs = new List<KeyValuePair<string, Ancestry>>();
             var unsure = new List<KeyValuePair<string, Ancestry>>();
             foreach (KeyValuePair<string, TypeEntry> type in _types)
@@ -148,6 +150,13 @@ namespace AISI.MuiLint.Site
             }
 
             return list;
+        }
+
+        // PX.Objects.SO.SOOrder -> SOOrder, as C# source names the DAC a cache extension extends.
+        private static string ShortName(string metadataName)
+        {
+            string name = Display(metadataName);
+            return name.Substring(Math.Max(name.LastIndexOf('.'), name.LastIndexOf('+')) + 1);
         }
 
         private static string Display(string metadataName)
@@ -344,6 +353,11 @@ namespace AISI.MuiLint.Site
                     foreach (Level level in ancestry.Levels)
                     {
                         AddProperties(level, names);
+                        if (_sourceFields.TryGetValue(ShortName(level.Sig.Name), out List<string>? fromSource))
+                        {
+                            names.AddRange(fromSource);
+                        }
+
                         if (_cacheExtensions.TryGetValue(level.Sig.Name, out List<List<Level>>? extensions))
                         {
                             foreach (List<Level> extension in extensions)
