@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **AISI0029** reported a field added by a `PXCacheExtension` that wasn't built into `Bin` yet. The properties of
+  every cache extension in the site's C# now count as fields of the DAC it extends and the DACs derived from it: in
+  `App_RuntimeCode`, and in extension libraries under `App_Data/Projects`. Custom features in a
+  `PXCacheExtension<FeaturesSet>` count for **AISI0031** the same way.
+
 ## [0.4.0] - 2026-10-13
 
 Every rule was checked against Acumatica's developer guide (the Markdown edition Acumatica publishes in

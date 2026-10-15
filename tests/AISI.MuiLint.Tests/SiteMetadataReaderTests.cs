@@ -76,7 +76,7 @@ namespace AISI.MuiLint.Tests
 
             Assert.NotNull(fields);
             Assert.Equal(
-                new[] { "OrderNbr", "OrderTotal", "OrderType", "UsrPriority", "UsrSecond" },
+                new[] { "OrderNbr", "OrderTotal", "OrderType", "UsrFromLibrary", "UsrPriority", "UsrRuntimeOnly", "UsrSecond" },
                 fields!.OrderBy(name => name, StringComparer.Ordinal));
             Assert.Contains("orderNbr", fields);
             Assert.DoesNotContain("ghostField", fields);
@@ -160,6 +160,7 @@ namespace AISI.MuiLint.Tests
                     "PX.Objects.CS.FeaturesSet+Inventory",
                     "PX.Objects.CS.FeaturesSet+Multicurrency",
                     "PX.Objects.CS.FeaturesSet+UsrCustomFeature",
+                    "PX.Objects.CS.FeaturesSet+UsrSourceFeature",
                 },
                 Site.Features!.OrderBy(name => name, StringComparer.Ordinal));
         }
@@ -200,6 +201,21 @@ namespace AISI.MuiLint.Tests
         }
 
         [Fact]
+        public void CacheExtensionsInSource_AddTheirFieldsToTheDac()
+        {
+            // Not built into Bin yet: an extension library under App_Data/Projects, and App_RuntimeCode.
+            ICollection<string> document = Site.Graphs["PX.Objects.SO.SOOrderEntry"].Views["Document"].Fields!;
+            Assert.Contains("UsrRuntimeOnly", document);
+
+            // Extending SOOrderBase extends SOOrder, which derives from it.
+            Assert.Contains("UsrFromLibrary", document);
+            Assert.DoesNotContain("UsrFromLibrary", Site.Graphs["PX.Objects.SO.SOOrderEntry"].Views["Transactions"].Fields!);
+
+            // obj holds build leftovers, not the code.
+            Assert.DoesNotContain("UsrInObj", document);
+        }
+
+        [Fact]
         public void AScreenInTheSite_IsCheckedAgainstItsBin()
         {
             string folder = Path.Combine(_site.Root, "FrontendSources", "screen", "src", "development", "screens", "SO", "SO301000");
@@ -216,6 +232,7 @@ namespace AISI.MuiLint.Tests
                 + "    OrderNbr: PXFieldState;\n"
                 + "    OrderType: PXFieldState;\n"
                 + "    UsrRuntimeOnly: PXFieldState;\n"
+                + "    UsrFromLibrary: PXFieldState;\n"
                 + "    OrderNmbr: PXFieldState;\n"
                 + "}\n";
             File.WriteAllText(path, ts);
@@ -601,6 +618,17 @@ namespace Orphan
                 File.WriteAllText(
                     Path.Combine(Root, "App_RuntimeCode", "Nested", "SOOrderExt.cs"),
                     "public class SOOrderExt : PXCacheExtension<SOOrder> { public string UsrRuntimeOnly { get; set; } }");
+
+                string library = Path.Combine(Root, "App_Data", "Projects", "AISIDemo", "AISIDemo_Code");
+                Directory.CreateDirectory(Path.Combine(library, "obj"));
+                File.WriteAllText(
+                    Path.Combine(library, "SOOrderBaseExt.cs"),
+                    "namespace AISIDemo\n{\n    public sealed class SOOrderBaseExt : PXCacheExtension<PX.Objects.SO.SOOrderBase>\n    {\n"
+                    + "        #region UsrFromLibrary\n        [PXDBString(10)]\n        public string UsrFromLibrary { get; set; }\n        #endregion\n    }\n\n"
+                    + "    public sealed class FeaturesSetExt : PXCacheExtension<FeaturesSet>\n    {\n        public bool? UsrSourceFeature { get; set; }\n    }\n}\n");
+                File.WriteAllText(
+                    Path.Combine(library, "obj", "Stale.cs"),
+                    "public sealed class StaleExt : PXCacheExtension<SOOrder> { public string UsrInObj { get; set; } }");
 
                 foreach (string folder in new[] { Bin, JunkBin })
                 {

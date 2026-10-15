@@ -45,7 +45,8 @@ namespace AISI.MuiLint.Site
                     }
                 }
 
-                return readers.Count == 0 ? null : new SiteTypes(readers).Build(SourceNames(binFolder));
+                string site = SourceCode.SiteOf(binFolder);
+                return readers.Count == 0 ? null : new SiteTypes(readers).Build(SourceNames(site), SourceFields(site));
             }
             finally
             {
@@ -57,11 +58,10 @@ namespace AISI.MuiLint.Site
         }
 
         // Customisation source in App_RuntimeCode is compiled elsewhere, so any identifier in it may be declared there.
-        private static HashSet<string> SourceNames(string binFolder)
+        private static HashSet<string> SourceNames(string site)
         {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            string? site = Path.GetDirectoryName(Path.GetFullPath(binFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            string folder = Path.Combine(site ?? binFolder, "App_RuntimeCode");
+            string folder = Path.Combine(site, "App_RuntimeCode");
             try
             {
                 if (Directory.Exists(folder))
@@ -81,6 +81,40 @@ namespace AISI.MuiLint.Site
             }
 
             return names;
+        }
+
+        // The properties of the cache extensions in the site's C#, by the short name of the DAC they extend:
+        // an extension library being worked on is ahead of the Bin it was last built into.
+        private static Dictionary<string, List<string>> SourceFields(string site)
+        {
+            var fields = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            try
+            {
+                foreach (string file in SourceCode.Files(site))
+                {
+                    if (new FileInfo(file).Length >= 1024 * 1024)
+                    {
+                        continue;
+                    }
+
+                    foreach (DacField field in DacFields.Read(File.ReadAllText(file)))
+                    {
+                        if (!fields.TryGetValue(field.Dac, out List<string>? names))
+                        {
+                            names = new List<string>();
+                            fields.Add(field.Dac, names);
+                        }
+
+                        names.Add(field.Name);
+                    }
+                }
+            }
+            catch (Exception ex) when (IsReadError(ex))
+            {
+                // A file mid-save: what was read stands, and the next change re-reads the lot.
+            }
+
+            return fields;
         }
 
         private static MetadataReader? Open(string file, List<PEReader> open)
