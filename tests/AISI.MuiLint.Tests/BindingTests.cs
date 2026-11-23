@@ -245,7 +245,7 @@ namespace AISI.MuiLint.Tests
             Assert.DoesNotContain(Scan(html, new Dictionary<string, string>()), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
 
             // The extension never imports the screen, so there is no screen class to check against.
-            var orphan = new Dictionary<string, string> { [ExtensionTs] = "export class Helper {}" };
+            Dictionary<string, string> orphan = new Dictionary<string, string> { [ExtensionTs] = "export class Helper {}" };
             Assert.DoesNotContain(Scan(html, orphan), x => x.Id == DiagnosticIds.BindingNotInTypeScript);
         }
 
@@ -253,7 +253,7 @@ namespace AISI.MuiLint.Tests
         public void StandaloneScreens_AreCheckedAgainstTheirOwnTs()
         {
             const string path = "/site/src/development/screens/XX/XX301000/XX301000.html";
-            var files = new Dictionary<string, string>
+            Dictionary<string, string> files = new Dictionary<string, string>
             {
                 ["/site/src/development/screens/XX/XX301000/XX301000.ts"] =
                     "export class XX301000 extends PXScreen {\n    Filter = createSingle(Filter);\n}\nexport class Filter extends PXView {\n    Date: PXFieldState;\n}\n",
@@ -270,7 +270,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void StockScreens_AreNotChecked()
         {
-            var files = new Dictionary<string, string> { [StockTs] = Stock, [ViewsTs] = Views };
+            Dictionary<string, string> files = new Dictionary<string, string> { [StockTs] = Stock, [ViewsTs] = Views };
             IReadOnlyList<Diagnostic> results = HtmlMergeScanner.Analyze(
                 "/site/src/screens/SO/SO301000/SO301000.html",
                 "<template><qp-grid id=\"g\" view.bind=\"Nope\"></qp-grid></template>",

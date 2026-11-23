@@ -44,7 +44,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void IncludeParameters_RequiredAndUndeclared()
         {
-            var files = new Dictionary<string, string>
+            Dictionary<string, string> files = new Dictionary<string, string>
             {
                 [Stock] = "<template></template>",
                 ["/site/src/screens/common/address.html"] =
@@ -110,7 +110,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void ClientControls_StayQuietWithoutThePackage()
         {
-            var files = new Dictionary<string, string> { ["/cc2/src/screens/SO/SO301000/SO301000.html"] = "<template></template>" };
+            Dictionary<string, string> files = new Dictionary<string, string> { ["/cc2/src/screens/SO/SO301000/SO301000.html"] = "<template></template>" };
             IReadOnlyList<Diagnostic> found = Scan(
                 "<template><qp-template id=\"u\" name=\"nonsense\"></qp-template><field name=\"B\" control-type=\"qp-nonsense\"></field></template>",
                 files,
@@ -151,7 +151,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void Selectors_ThatMatchSeveralStockElements()
         {
-            var files = new Dictionary<string, string>
+            Dictionary<string, string> files = new Dictionary<string, string>
             {
                 [Stock] = "<template><qp-fieldset id=\"fsA\"><field name=\"Status\"></field><field name=\"OrderDate\"></field></qp-fieldset>"
                     + "<qp-fieldset id=\"fsB\"><field name=\"Status\"></field></qp-fieldset></template>",

@@ -7,7 +7,6 @@ namespace AISI.MuiLint
     /// <summary>A field declared in a C# DAC extension.</summary>
     public readonly struct DacField
     {
-        /// <summary>Creates one.</summary>
         public DacField(string name, string extension, string dac)
         {
             Name = name;
@@ -44,7 +43,7 @@ namespace AISI.MuiLint
                 throw new ArgumentNullException(nameof(csharp));
             }
 
-            var fields = new List<DacField>();
+            List<DacField> fields = new List<DacField>();
             if (csharp.IndexOf("PXCacheExtension", StringComparison.Ordinal) < 0)
             {
                 return fields;

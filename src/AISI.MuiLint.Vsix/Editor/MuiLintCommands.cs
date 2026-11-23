@@ -27,8 +27,8 @@ namespace AISI.MuiLint.Vsix
 
         public static async Task InitializeAsync(AsyncPackage package)
         {
-            var commands = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
-            var componentModel = await package.GetServiceAsync(typeof(SComponentModel)) as IComponentModel;
+            OleMenuCommandService commands = await package.GetServiceAsync(typeof(IMenuCommandService)) as OleMenuCommandService;
+            IComponentModel componentModel = await package.GetServiceAsync(typeof(SComponentModel)) as IComponentModel;
             if (commands == null || componentModel == null)
             {
                 return;
@@ -62,8 +62,8 @@ namespace AISI.MuiLint.Vsix
         private static async Task LintAsync(AsyncPackage package, HtmlErrorTableDataSource errors)
         {
             await package.JoinableTaskFactory.SwitchToMainThreadAsync();
-            var solution = await package.GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
-            var statusBar = await package.GetServiceAsync(typeof(SVsStatusbar)) as IVsStatusbar;
+            IVsSolution solution = await package.GetServiceAsync(typeof(SVsSolution)) as IVsSolution;
+            IVsStatusbar statusBar = await package.GetServiceAsync(typeof(SVsStatusbar)) as IVsStatusbar;
             string start = null;
             solution?.GetSolutionInfo(out start, out string _, out string _);
             if (string.IsNullOrEmpty(start))
@@ -75,13 +75,13 @@ namespace AISI.MuiLint.Vsix
             statusBar?.SetText("MuiLint: looking for development/screens…");
             await TaskScheduler.Default;
             IReadOnlyList<string> folders = ScreenFolders.FindDevelopmentScreens(start);
-            var files = new List<string>();
+            List<string> files = new List<string>();
             foreach (string folder in folders)
             {
                 files.AddRange(ScreenFolders.Files(folder));
             }
 
-            var found = new List<Diagnostic>();
+            List<Diagnostic> found = new List<Diagnostic>();
             foreach (string file in files)
             {
                 string text = MuiLintPackage.TryReadFile(file);

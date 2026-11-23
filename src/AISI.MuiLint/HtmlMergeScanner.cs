@@ -58,8 +58,8 @@ namespace AISI.MuiLint
                 throw new ArgumentNullException(nameof(text));
             }
 
-            var results = new List<Diagnostic>();
-            var lineMap = new LineMap(text);
+            List<Diagnostic> results = new List<Diagnostic>();
+            LineMap lineMap = new LineMap(text);
 
             TryPath0003(path, lineMap, results);
             TryPath0004(path, lineMap, results);
@@ -119,7 +119,7 @@ namespace AISI.MuiLint
 
             foreach (Match match in comments.Matches(text))
             {
-                var ids = new HashSet<string>(
+                HashSet<string> ids = new HashSet<string>(
                     match.Groups["ids"].Value.Split(IdSeparators, StringSplitOptions.RemoveEmptyEntries),
                     StringComparer.OrdinalIgnoreCase);
 
@@ -276,8 +276,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                // Stock leaves fieldsets empty on purpose: hidden ones, wg-containers filled at run time,
-                // and ones later elements append to.
+                // Stock leaves fieldsets empty on purpose: hidden ones, wg-containers filled at run time, and ones later elements append to.
                 if (HasMergeOperation(tag)
                     || tag.HasAttribute("wg-container")
                     || (" " + tag.GetAttribute("class") + " ").IndexOf(" hidden ", StringComparison.OrdinalIgnoreCase) >= 0
@@ -370,7 +369,7 @@ namespace AISI.MuiLint
         /// <summary>Describes the first unbalanced bracket, brace, parenthesis or quote, or null when they all balance.</summary>
         internal static string? FindBracketProblem(string value)
         {
-            var open = new Stack<char>();
+            Stack<char> open = new Stack<char>();
             char quote = '\0';
             for (int i = 0; i < value.Length; i++)
             {
@@ -429,8 +428,8 @@ namespace AISI.MuiLint
             LineMap lineMap,
             List<Diagnostic> results)
         {
-            var ids = new Dictionary<string, HtmlTag>(StringComparer.Ordinal);
-            var names = new Dictionary<string, HtmlTag>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, HtmlTag> ids = new Dictionary<string, HtmlTag>(StringComparer.Ordinal);
+            Dictionary<string, HtmlTag> names = new Dictionary<string, HtmlTag>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < tags.Count; i++)
             {
                 HtmlTag tag = tags[i];
@@ -467,8 +466,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                // Stock shows the same field twice in a view on purpose (AP301000's CuryTaxTotal), but
-                // never twice in one container.
+                // Stock shows the same field twice in a view on purpose (AP301000's CuryTaxTotal), but never twice in one container.
                 if (names.TryGetValue(scope + "\n" + name, out HtmlTag firstField))
                 {
                     string message = string.Format(
@@ -565,7 +563,7 @@ namespace AISI.MuiLint
                 HtmlTag tag = tags[i];
                 string? attribute = tag.IsEndTag ? null : FirstMergeAttribute(tag);
                 int parent = parents[i];
-                if (attribute == null || parent < 0 || (IsTemplate(tags[parent]) && parents[parent] < 0))
+                if (attribute == null || parent < 0 || (Is(tags[parent].Name, "template") && parents[parent] < 0))
                 {
                     continue;
                 }
@@ -602,11 +600,6 @@ namespace AISI.MuiLint
             }
 
             return null;
-        }
-
-        private static bool IsTemplate(HtmlTag tag)
-        {
-            return string.Equals(tag.Name, "template", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasConfigId(string config)

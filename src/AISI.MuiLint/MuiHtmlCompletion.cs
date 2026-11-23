@@ -148,7 +148,7 @@ namespace AISI.MuiLint
         /// <summary>Attribute names for <paramref name="tagName"/>: merge operators everywhere, <c>view.bind</c> only where a view is bound.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetAttributes(string tagName)
         {
-            var items = new List<MuiCompletionItem>
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>
             {
                 new MuiCompletionItem("after", "after=\"\"", MuiCompletionKind.Attribute, "Insert after a stock selector. Must match the original screen HTML."),
                 new MuiCompletionItem("before", "before=\"\"", MuiCompletionKind.Attribute, "Insert before a stock selector. Must match the original screen HTML."),

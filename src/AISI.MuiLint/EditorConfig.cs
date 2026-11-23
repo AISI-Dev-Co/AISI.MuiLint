@@ -18,7 +18,7 @@ namespace AISI.MuiLint
         public static IReadOnlyDictionary<string, string> ReadSeverities(string path, Func<string, string?> readFile)
         {
             string file = HtmlMergeScanner.NormalizePath(path);
-            var configs = new List<(string Directory, string Text)>();
+            List<(string Directory, string Text)> configs = new List<(string Directory, string Text)>();
             string? directory = Path.GetDirectoryName(file);
             while (!string.IsNullOrEmpty(directory))
             {
@@ -36,7 +36,7 @@ namespace AISI.MuiLint
                 directory = Path.GetDirectoryName(directory);
             }
 
-            var severities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> severities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             for (int i = configs.Count - 1; i >= 0; i--)
             {
                 string relative = file.Substring(configs[i].Directory.TrimEnd('/').Length).TrimStart('/');
@@ -126,7 +126,7 @@ namespace AISI.MuiLint
 
         private static string Translate(string glob)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < glob.Length; i++)
             {
                 char c = glob[i];

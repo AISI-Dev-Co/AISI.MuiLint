@@ -39,7 +39,6 @@ namespace AISI.MuiLint.Vsix
             _joinableTaskContext = joinableTaskContext ?? throw new ArgumentNullException(nameof(joinableTaskContext));
         }
 
-        /// <inheritdoc />
         public ITagger<T> CreateTagger<T>(ITextBuffer buffer)
             where T : ITag
         {
@@ -51,7 +50,6 @@ namespace AISI.MuiLint.Vsix
             return GetOrCreateTagger(buffer) as ITagger<T>;
         }
 
-        /// <inheritdoc />
         public void TextViewCreated(IWpfTextView textView)
         {
             if (textView?.TextBuffer is null)

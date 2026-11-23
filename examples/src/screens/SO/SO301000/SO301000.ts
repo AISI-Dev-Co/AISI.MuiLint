@@ -6,6 +6,9 @@ export class SO301000 extends PXScreen {
     AddInvBySite: PXActionState;
     Document = createSingle(SOOrderHeader);
     Transactions = createCollection(SOLine);
+
+    refreshTotals() {
+    }
 }
 
 export class SOOrderHeader extends PXView {

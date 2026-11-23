@@ -15,18 +15,20 @@ using Microsoft.VisualStudio.TextManager.Interop;
 
 namespace AISI.MuiLint.Vsix
 {
-    /// <summary>Lightbulb fixes for findings under the caret, computed on the analysed snapshot and tracked forward to the current buffer.</summary>
+    /// <summary>Lightbulb fixes for findings under the caret, and a ValueChanged handler for the field tag under it.</summary>
     internal sealed class HtmlSuggestedActionsSource : ISuggestedActionsSource
     {
         private readonly ITextBuffer _buffer;
         private readonly System.IServiceProvider _services;
         private readonly IVsEditorAdaptersFactoryService _adapters;
+        private readonly ITextDocumentFactoryService _documents;
 
-        public HtmlSuggestedActionsSource(ITextBuffer buffer, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
+        public HtmlSuggestedActionsSource(ITextBuffer buffer, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters, ITextDocumentFactoryService documents)
         {
             _buffer = buffer;
             _services = services;
             _adapters = adapters;
+            _documents = documents;
         }
 
         public event EventHandler<EventArgs> SuggestedActionsChanged
@@ -37,18 +39,25 @@ namespace AISI.MuiLint.Vsix
 
         public Task<bool> HasSuggestedActionsAsync(ISuggestedActionCategorySet requestedActionCategories, SnapshotSpan range, CancellationToken cancellationToken)
         {
-            return Task.FromResult(FindActions(range).Count > 0);
+            return Task.FromResult(FindActions(range).Count > 0 || PlanHandler(range) != null);
         }
 
         public IEnumerable<SuggestedActionSet> GetSuggestedActions(ISuggestedActionCategorySet requestedActionCategories, SnapshotSpan range, CancellationToken cancellationToken)
         {
+            List<SuggestedActionSet> sets = new List<SuggestedActionSet>();
             List<ISuggestedAction> actions = FindActions(range);
-            if (actions.Count == 0)
+            if (actions.Count > 0)
             {
-                return Enumerable.Empty<SuggestedActionSet>();
+                sets.Add(new SuggestedActionSet(PredefinedSuggestedActionCategoryNames.CodeFix, actions));
             }
 
-            return new[] { new SuggestedActionSet(PredefinedSuggestedActionCategoryNames.CodeFix, actions) };
+            TsDeclaration handler = PlanHandler(range);
+            if (handler != null)
+            {
+                sets.Add(new SuggestedActionSet(PredefinedSuggestedActionCategoryNames.Refactoring, new[] { new DeclareAction(handler, _services, _adapters) }));
+            }
+
+            return sets;
         }
 
         public bool TryGetTelemetryId(out Guid telemetryId)
@@ -61,10 +70,22 @@ namespace AISI.MuiLint.Vsix
         {
         }
 
+        /// <summary>The handler a field tag on the caret's line could get, asked for by both the lightbulb's check and its menu.</summary>
+        private TsDeclaration PlanHandler(SnapshotSpan range)
+        {
+            string path = EditorDocuments.Find(_buffer, _documents)?.FilePath;
+            if (range.Snapshot.TextBuffer != _buffer || string.IsNullOrEmpty(path) || !Path.IsPathRooted(path))
+            {
+                return null;
+            }
+
+            return TypeScriptFixes.PlanValueChangedHandler(path, range.Snapshot.GetText(), range.Start.Position, range.End.Position, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
+        }
+
         private List<ISuggestedAction> FindActions(SnapshotSpan range)
         {
-            var fixes = new List<ISuggestedAction>();
-            var suppressions = new List<ISuggestedAction>();
+            List<ISuggestedAction> fixes = new List<ISuggestedAction>();
+            List<ISuggestedAction> suppressions = new List<ISuggestedAction>();
             HtmlErrorTagger tagger;
             if (!_buffer.Properties.TryGetProperty(typeof(HtmlErrorTagger), out tagger)
                 || !tagger.TryGetAnalysis(out ITextSnapshot analyzed, out IReadOnlyList<Diagnostic> diagnostics)
@@ -74,7 +95,7 @@ namespace AISI.MuiLint.Vsix
             }
 
             string text = null;
-            var offered = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> offered = new HashSet<string>(StringComparer.Ordinal);
             foreach (Diagnostic diagnostic in diagnostics)
             {
                 if (!IsUnderCaret(diagnostic, analyzed, range))
@@ -97,11 +118,10 @@ namespace AISI.MuiLint.Vsix
                 }
                 else if (diagnostic.Id == DiagnosticIds.BindingNotInTypeScript && Path.IsPathRooted(diagnostic.Path))
                 {
-                    FieldDeclaration plan = TypeScriptFixes.PlanFieldDeclaration(diagnostic.Path, text, diagnostic, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
+                    TsDeclaration plan = TypeScriptFixes.PlanFieldDeclaration(diagnostic.Path, text, diagnostic, MuiLintPackage.TryReadFile, MuiLintPackage.TryListFolder);
                     if (plan != null)
                     {
-                        string title = "Declare " + plan.Field + " in " + plan.TargetClass + " (" + Path.GetFileName(plan.TsPath) + ")";
-                        fixes.Add(new DeclareFieldAction(title, plan, _services, _adapters));
+                        fixes.Add(new DeclareAction(plan, _services, _adapters));
                     }
                 }
 
@@ -206,14 +226,14 @@ namespace AISI.MuiLint.Vsix
             }
         }
 
-        private sealed class DeclareFieldAction : SuggestedAction
+        private sealed class DeclareAction : SuggestedAction
         {
-            private readonly FieldDeclaration _plan;
+            private readonly TsDeclaration _plan;
             private readonly System.IServiceProvider _services;
             private readonly IVsEditorAdaptersFactoryService _adapters;
 
-            public DeclareFieldAction(string displayText, FieldDeclaration plan, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
-                : base(displayText, null)
+            public DeclareAction(TsDeclaration plan, System.IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
+                : base(plan.Title, null)
             {
                 _plan = plan;
                 _services = services;
@@ -224,7 +244,7 @@ namespace AISI.MuiLint.Vsix
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
 
-                // An HTML-only extension has no .ts yet; DeclareField writes the imports and the extension into an empty one.
+                // An HTML-only extension has no .ts yet; Declare writes the imports and the extension into an empty one.
                 if (!File.Exists(_plan.TsPath))
                 {
                     File.WriteAllText(_plan.TsPath, string.Empty);
@@ -245,7 +265,7 @@ namespace AISI.MuiLint.Vsix
 
                 using (ITextEdit edit = buffer.CreateEdit())
                 {
-                    foreach (TextEdit change in TypeScriptFixes.DeclareField(buffer.CurrentSnapshot.GetText(), _plan))
+                    foreach (TextEdit change in TypeScriptFixes.Declare(buffer.CurrentSnapshot.GetText(), _plan))
                     {
                         edit.Replace(new Span(change.Start, change.Length), change.NewText);
                     }

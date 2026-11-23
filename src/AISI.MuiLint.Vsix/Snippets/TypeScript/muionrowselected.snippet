@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Modern UI RowSelected handler</Title>
+      <Shortcut>muionrowselected</Shortcut>
+      <Description>Runs when the server has updated a row of a view.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>view</ID>
+          <ToolTip>The view's name on the screen class.</ToolTip>
+          <Default>Document</Default>
+        </Literal>
+        <Literal>
+          <ID>name</ID>
+          <ToolTip>The handler's name; keep it unlike any method the screen already has.</ToolTip>
+          <Default>onDocumentSelected</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[@handleEvent(CustomEventType.RowSelected, { view: "$view$" })
+$name$(args: RowSelectedHandlerArgs) {
+	$end$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

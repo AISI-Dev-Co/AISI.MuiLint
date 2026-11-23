@@ -25,12 +25,13 @@ namespace AISI.MuiLint
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex MemberStart = new Regex(
-            "^(?:@[\\w$.]+\\s*(?:\\(\\s*\\))?\\s*)*(?:(?:public|private|protected|static|readonly|declare|override|abstract|async|get|set)\\s+)*(?<name>[A-Za-z_$][\\w$]*)\\s*[?!]?\\s*(?<op>[:=(<])\\s*(?<type>[\\w$]*)",
+            "^(?:(?>@[\\w$.]+)\\s*(?:\\(\\s*\\))?\\s*)*(?:(?:public|private|protected|static|readonly|declare|override|abstract|async|get|set)\\s+)*(?<name>[A-Za-z_$][\\w$]*)\\s*[?!]?\\s*(?<op>[:=(<])\\s*(?<type>[\\w$]*)",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex GenericSuffix = new Regex("<.*>$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private LineMap? _lines;
+        private IReadOnlyList<TsEventHandler>? _handlers;
 
         public TsModule(string path, string text)
         {
@@ -39,7 +40,7 @@ namespace AISI.MuiLint
             Code = Mask(text, keepStrings: false);
             CodeWithStrings = Mask(text, keepStrings: true);
 
-            var imports = new List<string>();
+            List<string> imports = new List<string>();
             foreach (Match m in ModuleSpecifier.Matches(CodeWithStrings))
             {
                 imports.Add(m.Groups["spec"].Value);
@@ -47,7 +48,7 @@ namespace AISI.MuiLint
 
             Imports = imports;
 
-            var classes = new List<TsClass>();
+            List<TsClass> classes = new List<TsClass>();
             foreach (Match header in ClassHeader.Matches(Code))
             {
                 int open = header.Index + header.Length - 1;
@@ -61,10 +62,10 @@ namespace AISI.MuiLint
 
             Classes = classes;
 
-            var interfaces = new List<TsInterface>();
+            List<TsInterface> interfaces = new List<TsInterface>();
             foreach (Match header in InterfaceHeader.Matches(Code))
             {
-                var bases = new List<string>();
+                List<string> bases = new List<string>();
                 foreach (string raw in header.Groups["bases"].Value.Split(','))
                 {
                     bases.Add(BaseName(raw));
@@ -95,6 +96,11 @@ namespace AISI.MuiLint
         public IReadOnlyList<TsClass> Classes { get; }
 
         public IReadOnlyList<TsInterface> Interfaces { get; }
+
+        public IReadOnlyList<TsEventHandler> Handlers
+        {
+            get { return _handlers ??= TsEventHandler.Read(this); }
+        }
 
         public SourceLocation Locate(int offset)
         {
@@ -136,8 +142,8 @@ namespace AISI.MuiLint
 
         private Dictionary<string, TsMember> ReadMembers(int start, int end)
         {
-            var members = new Dictionary<string, TsMember>(StringComparer.Ordinal);
-            var views = new Dictionary<string, string>(StringComparer.Ordinal);
+            Dictionary<string, TsMember> members = new Dictionary<string, TsMember>(StringComparer.Ordinal);
+            Dictionary<string, string> views = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (Match m in ViewInitializer.Matches(Code.Substring(start, end - start)))
             {
                 views[m.Groups["name"].Value] = m.Groups["class"].Value;
@@ -162,7 +168,8 @@ namespace AISI.MuiLint
                     string type = m.Groups["op"].Value == ":" ? m.Groups["type"].Value : string.Empty;
                     views.TryGetValue(name, out string? viewClass);
                     int offset = start + segment + lead + m.Groups["name"].Index;
-                    members.Add(name, new TsMember(type, viewClass, offset, Locate(offset)));
+                    bool isMethod = m.Groups["op"].Value == "(" || m.Groups["op"].Value == "<";
+                    members.Add(name, new TsMember(type, viewClass, offset, Locate(offset), isMethod));
                 }
 
                 segment = i + 1;
@@ -189,9 +196,27 @@ namespace AISI.MuiLint
             return -1;
         }
 
+        internal static int MatchingParen(string code, int open)
+        {
+            int depth = 0;
+            for (int i = open; i < code.Length; i++)
+            {
+                if (code[i] == '(')
+                {
+                    depth++;
+                }
+                else if (code[i] == ')' && --depth == 0)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         private static string FlattenNested(string code, int start, int end)
         {
-            var sb = new StringBuilder(end - start);
+            StringBuilder sb = new StringBuilder(end - start);
             int depth = 0;
             for (int i = start; i < end; i++)
             {
@@ -319,12 +344,13 @@ namespace AISI.MuiLint
 
     internal readonly struct TsMember
     {
-        public TsMember(string type, string? viewClass, int offset, SourceLocation location)
+        public TsMember(string type, string? viewClass, int offset, SourceLocation location, bool isMethod)
         {
             Type = type;
             ViewClass = viewClass;
             Offset = offset;
             Location = location;
+            IsMethod = isMethod;
         }
 
         /// <summary>The declared type's name, for example <c>PXFieldState</c>; empty for initialisers and methods.</summary>
@@ -336,5 +362,7 @@ namespace AISI.MuiLint
         public int Offset { get; }
 
         public SourceLocation Location { get; }
+
+        public bool IsMethod { get; }
     }
 }

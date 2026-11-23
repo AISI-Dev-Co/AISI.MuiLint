@@ -47,7 +47,7 @@ namespace AISI.MuiLint
             }
 
             // Only Modern UI screens: VS hands us every .ts in every project, and stock screens are what they are.
-            var results = new List<Diagnostic>();
+            List<Diagnostic> results = new List<Diagnostic>();
             string normalized = HtmlMergeScanner.NormalizePath(path);
             bool modernUi = normalized.IndexOf("/screens/", StringComparison.OrdinalIgnoreCase) >= 0
                 || normalized.IndexOf("/customizationScreens/", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -56,8 +56,8 @@ namespace AISI.MuiLint
                 return results;
             }
 
-            var lineMap = new LineMap(text);
-            var module = new TsModule(path, text);
+            LineMap lineMap = new LineMap(text);
+            TsModule module = new TsModule(path, text);
             if (HtmlMergeScanner.IsExtensionFile(path))
             {
                 Scan0014(path, module, lineMap, results);
@@ -68,10 +68,12 @@ namespace AISI.MuiLint
             ScanDecoratorConfigs(path, module, lineMap, results);
 
             ScreenModel? screen = readFile == null ? null : ScreenModel.Read(path, readFile, text, listFolder);
+            ScanHandlers(path, module, screen, lineMap, results);
             if (screen != null)
             {
                 Scan0015(path, module, screen, lineMap, results);
                 Scan0016(path, module, screen, lineMap, results);
+                ScanMethodCollisions(path, module, screen, lineMap, results);
                 if (site != null)
                 {
                     ScanSite(path, module, screen, site, lineMap, results);
@@ -90,7 +92,7 @@ namespace AISI.MuiLint
 
         private static void Scan0014(string path, TsModule module, LineMap lineMap, List<Diagnostic> results)
         {
-            var interfaces = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> interfaces = new HashSet<string>(StringComparer.Ordinal);
             foreach (TsInterface i in module.Interfaces)
             {
                 interfaces.Add(i.Name);
@@ -146,7 +148,7 @@ namespace AISI.MuiLint
             foreach (Match handler in HandleEvent.Matches(module.CodeWithStrings))
             {
                 int open = handler.Index + handler.Length - 1;
-                int close = MatchingParen(module.Code, open);
+                int close = TsModule.MatchingParen(module.Code, open);
                 if (close < 0)
                 {
                     continue;
@@ -165,7 +167,7 @@ namespace AISI.MuiLint
             foreach (Match decorator in ConfigDecorator.Matches(module.Code))
             {
                 int open = decorator.Index + decorator.Length - 1;
-                int close = MatchingParen(module.Code, open);
+                int close = TsModule.MatchingParen(module.Code, open);
                 if (close < 0)
                 {
                     continue;
@@ -233,24 +235,6 @@ namespace AISI.MuiLint
                     results.Add(HtmlMergeScanner.Create(DiagnosticIds.ViewFromNonView, message, path, member.Value.Offset, member.Key.Length, lineMap));
                 }
             }
-        }
-
-        private static int MatchingParen(string code, int open)
-        {
-            int depth = 0;
-            for (int i = open; i < code.Length; i++)
-            {
-                if (code[i] == '(')
-                {
-                    depth++;
-                }
-                else if (code[i] == ')' && --depth == 0)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
         }
     }
 }

@@ -112,7 +112,7 @@ namespace AISI.MuiLint
         {
             foreach (TsClass c in module.Classes)
             {
-                var dacs = new List<ViewMetadata>();
+                List<ViewMetadata> dacs = new List<ViewMetadata>();
                 bool unknown = false;
                 foreach (string view in screen.Views)
                 {

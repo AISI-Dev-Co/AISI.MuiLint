@@ -2,6 +2,36 @@
 
 All notable changes to this project are documented here. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+The new rules were written from the typings and source of `client-controls` in a 26R1 site, and run over Acumatica's
+own 26R1 screens (3,508 files, 265 event handlers, 486 screen extensions) without a single finding.
+
+### Added
+
+- **AISI0032** (warning): `@handleEvent` without what its event needs: a `view` for every event but
+  `CallbackCompleted`, a `field` for `ValueChanged`, a `column` or `allColumns` for `GetCellCss`.
+- **AISI0033** (warning): the `field` of a `ValueChanged` handler, or the `column` of a `GetCellCss` handler, that the
+  view's class doesn't declare.
+- **AISI0034** (warning): an event handler whose parameter is typed as another event's arguments, such as
+  `ValueChangedHandlerArgs` on a `RowSelected` handler.
+- **AISI0035** (warning): a screen extension method with the same name as a method of the screen or of another
+  extension. client-controls copies extension methods onto the screen by name, so one silently replaces the other.
+- VSIX TypeScript snippets for event handlers: `muionvaluechanged`, `muionrowselected`, `muioncurrentrowchanged`,
+  `muirowcss`, `muicellcss`, `muioncallback` and `muiimportevents`.
+- VSIX lightbulb on a `<field>` tag: write a `ValueChanged` handler for that field into the screen class or the screen
+  extension, with its imports. Offered when the field is declared in TypeScript and has no handler yet.
+
+### Changed
+
+- The VSIX no longer carries the XML documentation files of its assemblies.
+
+### Fixed
+
+- A decorator on a line of its own, such as `@viewInfo({ ... })`, was read as a member named after the decorator's
+  last letter.
+- VSIX: findings in an open HTML file were listed twice in the Error List.
+
 ## [0.4.0] - 2026-10-13
 
 Every rule was checked against Acumatica's developer guide (the Markdown edition Acumatica publishes in

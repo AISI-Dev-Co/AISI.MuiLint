@@ -18,8 +18,8 @@ namespace AISI.MuiLint.Vsix
                 throw new ArgumentNullException(nameof(start));
             }
 
-            var found = new List<string>();
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<string> found = new List<string>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (DirectoryInfo? folder = new DirectoryInfo(start); folder != null; folder = folder.Parent)
             {
                 Add(Path.Combine(folder.FullName, DevelopmentScreens), found, seen);
@@ -32,14 +32,14 @@ namespace AISI.MuiLint.Vsix
         /// <summary>Lists the files under <paramref name="folder"/> that MuiLint checks, in a stable order, skipping node_modules and dot-folders.</summary>
         public static List<string> Files(string folder)
         {
-            var files = new List<string>();
+            List<string> files = new List<string>();
             AddFiles(folder, files);
             return files;
         }
 
         private static void AddFiles(string folder, List<string> files)
         {
-            var found = new List<string>();
+            List<string> found = new List<string>();
             foreach (string file in Directory.GetFiles(folder))
             {
                 if (MuiLinter.CanScan(file))

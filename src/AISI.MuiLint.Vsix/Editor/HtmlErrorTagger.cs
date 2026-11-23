@@ -147,7 +147,7 @@ namespace AISI.MuiLint.Vsix
             BeginDispose(unadvise: true);
         }
 
-        /// <summary>The last analysis: the snapshot it ran on and what it found. Used by quick fixes.</summary>
+        /// <summary>The last analysis, for quick fixes: the snapshot it ran on and what it found.</summary>
         internal bool TryGetAnalysis(out ITextSnapshot snapshot, out IReadOnlyList<Diagnostic> diagnostics)
         {
             lock (_gate)

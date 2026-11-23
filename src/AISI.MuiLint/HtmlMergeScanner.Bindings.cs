@@ -50,8 +50,7 @@ namespace AISI.MuiLint
                         results.Add(Create(DiagnosticIds.BindingNotInTypeScript, text, path, attr.ValueStart, attr.Value.Length, lineMap));
                     }
 
-                    // Elsewhere state.bind, like control-state.bind, binds a field: View.Field, or a field
-                    // of the view around it (<qp-mail-editor state.bind="Email"> in Acumatica's docs).
+                    // Off a button, state.bind binds a field as control-state.bind does (<qp-mail-editor state.bind="Email"> in Acumatica's docs).
                     if ((Is(attr.Name, "state.bind") && !Is(tag.Name, "qp-button")) || Is(attr.Name, "control-state.bind"))
                     {
                         CheckField(path, attr, NearestView(tags, parents, i), screen, lineMap, results);

@@ -92,5 +92,17 @@ namespace AISI.MuiLint
 
         /// <summary>@featureInstalled naming a feature the site doesn't have.</summary>
         public const string FeatureNotInSite = "AISI0031";
+
+        /// <summary>@handleEvent without the view, field or column its event needs.</summary>
+        public const string HandlerMissingTarget = "AISI0032";
+
+        /// <summary>@handleEvent naming a field or column the view's class doesn't declare.</summary>
+        public const string HandlerFieldNotDeclared = "AISI0033";
+
+        /// <summary>An event handler whose parameter is typed as another event's arguments.</summary>
+        public const string HandlerArgsOfAnotherEvent = "AISI0034";
+
+        /// <summary>An extension method with the same name as a method of the screen or another extension.</summary>
+        public const string ExtensionMethodCollision = "AISI0035";
     }
 }

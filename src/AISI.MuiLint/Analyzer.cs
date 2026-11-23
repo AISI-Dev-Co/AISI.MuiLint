@@ -14,7 +14,6 @@ namespace AISI.MuiLint
     {
         private static readonly ImmutableArray<DiagnosticDescriptor> Supported = Describe();
 
-        /// <inheritdoc/>
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Supported;
 
         /// <summary>Scans one HTML file's text on its own, as the analyzer does.</summary>
@@ -23,7 +22,6 @@ namespace AISI.MuiLint
             return HtmlMergeScanner.Analyze(path, text);
         }
 
-        /// <inheritdoc/>
         public override void Initialize(AnalysisContext context)
         {
             if (context is null)
@@ -127,8 +125,8 @@ namespace AISI.MuiLint
                 length = 0;
             }
 
-            var span = new TextSpan(start, length);
-            var lineSpan = new LinePositionSpan(
+            TextSpan span = new TextSpan(start, length);
+            LinePositionSpan lineSpan = new LinePositionSpan(
                 new LinePosition(Math.Max(0, finding.Line - 1), Math.Max(0, finding.Column - 1)),
                 new LinePosition(Math.Max(0, finding.EndLine - 1), Math.Max(0, finding.EndColumn - 1)));
             Location location = Location.Create(finding.Path, span, lineSpan);

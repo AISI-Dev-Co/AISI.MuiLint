@@ -24,7 +24,6 @@ namespace AISI.MuiLint.Vsix
             _documents = documents;
         }
 
-        /// <inheritdoc />
         public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
         {
             return textBuffer.Properties.GetOrCreateSingletonProperty(() => new HtmlQuickInfoSource(textBuffer, _documents));
@@ -43,7 +42,6 @@ namespace AISI.MuiLint.Vsix
             _documents = documents;
         }
 
-        /// <inheritdoc />
         public Task<QuickInfoItem> GetQuickInfoItemAsync(IAsyncQuickInfoSession session, CancellationToken cancellationToken)
         {
             SnapshotPoint? point = session.GetTriggerPoint(_buffer.CurrentSnapshot);
@@ -70,7 +68,6 @@ namespace AISI.MuiLint.Vsix
                 cancellationToken);
         }
 
-        /// <inheritdoc />
         public void Dispose()
         {
         }

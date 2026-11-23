@@ -28,6 +28,8 @@ project.fragment.lock.json
 
 ## VSIX output
 *.vsix
+# On case-insensitive file systems the line above also matches the project folder, which hides new files in it.
+!src/AISI.MuiLint.Vsix/
 
 ## Test
 [Tt]est[Rr]esult*/

@@ -32,10 +32,10 @@ namespace AISI.MuiLint.Site
 
             // Sorted so that, when two assemblies define the same type, the same one wins every time.
             Array.Sort(files, StringComparer.OrdinalIgnoreCase);
-            var open = new List<PEReader>();
+            List<PEReader> open = new List<PEReader>();
             try
             {
-                var readers = new List<MetadataReader>();
+                List<MetadataReader> readers = new List<MetadataReader>();
                 foreach (string file in files)
                 {
                     MetadataReader? reader = Open(file, open);
@@ -59,7 +59,7 @@ namespace AISI.MuiLint.Site
         // Customisation source in App_RuntimeCode is compiled elsewhere, so any identifier in it may be declared there.
         private static HashSet<string> SourceNames(string binFolder)
         {
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string? site = Path.GetDirectoryName(Path.GetFullPath(binFolder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             string folder = Path.Combine(site ?? binFolder, "App_RuntimeCode");
             try
@@ -89,7 +89,7 @@ namespace AISI.MuiLint.Site
             try
             {
                 stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-                var pe = new PEReader(stream);
+                PEReader pe = new PEReader(stream);
                 stream = null;
                 open.Add(pe);
                 return pe.HasMetadata ? pe.GetMetadataReader() : null;

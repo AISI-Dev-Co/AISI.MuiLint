@@ -33,7 +33,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
         public static int Main(string[] args)
         {
             string format = "text";
-            var inputs = new List<string>();
+            List<string> inputs = new List<string>();
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
@@ -83,8 +83,8 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
             }
 
             bool badInput = false;
-            var cache = new Dictionary<string, string?>(StringComparer.Ordinal);
-            var scanned = new List<ScannedFile>();
+            Dictionary<string, string?> cache = new Dictionary<string, string?>(StringComparer.Ordinal);
+            List<ScannedFile> scanned = new List<ScannedFile>();
             foreach (string path in Expand(inputs, ref badInput))
             {
                 string text;
@@ -156,7 +156,7 @@ with dotnet_diagnostic.AISI0008.severity = error in .editorconfig.";
 
         private static List<string> Expand(List<string> inputs, ref bool badInput)
         {
-            var files = new List<string>();
+            List<string> files = new List<string>();
             foreach (string input in inputs)
             {
                 if (Directory.Exists(input))

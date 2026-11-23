@@ -67,7 +67,7 @@ namespace AISI.MuiLint.Tests
 
         public static TheoryData<string> FailFixtures()
         {
-            var data = new TheoryData<string>();
+            TheoryData<string> data = new TheoryData<string>();
             foreach (string file in Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Fixtures", "fail"), "*.html", SearchOption.AllDirectories))
             {
                 data.Add(file);

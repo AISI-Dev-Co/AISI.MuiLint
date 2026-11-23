@@ -84,7 +84,7 @@ namespace AISI.MuiLint
     {
         public static IReadOnlyList<HtmlTag> Read(string text)
         {
-            var tags = new List<HtmlTag>();
+            List<HtmlTag> tags = new List<HtmlTag>();
             int i = 0;
             int n = text.Length;
             while (i < n)
@@ -136,7 +136,7 @@ namespace AISI.MuiLint
                 }
 
                 string name = text.Substring(nameStart, i - nameStart);
-                var attrs = new List<HtmlAttribute>();
+                List<HtmlAttribute> attrs = new List<HtmlAttribute>();
                 bool selfClosing = false;
 
                 while (i < n)
@@ -220,8 +220,8 @@ namespace AISI.MuiLint
         /// <summary>Index of each tag's enclosing start tag, or -1 at the top level, forgiving tags that are never closed.</summary>
         public static int[] Parents(IReadOnlyList<HtmlTag> tags)
         {
-            var parents = new int[tags.Count];
-            var open = new List<int>();
+            int[] parents = new int[tags.Count];
+            List<int> open = new List<int>();
             for (int i = 0; i < tags.Count; i++)
             {
                 HtmlTag tag = tags[i];
@@ -277,7 +277,7 @@ namespace AISI.MuiLint
         public LineMap(string text)
         {
             _length = text.Length;
-            var starts = new List<int> { 0 };
+            List<int> starts = new List<int> { 0 };
             for (int i = 0; i < text.Length; i++)
             {
                 if (text[i] == '\n')
