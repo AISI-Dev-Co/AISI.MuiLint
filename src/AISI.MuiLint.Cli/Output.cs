@@ -59,8 +59,8 @@ namespace AISI.MuiLint.Cli
 
         public static void WriteJson(TextWriter output, IReadOnlyList<ScannedFile> files)
         {
-            using var buffer = new MemoryStream();
-            using var json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true });
+            using MemoryStream buffer = new MemoryStream();
+            using Utf8JsonWriter json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true });
             json.WriteStartArray();
             foreach (ScannedFile file in files)
             {
@@ -87,8 +87,8 @@ namespace AISI.MuiLint.Cli
         /// <summary>Writes SARIF 2.1.0, the format GitHub code scanning and most security dashboards import.</summary>
         public static void WriteSarif(TextWriter output, IReadOnlyList<ScannedFile> files, string version)
         {
-            using var buffer = new MemoryStream();
-            using var json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true });
+            using MemoryStream buffer = new MemoryStream();
+            using Utf8JsonWriter json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true });
             json.WriteStartObject();
             json.WriteString("$schema", "https://json.schemastore.org/sarif-2.1.0.json");
             json.WriteString("version", "2.1.0");

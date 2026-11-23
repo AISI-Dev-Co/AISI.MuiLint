@@ -36,7 +36,6 @@ namespace AISI.MuiLint.Vsix
             _services = services;
         }
 
-        /// <inheritdoc />
         public void VsTextViewCreated(IVsTextView textViewAdapter)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -46,7 +45,7 @@ namespace AISI.MuiLint.Vsix
                 return;
             }
 
-            var filter = new HtmlGoToDefinitionFilter(view, _documents, _services);
+            HtmlGoToDefinitionFilter filter = new HtmlGoToDefinitionFilter(view, _documents, _services);
             if (ErrorHandler.Succeeded(textViewAdapter.AddCommandFilter(filter, out IOleCommandTarget next)))
             {
                 filter.Next = next;
@@ -71,7 +70,6 @@ namespace AISI.MuiLint.Vsix
 
         public IOleCommandTarget Next { get; set; }
 
-        /// <inheritdoc />
         public int QueryStatus(ref Guid pguidCmdGroup, uint cCmds, OLECMD[] prgCmds, IntPtr pCmdText)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -93,7 +91,6 @@ namespace AISI.MuiLint.Vsix
             return result;
         }
 
-        /// <inheritdoc />
         public int Exec(ref Guid pguidCmdGroup, uint nCmdID, uint nCmdexecopt, IntPtr pvaIn, IntPtr pvaOut)
         {
             ThreadHelper.ThrowIfNotOnUIThread();

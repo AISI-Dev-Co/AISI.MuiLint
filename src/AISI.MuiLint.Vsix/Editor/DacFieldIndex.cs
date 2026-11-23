@@ -69,10 +69,10 @@ namespace AISI.MuiLint.Vsix
 
         private static void Build(string root)
         {
-            var fields = new List<DacField>();
+            List<DacField> fields = new List<DacField>();
             try
             {
-                var folders = new Stack<string>();
+                Stack<string> folders = new Stack<string>();
                 folders.Push(root);
                 while (folders.Count > 0)
                 {

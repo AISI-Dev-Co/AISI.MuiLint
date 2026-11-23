@@ -8,8 +8,8 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void Flatten_FindsDocument_WhenWalkerUsesProjectionBase()
         {
-            var document = new Node("doc");
-            var elision = new Node("elision")
+            Node document = new Node("doc");
+            Node elision = new Node("elision")
             {
                 SourcesIfProjection = null,
                 SourcesIfBase = new[] { document },
@@ -23,8 +23,8 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void Flatten_MissesElision_WhenWalkerUsesProjectionOnly()
         {
-            var document = new Node("doc");
-            var elision = new Node("elision")
+            Node document = new Node("doc");
+            Node elision = new Node("elision")
             {
                 SourcesIfProjection = null,
                 SourcesIfBase = new[] { document },
@@ -38,9 +38,9 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void Flatten_WalksNestedElision()
         {
-            var document = new Node("doc");
-            var inner = new Node("inner") { SourcesIfBase = new[] { document } };
-            var outer = new Node("outer") { SourcesIfBase = new[] { inner } };
+            Node document = new Node("doc");
+            Node inner = new Node("inner") { SourcesIfBase = new[] { document } };
+            Node outer = new Node("outer") { SourcesIfBase = new[] { inner } };
 
             IReadOnlyList<Node> found = NestedSourceWalk.Flatten(outer, n => n.SourcesIfBase);
 

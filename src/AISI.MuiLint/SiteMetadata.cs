@@ -72,7 +72,7 @@ namespace AISI.MuiLint
         public GraphMetadata(string fullName, IEnumerable<ViewMetadata> views, IEnumerable<string> actions, bool complete)
         {
             FullName = fullName ?? throw new ArgumentNullException(nameof(fullName));
-            var byName = new Dictionary<string, ViewMetadata>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, ViewMetadata> byName = new Dictionary<string, ViewMetadata>(StringComparer.OrdinalIgnoreCase);
             foreach (ViewMetadata view in views ?? throw new ArgumentNullException(nameof(views)))
             {
                 byName[view.Name] = view;
@@ -107,7 +107,6 @@ namespace AISI.MuiLint
             Fields = fields == null ? null : new HashSet<string>(fields, StringComparer.OrdinalIgnoreCase);
         }
 
-        /// <summary>Gets the view's name.</summary>
         public string Name { get; }
 
         /// <summary>Gets the main DAC's full name, or null.</summary>

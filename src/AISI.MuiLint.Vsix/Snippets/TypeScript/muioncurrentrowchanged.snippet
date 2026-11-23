@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Modern UI CurrentRowChanged handler</Title>
+      <Shortcut>muioncurrentrowchanged</Shortcut>
+      <Description>Runs on every change in the current row's fields and on row selection.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>view</ID>
+          <ToolTip>The grid's view on the screen class.</ToolTip>
+          <Default>Transactions</Default>
+        </Literal>
+        <Literal>
+          <ID>name</ID>
+          <ToolTip>The handler's name; keep it unlike any method the screen already has.</ToolTip>
+          <Default>onCurrentTransactionChanged</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[@handleEvent(CustomEventType.CurrentRowChanged, { view: "$view$" })
+$name$(args: CurrentRowChangedHandlerArgs) {
+	$end$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

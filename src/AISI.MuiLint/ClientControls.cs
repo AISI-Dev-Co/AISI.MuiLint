@@ -74,8 +74,8 @@ namespace AISI.MuiLint
 
         internal static ClientControls? Read(string root, Func<string, string?> readFile, Func<string, IEnumerable<string>> listFolder)
         {
-            var interfaces = new Dictionary<string, (List<string> Keys, List<string> Bases, bool Open)>(StringComparer.Ordinal);
-            var classes = new Dictionary<string, (string? Tag, string? Base, string? Config)>(StringComparer.Ordinal);
+            Dictionary<string, (List<string> Keys, List<string> Bases, bool Open)> interfaces = new(StringComparer.Ordinal);
+            Dictionary<string, (string? Tag, string? Base, string? Config)> classes = new(StringComparer.Ordinal);
             int files = 0;
             foreach (string file in DeclarationFiles(root, listFolder))
             {
@@ -92,8 +92,8 @@ namespace AISI.MuiLint
                 return null;
             }
 
-            var resolved = new Dictionary<string, List<string>?>(StringComparer.Ordinal);
-            var controls = new Dictionary<string, ICollection<string>?>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, List<string>?> resolved = new Dictionary<string, List<string>?>(StringComparer.Ordinal);
+            Dictionary<string, ICollection<string>?> controls = new Dictionary<string, ICollection<string>?>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, (string? Tag, string? Base, string? Config)> c in classes)
             {
                 if (c.Value.Tag != null && !controls.ContainsKey(c.Value.Tag))
@@ -119,7 +119,7 @@ namespace AISI.MuiLint
 
         private static IEnumerable<string> DeclarationFiles(string folder, Func<string, IEnumerable<string>> listFolder)
         {
-            var pending = new Stack<string>();
+            Stack<string> pending = new Stack<string>();
             pending.Push(folder.TrimEnd('/', '\\'));
             while (pending.Count > 0)
             {
@@ -151,7 +151,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                var keys = new List<string>();
+                List<string> keys = new List<string>();
                 bool isOpen = false;
                 foreach (string member in Members(code, open))
                 {
@@ -162,7 +162,7 @@ namespace AISI.MuiLint
                     }
                     else if (member.TrimStart().StartsWith("[", StringComparison.Ordinal))
                     {
-                        // [key: string]: any — anything goes.
+                        // An index signature ([key: string]: any) lets any key through.
                         isOpen = true;
                     }
                 }
@@ -171,7 +171,7 @@ namespace AISI.MuiLint
                 List<string> bases = Bases(heritage, "extends");
                 if (interfaces.TryGetValue(name, out (List<string> Keys, List<string> Bases, bool Open) existing))
                 {
-                    // Declaration merging across files.
+                    // TypeScript merges interfaces of the same name across files.
                     existing.Keys.AddRange(keys);
                     existing.Bases.AddRange(bases);
                     interfaces[name] = (existing.Keys, existing.Bases, existing.Open || isOpen);
@@ -220,7 +220,7 @@ namespace AISI.MuiLint
 
         private static string? ConfigType(string className, Dictionary<string, (string? Tag, string? Base, string? Config)> classes)
         {
-            var seen = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
             for (string? name = className; name != null && seen.Add(name) && classes.TryGetValue(name, out (string? Tag, string? Base, string? Config) c); name = c.Base)
             {
                 if (c.Config != null)
@@ -254,7 +254,7 @@ namespace AISI.MuiLint
                 return null;
             }
 
-            var keys = new List<string>(declared.Keys);
+            List<string>? keys = new List<string>(declared.Keys);
             foreach (string baseType in declared.Bases)
             {
                 // A base we can't see could add any key, so we can't say what's unknown.
@@ -349,7 +349,7 @@ namespace AISI.MuiLint
                 }
             }
 
-            var bases = new List<string>();
+            List<string> bases = new List<string>();
             Match m = Regex.Match(heritage, "\\b" + keyword + "\\b(?<list>.*?)(?:\\bimplements\\b|$)", RegexOptions.Singleline);
             if (!m.Success)
             {

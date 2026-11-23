@@ -5,7 +5,6 @@ namespace AISI.MuiLint
     /// <summary>One finding, independent of Roslyn so the CLI and the VSIX can consume it without a compilation.</summary>
     public sealed class Diagnostic
     {
-        /// <summary>Initializes a finding.</summary>
         public Diagnostic(
             string id,
             string message,
@@ -30,13 +29,10 @@ namespace AISI.MuiLint
             Severity = severity;
         }
 
-        /// <summary>Gets the diagnostic identifier.</summary>
         public string Id { get; }
 
-        /// <summary>Gets the message.</summary>
         public string Message { get; }
 
-        /// <summary>Gets the file path.</summary>
         public string Path { get; }
 
         /// <summary>Gets the 0-based UTF-16 start offset.</summary>
@@ -57,7 +53,6 @@ namespace AISI.MuiLint
         /// <summary>Gets the 1-based exclusive end column.</summary>
         public int EndColumn { get; }
 
-        /// <summary>Gets the severity.</summary>
         public Severity Severity { get; }
 
         internal Diagnostic WithSeverity(Severity severity)

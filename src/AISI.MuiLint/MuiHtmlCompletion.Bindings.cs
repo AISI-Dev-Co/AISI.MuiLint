@@ -27,7 +27,7 @@ namespace AISI.MuiLint
                 return GetAttributeValues(ReadTagName(inTag), attribute, htmlPath, readFile, listFolder);
             }
 
-            var items = new List<MuiCompletionItem>();
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>();
             ScreenModel? screen = ScreenModel.Read(htmlPath, readFile, listFolder: listFolder);
             if (screen == null)
             {

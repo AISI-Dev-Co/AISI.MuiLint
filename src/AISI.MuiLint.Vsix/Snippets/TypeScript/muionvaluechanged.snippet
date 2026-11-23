@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Modern UI ValueChanged handler</Title>
+      <Shortcut>muionvaluechanged</Shortcut>
+      <Description>Runs when a user changes one field of a view.</Description>
+      <Author>AISI Dev Co</Author>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>view</ID>
+          <ToolTip>The view's name on the screen class.</ToolTip>
+          <Default>Document</Default>
+        </Literal>
+        <Literal>
+          <ID>field</ID>
+          <ToolTip>The field of the view's class to watch.</ToolTip>
+          <Default>CustomerID</Default>
+        </Literal>
+        <Literal>
+          <ID>name</ID>
+          <ToolTip>The handler's name; keep it unlike any method the screen already has.</ToolTip>
+          <Default>onCustomerIDChanged</Default>
+        </Literal>
+      </Declarations>
+      <Code Language="TypeScript"><![CDATA[@handleEvent(CustomEventType.ValueChanged, { view: "$view$", field: "$field$" })
+$name$(args: ValueChangedHandlerArgs) {
+	$end$
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

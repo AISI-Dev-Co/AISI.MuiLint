@@ -164,8 +164,8 @@ namespace AISI.MuiLint.Tests
         {
             TextWriter originalOut = Console.Out;
             TextWriter originalError = Console.Error;
-            var output = new StringWriter();
-            var error = new StringWriter();
+            StringWriter output = new StringWriter();
+            StringWriter error = new StringWriter();
             Console.SetOut(output);
             Console.SetError(error);
             try

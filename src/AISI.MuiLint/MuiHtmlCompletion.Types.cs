@@ -55,7 +55,6 @@ namespace AISI.MuiLint
     /// <summary>One completion candidate.</summary>
     public sealed class MuiCompletionItem
     {
-        /// <summary>Creates a candidate.</summary>
         public MuiCompletionItem(string displayText, string insertText, MuiCompletionKind kind, string description)
         {
             if (string.IsNullOrEmpty(displayText))

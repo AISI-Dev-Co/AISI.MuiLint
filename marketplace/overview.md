@@ -36,16 +36,20 @@ Modern UI customisations are HTML extension files under `development/screens`, m
 | AISI0029 | A field the view's DAC doesn't have (from your site's `Bin`) |
 | AISI0030 | `@linkCommand` naming an action the graph doesn't have |
 | AISI0031 | `@featureInstalled` naming a feature your site doesn't have |
+| AISI0032 | `@handleEvent` without the view, field or column its event needs |
+| AISI0033 | `@handleEvent` naming a field or column the view's class doesn't declare |
+| AISI0034 | An event handler typed with another event's arguments |
+| AISI0035 | An extension method that replaces a screen method of the same name |
 
 Each id in the Error List links to the rule's page, with a wrong and a right example.
 
 ## Features
 
 - **Extensions › AISI MuiLint › Lint Modern UI Screens** checks every file under your site's `development/screens`, open or not, and lists the findings in the Error List.
-- **Lightbulb fixes** (Ctrl+.): expand a self-closing tag, remove an empty fieldset, declare a missing field in your TypeScript extension (creating the extension and the `.ts` if needed), or suppress a finding on the line or in the file.
+- **Lightbulb fixes** (Ctrl+.): expand a self-closing tag, remove an empty fieldset, declare a missing field in your TypeScript extension (creating the extension and the `.ts` if needed), write a `ValueChanged` handler for the field under the caret, or suppress a finding on the line or in the file.
 - **Completions** for Modern UI tags and attributes; the stock screen's `#ids` and `[name='…']` values in merge selectors, scoped to the container you've named; the views, fields and actions your TypeScript declares; and the fields of the C# DAC extensions in your solution.
 - **Go to definition** (F12) and **hover** from a selector into the stock screen HTML, and from a view, action or field to its TypeScript declaration.
-- **TypeScript snippets** for fields, actions, views, view and screen extensions, and imports: type `muifield`, `muiext`, `muiscreenext` and so on, then Tab twice.
+- **TypeScript snippets** for fields, actions, views, view and screen extensions, event handlers and imports: type `muifield`, `muiext`, `muionvaluechanged` and so on, then Tab twice.
 - **Severities from `.editorconfig`**, using the same `dotnet_diagnostic.AISI0008.severity = error` keys as Roslyn.
 - A **command-line tool and GitHub Action** that run the same rules in CI, with SARIF output for code scanning.
 

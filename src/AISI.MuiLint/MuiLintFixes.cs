@@ -5,7 +5,6 @@ namespace AISI.MuiLint
     /// <summary>Replace <see cref="Length"/> characters at <see cref="Start"/> with <see cref="NewText"/>.</summary>
     public readonly struct TextEdit
     {
-        /// <summary>Creates an edit.</summary>
         public TextEdit(int start, int length, string newText)
         {
             Start = start;
@@ -19,7 +18,6 @@ namespace AISI.MuiLint
         /// <summary>Gets how many characters are replaced (0 for an insert).</summary>
         public int Length { get; }
 
-        /// <summary>Gets the replacement text.</summary>
         public string NewText { get; }
     }
 

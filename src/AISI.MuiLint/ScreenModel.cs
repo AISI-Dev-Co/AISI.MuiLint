@@ -70,9 +70,9 @@ namespace AISI.MuiLint
                 return null;
             }
 
-            var model = new ScreenModel();
-            var modules = new Queue<TsModule>();
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath, rootPath };
+            ScreenModel model = new ScreenModel();
+            Queue<TsModule> modules = new Queue<TsModule>();
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { tsPath, rootPath };
             modules.Enqueue(new TsModule(rootPath, text));
             foreach (string extension in HtmlMergeScanner.ScreenExtensions(tsPath, ".ts", listFolder))
             {
@@ -166,7 +166,7 @@ namespace AISI.MuiLint
         /// <summary>Every field of every view, or null if any view's class is unknown.</summary>
         public ICollection<string>? AllFields()
         {
-            var all = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> all = new HashSet<string>(StringComparer.Ordinal);
             foreach (string view in Views)
             {
                 ICollection<string>? fields = FieldsOf(view);
@@ -248,7 +248,7 @@ namespace AISI.MuiLint
             }
             else if (specifier.StartsWith("src/", StringComparison.Ordinal))
             {
-                // "src/screens/..." is rooted at the folder that holds src, i.e. FrontendSources/screen.
+                // "src/screens/..." is rooted at the folder that holds src (FrontendSources/screen).
                 int src = fromPath.LastIndexOf("/src/", StringComparison.OrdinalIgnoreCase);
                 if (src < 0)
                 {
@@ -275,7 +275,7 @@ namespace AISI.MuiLint
 
         internal static string Combine(string fromFile, string relative)
         {
-            var parts = new List<string>(HtmlMergeScanner.NormalizePath(fromFile).Split('/'));
+            List<string> parts = new List<string>(HtmlMergeScanner.NormalizePath(fromFile).Split('/'));
             parts.RemoveAt(parts.Count - 1);
             foreach (string part in HtmlMergeScanner.NormalizePath(relative).Split('/'))
             {
@@ -331,6 +331,60 @@ namespace AISI.MuiLint
             return _mergedInto.TryGetValue(target, out List<string>? sources) && sources.Contains(className);
         }
 
+        /// <summary>The screen class, a base of it or another of its extensions that declares a method called <paramref name="method"/>, or null.</summary>
+        public string? MethodOwner(string method, string exceptClass, out bool isHandler)
+        {
+            List<string> owners = new List<string>();
+            string name = ScreenClass;
+            while (owners.Count < 16 && _classes.TryGetValue(name, out (TsClass Class, TsModule Module) found))
+            {
+                owners.Add(name);
+                name = found.Class.Base;
+            }
+
+            if (_mergedInto.TryGetValue(ScreenClass, out List<string>? extensions))
+            {
+                owners.AddRange(extensions);
+            }
+
+            foreach (string owner in owners)
+            {
+                if (owner != exceptClass
+                    && _classes.TryGetValue(owner, out (TsClass Class, TsModule Module) candidate)
+                    && candidate.Class.Members.TryGetValue(method, out TsMember member)
+                    && member.IsMethod)
+                {
+                    isHandler = false;
+                    foreach (TsEventHandler handler in candidate.Module.Handlers)
+                    {
+                        isHandler |= handler.MethodStart == member.Offset;
+                    }
+
+                    return owner;
+                }
+            }
+
+            isHandler = false;
+            return null;
+        }
+
+        /// <summary>Whether a file of the screen already has a ValueChanged handler for the field.</summary>
+        public bool HandlesValueChanged(string view, string field)
+        {
+            foreach ((TsClass Class, TsModule Module) found in _classes.Values)
+            {
+                foreach (TsEventHandler handler in found.Module.Handlers)
+                {
+                    if (handler.Event == "ValueChanged" && handler.Literal("view")?.Value == view && handler.Literal("field")?.Value == field)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private static string? GraphTypeOf(TsModule module, TsClass c)
         {
             int from = Math.Max(0, c.NameStart - 800);
@@ -374,8 +428,8 @@ namespace AISI.MuiLint
             ScreenClass = found!;
             (TsClass screenClass, TsModule screenModule) = _classes[found!];
             GraphType = GraphTypeOf(screenModule, screenClass);
-            var views = new List<string>();
-            var actions = new List<string>();
+            List<string> views = new List<string>();
+            List<string> actions = new List<string>();
             foreach (KeyValuePair<string, TsMember> member in screen)
             {
                 if (member.Value.ViewClass != null)
@@ -418,7 +472,7 @@ namespace AISI.MuiLint
                 return null;
             }
 
-            var members = new Dictionary<string, TsMember>(StringComparer.Ordinal);
+            Dictionary<string, TsMember> members = new Dictionary<string, TsMember>(StringComparer.Ordinal);
             if (_mergedInto.TryGetValue(name, out List<string>? extensions))
             {
                 foreach (string extension in extensions)

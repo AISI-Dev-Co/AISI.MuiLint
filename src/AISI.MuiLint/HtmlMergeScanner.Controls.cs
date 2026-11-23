@@ -37,7 +37,7 @@ namespace AISI.MuiLint
                     continue;
                 }
 
-                var parameters = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+                Dictionary<string, bool> parameters = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
                 foreach (Match p in ParameterName.Matches(BlankQuoted(declared.Groups["attrs"].Value)))
                 {
                     string name = p.Groups["name"].Value;
@@ -128,7 +128,7 @@ namespace AISI.MuiLint
 
         private static void ScanUnbalancedTags(string path, IReadOnlyList<HtmlTag> tags, LineMap lineMap, List<Diagnostic> results)
         {
-            var open = new List<HtmlTag>();
+            List<HtmlTag> open = new List<HtmlTag>();
             foreach (HtmlTag tag in tags)
             {
                 if (!NeedsEndTag(tag.Name) || tag.SelfClosing)

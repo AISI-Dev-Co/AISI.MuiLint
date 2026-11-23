@@ -24,6 +24,10 @@ namespace AISI.MuiLint.Tests
             DiagnosticIds.ViewFromNonView,
             DiagnosticIds.GraphInfoWithoutGraphType,
             DiagnosticIds.GridWithoutPreset,
+            DiagnosticIds.HandlerMissingTarget,
+            DiagnosticIds.HandlerFieldNotDeclared,
+            DiagnosticIds.HandlerArgsOfAnotherEvent,
+            DiagnosticIds.ExtensionMethodCollision,
         };
 
         // These need a stock screen, client-controls package or Bin that a fixture folder can't hold, so other test classes build them.
@@ -111,7 +115,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void SupportedDiagnostics_MapSeverities()
         {
-            var analyzer = new Analyzer();
+            Analyzer analyzer = new Analyzer();
             Assert.Equal(DiagnosticSeverity.Error, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.SelfClosing).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Warning, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.DuplicateNameOrId).DefaultSeverity);
             Assert.Equal(DiagnosticSeverity.Info, analyzer.SupportedDiagnostics.Single(d => d.Id == DiagnosticIds.QpControlWithoutId).DefaultSeverity);
@@ -167,9 +171,9 @@ namespace AISI.MuiLint.Tests
                 new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) },
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-            var additional = new TestAdditionalText(path, html);
-            var analyzer = new Analyzer();
-            var compilationWithAnalyzers = new CompilationWithAnalyzers(
+            TestAdditionalText additional = new TestAdditionalText(path, html);
+            Analyzer analyzer = new Analyzer();
+            CompilationWithAnalyzers compilationWithAnalyzers = new CompilationWithAnalyzers(
                 compilation,
                 ImmutableArray.Create<DiagnosticAnalyzer>(analyzer),
                 new AnalyzerOptions(ImmutableArray.Create<AdditionalText>(additional)),
@@ -181,7 +185,7 @@ namespace AISI.MuiLint.Tests
 
         private static TheoryData<string, string> Enumerate(string kind)
         {
-            var data = new TheoryData<string, string>();
+            TheoryData<string, string> data = new TheoryData<string, string>();
             string root = Path.Combine(FixturesRoot, kind);
             Assert.True(Directory.Exists(root), "Missing fixtures at " + root);
             foreach (string idDir in Directory.GetDirectories(root))

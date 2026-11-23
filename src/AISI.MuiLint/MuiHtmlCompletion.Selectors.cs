@@ -19,14 +19,14 @@ namespace AISI.MuiLint
         /// <summary>Attributes the stock screen uses on <paramref name="tagName"/> that <see cref="GetAttributes"/> doesn't already offer.</summary>
         public static IReadOnlyList<MuiCompletionItem> GetStockAttributes(string tagName, string htmlPath, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder = null)
         {
-            var items = new List<MuiCompletionItem>();
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>();
             HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock == null || !stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes))
             {
                 return items;
             }
 
-            var offered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> offered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (MuiCompletionItem item in GetAttributes(tagName))
             {
                 offered.Add(item.DisplayText);
@@ -46,7 +46,7 @@ namespace AISI.MuiLint
         /// <summary>Targets for a merge selector: what this file adds above the caret, then the stock names (inside the named container, if any) and ids.</summary>
         private static List<MuiCompletionItem> GetSelectorValues(string htmlPath, string text, int caret, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
-            var items = new List<MuiCompletionItem>();
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>();
             string above = text.Substring(0, text.LastIndexOf('<', caret - 1) + 1);
             foreach (HtmlTag tag in HtmlTagReader.Read(HtmlMergeScanner.MaskComments(above)))
             {
@@ -82,7 +82,7 @@ namespace AISI.MuiLint
                 where = "inside #" + container;
             }
 
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string name in names)
             {
                 if (name.Length > 0 && !LooksLikeTemplateName(name) && seen.Add(name))
@@ -105,7 +105,7 @@ namespace AISI.MuiLint
         /// <summary>Values the stock screen gives <paramref name="attribute"/> on <paramref name="tagName"/>.</summary>
         private static List<MuiCompletionItem> GetAttributeValues(string tagName, string attribute, string htmlPath, Func<string, string?> readFile, Func<string, IEnumerable<string>>? listFolder)
         {
-            var items = new List<MuiCompletionItem>();
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>();
             HtmlMergeScanner.StockScreen? stock = HtmlMergeScanner.StockScreen.Read(htmlPath, readFile, allowPartial: true, listFolder: listFolder);
             if (stock != null
                 && stock.Attributes.TryGetValue(tagName, out Dictionary<string, List<string>>? attributes)

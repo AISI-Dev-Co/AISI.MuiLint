@@ -20,9 +20,9 @@ namespace AISI.MuiLint
                 throw new ArgumentNullException(nameof(sourcesOf));
             }
 
-            var result = new List<T>();
-            var seen = new HashSet<T>();
-            var stack = new Stack<T>();
+            List<T> result = new List<T>();
+            HashSet<T> seen = new HashSet<T>();
+            Stack<T> stack = new Stack<T>();
             stack.Push(root);
             while (stack.Count > 0)
             {

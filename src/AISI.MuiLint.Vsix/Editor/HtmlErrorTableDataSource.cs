@@ -52,25 +52,21 @@ namespace AISI.MuiLint.Vsix
                 StandardTableColumnDefinitions.Column);
         }
 
-        /// <inheritdoc />
         public string SourceTypeIdentifier
         {
             get { return StandardTableDataSources.ErrorTableDataSource; }
         }
 
-        /// <inheritdoc />
         public string Identifier
         {
             get { return SourceIdentifier; }
         }
 
-        /// <inheritdoc />
         public string DisplayName
         {
             get { return SourceDisplayName; }
         }
 
-        /// <inheritdoc />
         public IDisposable Subscribe(ITableDataSink sink)
         {
             if (sink is null)
@@ -97,6 +93,15 @@ namespace AISI.MuiLint.Vsix
         {
             lock (_gate)
             {
+                // An HTML file has a projection buffer over its own and each has a tagger, so only the first to report a file is listed.
+                foreach (KeyValuePair<ITextBuffer, string> other in _openPaths)
+                {
+                    if (other.Key != buffer && System.IO.Path.IsPathRooted(path) && SamePath(other.Value, path))
+                    {
+                        return;
+                    }
+                }
+
                 bool opened = !_openPaths.TryGetValue(buffer, out string previous) || !SamePath(previous, path);
                 _openPaths[buffer] = path;
                 HtmlErrorSnapshotFactory factory;
@@ -139,7 +144,7 @@ namespace AISI.MuiLint.Vsix
         // An open document reports for itself, live; the scan only speaks for the rest.
         private void RefreshScan()
         {
-            var shown = new List<Diagnostic>();
+            List<Diagnostic> shown = new List<Diagnostic>();
             foreach (Diagnostic diagnostic in _scanned)
             {
                 bool open = false;

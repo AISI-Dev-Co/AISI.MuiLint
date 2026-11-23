@@ -44,16 +44,20 @@ Acumatica's own 24R1 screens to weed out false positives.
 | [AISI0029](docs/rules/AISI0029.md) | warning | A `PXFieldState` that the view's DAC doesn't have. |
 | [AISI0030](docs/rules/AISI0030.md) | warning | `@linkCommand` naming an action the graph doesn't have. |
 | [AISI0031](docs/rules/AISI0031.md) | warning | `@featureInstalled` naming a feature the site's `FeaturesSet` doesn't have. |
+| [AISI0032](docs/rules/AISI0032.md) | warning | `@handleEvent` without the `view`, `field` or `column` its event needs. |
+| [AISI0033](docs/rules/AISI0033.md) | warning | `@handleEvent` naming a `field` or `column` the view's class doesn't declare. |
+| [AISI0034](docs/rules/AISI0034.md) | warning | An event handler whose parameter is another event's arguments type. |
+| [AISI0035](docs/rules/AISI0035.md) | warning | A screen extension method with the same name as a method of the screen or another extension, which replaces it. |
 
 AISI0002, AISI0007 and AISI0010 are retired; their pages say why.
 
-AISI0014–AISI0016 and AISI0025–AISI0031 check `.ts` files, and AISI0017 checks both. TypeScript checks only run on
+AISI0014–AISI0016 and AISI0025–AISI0035 check `.ts` files, and AISI0017 checks both. TypeScript checks only run on
 files under a `screens` or `customizationScreens` folder.
 
 Some rules need more than the file itself and stay quiet without it:
 
-- **AISI0009, AISI0011, AISI0019 and AISI0024** read neighbouring files: the stock screen, the screen's `.ts`, its other extensions and
-  included files.
+- **AISI0009, AISI0011, AISI0019, AISI0024, AISI0033 and AISI0035** read neighbouring files: the stock screen, the
+  screen's `.ts`, its other extensions and included files.
 - **AISI0020–AISI0022** read the site's `node_modules/client-controls`, so they match your Acumatica version.
 - **AISI0027–AISI0031** read the compiled assemblies in the site's `Bin` (beside `FrontendSources`) without loading
   them, plus source published to `App_RuntimeCode`. Members added in code at run time (`Actions.Add`, a field added in
@@ -81,6 +85,8 @@ then **Extensions → Manage Extensions → ⋮ → Install from VSIX…** and r
   - expand a self-closing tag (AISI0001) or remove an empty fieldset (AISI0005);
   - declare a field the HTML uses but the TypeScript doesn't (AISI0011), writing the view-class extension, its
     imports and the `.ts` file if they don't exist yet;
+  - on a `<field>` tag, write a `ValueChanged` handler for that field into your screen class or screen extension,
+    with its imports (offered when the field is declared and has no handler yet);
   - suppress a finding on its line or in the file.
 - **Completions:**
   - Modern UI tags and attributes, plus the attributes and values the stock screen uses on that tag.
@@ -105,6 +111,11 @@ then **Extensions → Manage Extensions → ⋮ → Install from VSIX…** and r
   | `muiscreenext` | the start of a screen extension `.ts`, importing the stock screen |
   | `muiimports` | the `client-controls` import for views, fields and actions |
   | `muiimportscreen` | an import of the screen class and a view class from the stock screen |
+  | `muionvaluechanged` | a `ValueChanged` handler for one field of a view |
+  | `muionrowselected` / `muioncurrentrowchanged` | a `RowSelected` / `CurrentRowChanged` handler for a view |
+  | `muirowcss` / `muicellcss` | a `GetRowCss` / `GetCellCss` handler returning a CSS class |
+  | `muioncallback` | a `CallbackCompleted` handler |
+  | `muiimportevents` | the `client-controls` import for `handleEvent`, `CustomEventType` and the arguments types |
 
 ## Command line
 
@@ -120,7 +131,7 @@ Point it at `development/screens`: given the whole `src` folder, it reports ever
 ```
 examples/…/SO301000_Broken.html(4,3): error AISI0001: <field/> can't be self-closing: HTML only allows that on a few standard tags, so whatever follows ends up inside it. …
 examples/…/SO301000_Broken.html(10,35): warning AISI0009: [name='OrderDat'] is not in the stock SO301000.html, any extension of it, or above in this file. The Modern UI build fails on a selector that matches nothing.
-muilint: 4 files scanned, 4 errors, 6 warnings, 2 suggestions.
+muilint: 5 files scanned, 5 errors, 14 warnings, 4 suggestions.
 ```
 
 | Option | |

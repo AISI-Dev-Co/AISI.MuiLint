@@ -23,7 +23,6 @@ namespace AISI.MuiLint.Vsix
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
         }
 
-        /// <inheritdoc />
         public ICompletionSource TryCreateCompletionSource(ITextBuffer textBuffer)
         {
             if (textBuffer is null)

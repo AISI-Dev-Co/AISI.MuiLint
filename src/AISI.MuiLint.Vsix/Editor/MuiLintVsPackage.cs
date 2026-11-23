@@ -29,7 +29,6 @@ namespace AISI.MuiLint.Vsix
             get { return _packageJoinableTaskFactory; }
         }
 
-        /// <inheritdoc />
         protected override async Task InitializeAsync(
             CancellationToken cancellationToken,
             IProgress<ServiceProgressData> progress)

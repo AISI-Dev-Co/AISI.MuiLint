@@ -21,7 +21,6 @@ namespace AISI.MuiLint.Vsix
             _textDocumentFactory = textDocumentFactory ?? throw new ArgumentNullException(nameof(textDocumentFactory));
         }
 
-        /// <inheritdoc />
         public void AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> completionSets)
         {
             if (_disposed || session is null || completionSets is null)
@@ -44,7 +43,7 @@ namespace AISI.MuiLint.Vsix
             string path = EditorDocuments.Find(_buffer, _textDocumentFactory)?.FilePath;
             bool canRead = !string.IsNullOrEmpty(path) && Path.IsPathRooted(path);
 
-            var items = new List<MuiCompletionItem>();
+            List<MuiCompletionItem> items = new List<MuiCompletionItem>();
             switch (target)
             {
                 case MuiCompletionTarget.TagName:
@@ -85,7 +84,7 @@ namespace AISI.MuiLint.Vsix
                 Span.FromBounds(MuiHtmlCompletion.ApplicableStart(text, caret, target), caret),
                 SpanTrackingMode.EdgeInclusive);
 
-            var completions = new List<Completion>(items.Count);
+            List<Completion> completions = new List<Completion>(items.Count);
             for (int i = 0; i < items.Count; i++)
             {
                 MuiCompletionItem item = items[i];
@@ -105,7 +104,6 @@ namespace AISI.MuiLint.Vsix
                 Array.Empty<Completion>()));
         }
 
-        /// <inheritdoc />
         public void Dispose()
         {
             _disposed = true;
@@ -114,7 +112,7 @@ namespace AISI.MuiLint.Vsix
         /// <summary>Fields from the C# DAC extensions in the solution that the .ts doesn't declare yet.</summary>
         private static void AddDacFields(List<MuiCompletionItem> items, string htmlPath)
         {
-            var offered = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> offered = new HashSet<string>(StringComparer.Ordinal);
             foreach (MuiCompletionItem item in items)
             {
                 offered.Add(item.DisplayText);

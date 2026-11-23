@@ -95,7 +95,7 @@ namespace AISI.MuiLint.Tests
         [Fact]
         public void SelectorNotInStock_StaysQuietWithoutAStockFile()
         {
-            var files = new Dictionary<string, string> { [TypeScript] = string.Empty };
+            Dictionary<string, string> files = new Dictionary<string, string> { [TypeScript] = string.Empty };
             const string html = "<template><field name=\"UsrA\" after=\"[name='Nope']\"></field></template>";
             Assert.DoesNotContain(Scan(html, files), x => x.Id == DiagnosticIds.SelectorNotInStock);
         }

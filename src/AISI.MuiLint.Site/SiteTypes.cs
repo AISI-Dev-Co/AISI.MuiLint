@@ -55,8 +55,8 @@ namespace AISI.MuiLint.Site
 
         public SiteMetadata Build(IEnumerable<string> sourceNames)
         {
-            var graphs = new List<KeyValuePair<string, Ancestry>>();
-            var unsure = new List<KeyValuePair<string, Ancestry>>();
+            List<KeyValuePair<string, Ancestry>> graphs = new List<KeyValuePair<string, Ancestry>>();
+            List<KeyValuePair<string, Ancestry>> unsure = new List<KeyValuePair<string, Ancestry>>();
             foreach (KeyValuePair<string, TypeEntry> type in _types)
             {
                 if (!type.Value.IsConcreteClass)
@@ -103,7 +103,7 @@ namespace AISI.MuiLint.Site
                 }
             }
 
-            var result = new List<GraphMetadata>();
+            List<GraphMetadata> result = new List<GraphMetadata>();
             foreach (KeyValuePair<string, Ancestry> graph in graphs)
             {
                 Members members = GraphMembers(graph.Value);
@@ -189,7 +189,7 @@ namespace AISI.MuiLint.Site
         /// <summary>The base-type chain from <paramref name="start"/>, generic arguments substituted at each step.</summary>
         private Ancestry Walk(NamedSig start)
         {
-            var levels = new List<Level>();
+            List<Level> levels = new List<Level>();
             NamedSig current = start;
             try
             {
@@ -225,7 +225,7 @@ namespace AISI.MuiLint.Site
 
         private Members GraphMembers(Ancestry ancestry)
         {
-            var members = new Members(ancestry.Complete);
+            Members members = new Members(ancestry.Complete);
             AddFields(ancestry.Levels, members);
 
             // Base classes first, so a derived graph's own and its extensions' members win a clash of names.
@@ -340,7 +340,7 @@ namespace AISI.MuiLint.Site
             {
                 try
                 {
-                    var names = new List<string>();
+                    List<string> names = new List<string>();
                     foreach (Level level in ancestry.Levels)
                     {
                         AddProperties(level, names);
@@ -391,8 +391,7 @@ namespace AISI.MuiLint.Site
 
             public TypeDefinition Definition { get; }
 
-            // Abstract graphs and extensions only lend their members; generic ones (including types
-            // nested in generic types) are only ever used through a concrete class.
+            // Abstract graphs and extensions only lend their members, and generic ones (or types nested in them) are only used through a concrete class.
             public bool IsConcreteClass
             {
                 get

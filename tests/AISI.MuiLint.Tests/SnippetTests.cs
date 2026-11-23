@@ -15,7 +15,7 @@ namespace AISI.MuiLint.Tests
 
         public static TheoryData<string> Snippets()
         {
-            var data = new TheoryData<string>();
+            TheoryData<string> data = new TheoryData<string>();
             foreach (string file in Directory.GetFiles(Path.Combine(Folder, "TypeScript"), "*.snippet"))
             {
                 data.Add(Path.GetFileName(file));
@@ -40,6 +40,35 @@ namespace AISI.MuiLint.Tests
                 .Where(id => id != "end" && id != "selected").Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
             Assert.Equal(declared, used);
             Assert.Contains("$end$", code.Value, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("muionvaluechanged")]
+        [InlineData("muionrowselected")]
+        [InlineData("muioncurrentrowchanged")]
+        [InlineData("muirowcss")]
+        [InlineData("muicellcss")]
+        [InlineData("muioncallback")]
+        public void HandlerSnippets_PassTheHandlerRules(string shortcut)
+        {
+            XElement snippet = XDocument.Load(Path.Combine(Folder, "TypeScript", shortcut + ".snippet")).Root!.Element(Ns + "CodeSnippet")!.Element(Ns + "Snippet")!;
+            string code = snippet.Element(Ns + "Code")!.Value.Replace("$end$", string.Empty, StringComparison.Ordinal);
+            foreach (XElement literal in snippet.Descendants(Ns + "Literal"))
+            {
+                code = code.Replace("$" + literal.Element(Ns + "ID")!.Value + "$", literal.Element(Ns + "Default")!.Value, StringComparison.Ordinal);
+            }
+
+            string ts =
+                "export class XX301000 extends PXScreen {\n" +
+                "    Document = createSingle(Header);\n" +
+                "    Transactions = createCollection(Line);\n" +
+                code + "\n" +
+                "}\n" +
+                "export class Header extends PXView { CustomerID: PXFieldState; }\n" +
+                "export class Line extends PXView { OrderQty: PXFieldState; }\n";
+            const string path = "/site/src/development/screens/XX/XX301000/XX301000.ts";
+            Assert.Empty(TypeScriptScanner.Analyze(path, ts, p => p == path ? ts : null));
+            Assert.Single(new TsModule(path, ts).Handlers);
         }
 
         [Fact]

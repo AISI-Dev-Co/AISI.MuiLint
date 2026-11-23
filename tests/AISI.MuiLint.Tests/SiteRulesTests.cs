@@ -86,7 +86,7 @@ namespace AISI.MuiLint.Tests
                 + "    UsrPriority: PXFieldState;\n"
                 + "    UsrPriorty: PXFieldState;\n"
                 + "}\n";
-            var files = new Dictionary<string, string> { [Screen] = ScreenTs, [ExtensionTs] = extension };
+            Dictionary<string, string> files = new Dictionary<string, string> { [Screen] = ScreenTs, [ExtensionTs] = extension };
             IReadOnlyList<Diagnostic> found = TypeScriptScanner.Analyze(ExtensionTs, extension, BindingTests.Reader(files), BindingTests.Lister(files), Site(complete: true));
 
             Assert.Equal(new[] { "UsrAprove" }, Spans(found, DiagnosticIds.MemberNotInGraph, extension));
@@ -101,20 +101,20 @@ namespace AISI.MuiLint.Tests
                 .Replace("    Relase: PXActionState;\n", "    Relase: PXActionState;\n    ProcessAll: PXActionState;\n")
                 .Replace("    Stauts: PXFieldState;\n", "    Stauts: PXFieldState;\n    NoteText: PXFieldState;\n");
             SiteMetadata plain = Site(complete: true);
-            var withSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "relase", "Stauts", "Relese" });
+            SiteMetadata withSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "relase", "Stauts", "Relese" });
             IReadOnlyList<Diagnostic> found = Scan(ts, withSource);
 
             Assert.Equal(new[] { "Lnes" }, found.Where(d => d.Id == DiagnosticIds.MemberNotInGraph).Select(d => ts.Substring(d.Start, d.Length)));
             Assert.DoesNotContain(found, d => d.Id == DiagnosticIds.FieldNotInView || d.Id == DiagnosticIds.LinkCommandUnknownAction);
 
-            var graphInSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "XXEntyr" });
+            SiteMetadata graphInSource = new SiteMetadata(plain.Graphs.Values, plain.Features, new[] { "XXEntyr" });
             Assert.DoesNotContain(Scan(ts.Replace("XXEntry", "XXEntyr"), graphInSource), d => d.Id == DiagnosticIds.GraphNotInSite);
         }
 
         [Fact]
         public void FindGraph_TakesNestedTypesEitherWay()
         {
-            var site = new SiteMetadata(new[] { new GraphMetadata("PX.Objects.XX.Outer+Inner", Array.Empty<ViewMetadata>(), Array.Empty<string>(), true) }, null);
+            SiteMetadata site = new SiteMetadata(new[] { new GraphMetadata("PX.Objects.XX.Outer+Inner", Array.Empty<ViewMetadata>(), Array.Empty<string>(), true) }, null);
             Assert.NotNull(site.FindGraph("PX.Objects.XX.Outer+Inner"));
             Assert.NotNull(site.FindGraph("PX.Objects.XX.Outer.Inner"));
             Assert.NotNull(site.FindGraph("px.objects.xx.outer.inner"));
@@ -123,7 +123,7 @@ namespace AISI.MuiLint.Tests
 
         private static IReadOnlyList<Diagnostic> Scan(string ts, SiteMetadata site)
         {
-            var files = new Dictionary<string, string> { [Screen] = ts };
+            Dictionary<string, string> files = new Dictionary<string, string> { [Screen] = ts };
             return TypeScriptScanner.Analyze(Screen, ts, BindingTests.Reader(files), BindingTests.Lister(files), site);
         }
 
@@ -135,7 +135,7 @@ namespace AISI.MuiLint.Tests
         private static SiteMetadata Site(bool complete)
         {
             string[] document = { "RefNbr", "Status", "Description", "Note", "UsrPriority" };
-            var graph = new GraphMetadata(
+            GraphMetadata graph = new GraphMetadata(
                 "PX.Objects.XX.XXEntry",
                 new[]
                 {

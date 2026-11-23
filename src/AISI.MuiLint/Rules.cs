@@ -39,7 +39,6 @@ namespace AISI.MuiLint
         /// <summary>Home of the project.</summary>
         public const string RepositoryUrl = "https://github.com/AISI-Dev-Co/AISI.MuiLint";
 
-        /// <summary>Gets all rules.</summary>
         public static IReadOnlyList<Rule> All { get; } = new[]
         {
             new Rule(
@@ -181,7 +180,27 @@ namespace AISI.MuiLint
                 DiagnosticIds.FeatureNotInSite,
                 "@featureInstalled with an unknown feature",
                 Severity.Warning,
-                "@featureInstalled names a FeaturesSet field (PX.Objects.CS.FeaturesSet+Name). One the site's FeaturesSet doesn't have is never switched on.")
+                "@featureInstalled names a FeaturesSet field (PX.Objects.CS.FeaturesSet+Name). One the site's FeaturesSet doesn't have is never switched on."),
+            new Rule(
+                DiagnosticIds.HandlerMissingTarget,
+                "@handleEvent without its view, field or column",
+                Severity.Warning,
+                "Every event but CallbackCompleted is raised for a view, ValueChanged for one field of it, and GetCellCss for one column or allColumns. client-controls types these properties as required, so a handler without them is attached to nothing."),
+            new Rule(
+                DiagnosticIds.HandlerFieldNotDeclared,
+                "@handleEvent names an unknown field",
+                Severity.Warning,
+                "The field of a ValueChanged handler and the column of a GetCellCss handler must be fields the view's class declares. Acumatica's docs: if you specify a field that is not defined in the provided view, an error will be shown."),
+            new Rule(
+                DiagnosticIds.HandlerArgsOfAnotherEvent,
+                "Event handler takes another event's arguments",
+                Severity.Warning,
+                "Each event passes its own arguments: ValueChangedHandlerArgs has newValue, RowSelectedHandlerArgs has rowIndex, the CSS events have selector. A handler typed for another event reads properties that aren't there."),
+            new Rule(
+                DiagnosticIds.ExtensionMethodCollision,
+                "Extension method replaces a screen method",
+                Severity.Warning,
+                "client-controls copies an extension's methods onto the screen class by name. A method with the same name as one the screen or another extension already has replaces it without a word, unless both are event handlers.")
         };
 
         /// <summary>Looks up a rule by id, or null for an unknown id.</summary>

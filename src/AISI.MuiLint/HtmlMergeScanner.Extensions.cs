@@ -42,7 +42,7 @@ namespace AISI.MuiLint
             }
 
             string tail = module + "/" + screen + "/extensions";
-            var folders = new List<string> { src + "screens/" + tail, src + "development/screens/" + tail };
+            List<string> folders = new List<string> { src + "screens/" + tail, src + "development/screens/" + tail };
             foreach (string project in listFolder(src + "customizationScreens"))
             {
                 string projectPath = NormalizePath(project);
@@ -116,8 +116,8 @@ namespace AISI.MuiLint
             List<Diagnostic> results)
         {
             // Anchoring on something this file adds above is fine: the merge applies elements in order.
-            var localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> localNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> localIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < tags.Count; i++)
             {
                 HtmlTag tag = tags[i];
@@ -172,8 +172,7 @@ namespace AISI.MuiLint
             }
         }
 
-        // A selector of a shape we can count: more than one stock match fails the build, and so does
-        // #id [name='X'] when X is in the stock screen but not inside #id.
+        // Only selector shapes we can count are judged: the build fails on more than one stock match, and on #id [name='X'] when X isn't inside #id.
         private static void CountMatches(string path, HtmlAttribute attr, StockScreen stock, HashSet<string> localNames, LineMap lineMap, List<Diagnostic> results)
         {
             Match m = SimpleSelector.Match(attr.Value);
@@ -296,7 +295,7 @@ namespace AISI.MuiLint
                     return null;
                 }
 
-                var stock = new StockScreen(Path.GetFileName(stockPath));
+                StockScreen stock = new StockScreen(Path.GetFileName(stockPath));
                 stock.Collect(stockPath, html, readFile, 0, Array.Empty<string>(), isStock: true);
 
                 // Every other extension of the screen is merged in too, so what they add can be targeted.
@@ -325,7 +324,7 @@ namespace AISI.MuiLint
             {
                 IReadOnlyList<HtmlTag> tags = HtmlTagReader.Read(MaskComments(html));
                 int[] parents = HtmlTagReader.Parents(tags);
-                var lineMap = new LineMap(html);
+                LineMap lineMap = new LineMap(html);
                 for (int i = 0; i < tags.Count; i++)
                 {
                     HtmlTag tag = tags[i];
@@ -335,7 +334,7 @@ namespace AISI.MuiLint
                     }
 
                     lineMap.ToLineCol(tag.Start, out int line, out int column);
-                    var location = new SourceLocation(filePath, line, column);
+                    SourceLocation location = new SourceLocation(filePath, line, column);
                     string name = tag.GetAttribute("name");
                     string id = tag.GetAttribute("id");
                     if (!Names.ContainsKey(name))
@@ -402,7 +401,7 @@ namespace AISI.MuiLint
 
             private static List<string> EnclosingIds(IReadOnlyList<HtmlTag> tags, int[] parents, int index, IReadOnlyList<string> outerIds)
             {
-                var ids = new List<string>(outerIds);
+                List<string> ids = new List<string>(outerIds);
                 for (int p = parents[index]; p >= 0; p = parents[p])
                 {
                     string id = tags[p].GetAttribute("id");
